@@ -2,6 +2,7 @@
 title: "LLM API Spend Monitor - Plan"
 type: feat
 date: 2026-07-10
+deepened: 2026-07-10
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 product_contract_source: ce-plan-bootstrap
