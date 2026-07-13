@@ -1,0 +1,237 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000101 /* LLMSpendMonitorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000201 /* LLMSpendMonitorApp.swift */; };
+		A00000000000000000000102 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000202 /* AppState.swift */; };
+		A00000000000000000000103 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000203 /* StatusBarController.swift */; };
+		A00000000000000000000104 /* MenuBarLabelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000204 /* MenuBarLabelView.swift */; };
+		A00000000000000000000105 /* DashboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000205 /* DashboardRootView.swift */; };
+		A00000000000000000000106 /* MenuBarShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000206 /* MenuBarShellTests.swift */; };
+		A00000000000000000000107 /* MenuBarLifecycleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000207 /* MenuBarLifecycleUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000301 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000401 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000501;
+			remoteInfo = LLMSpendMonitor;
+		};
+		A00000000000000000000302 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000401 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000501;
+			remoteInfo = LLMSpendMonitor;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000201 /* LLMSpendMonitorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMSpendMonitorApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000202 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A00000000000000000000203 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		A00000000000000000000204 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
+		A00000000000000000000205 /* DashboardRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRootView.swift; sourceTree = "<group>"; };
+		A00000000000000000000206 /* MenuBarShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShellTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000207 /* MenuBarLifecycleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLifecycleUITests.swift; sourceTree = "<group>"; };
+		A00000000000000000000208 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000000000000000000209 /* LLMSpendMonitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LLMSpendMonitor.entitlements; sourceTree = "<group>"; };
+		A00000000000000000000210 /* LLMSpendMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LLMSpendMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000211 /* LLMSpendMonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LLMSpendMonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000212 /* LLMSpendMonitorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LLMSpendMonitorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000601 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000602 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000603 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000701 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000702 /* LLMSpendMonitor */,
+				A00000000000000000000706 /* LLMSpendMonitorTests */,
+				A00000000000000000000708 /* LLMSpendMonitorUITests */,
+				A00000000000000000000709 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000702 /* LLMSpendMonitor */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000703 /* App */,
+				A00000000000000000000704 /* UI */,
+				A00000000000000000000208 /* Info.plist */,
+				A00000000000000000000209 /* LLMSpendMonitor.entitlements */,
+			);
+			path = LLMSpendMonitor;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000703 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000201 /* LLMSpendMonitorApp.swift */,
+				A00000000000000000000202 /* AppState.swift */,
+				A00000000000000000000203 /* StatusBarController.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000704 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000705 /* MenuBar */,
+				A0000000000000000000070A /* Dashboard */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000705 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000204 /* MenuBarLabelView.swift */);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000070A /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000205 /* DashboardRootView.swift */);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000706 /* LLMSpendMonitorTests */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000707 /* App */);
+			path = LLMSpendMonitorTests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000707 /* App */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000206 /* MenuBarShellTests.swift */);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000708 /* LLMSpendMonitorUITests */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000207 /* MenuBarLifecycleUITests.swift */);
+			path = LLMSpendMonitorUITests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000709 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000210 /* LLMSpendMonitor.app */,
+				A00000000000000000000211 /* LLMSpendMonitorTests.xctest */,
+				A00000000000000000000212 /* LLMSpendMonitorUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000501 /* LLMSpendMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000802 /* Build configuration list for PBXNativeTarget "LLMSpendMonitor" */;
+			buildPhases = (A00000000000000000000611 /* Sources */, A00000000000000000000601 /* Frameworks */, A00000000000000000000621 /* Resources */);
+			buildRules = ();
+			dependencies = ();
+			name = LLMSpendMonitor;
+			productName = LLMSpendMonitor;
+			productReference = A00000000000000000000210 /* LLMSpendMonitor.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000502 /* LLMSpendMonitorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000803 /* Build configuration list for PBXNativeTarget "LLMSpendMonitorTests" */;
+			buildPhases = (A00000000000000000000612 /* Sources */, A00000000000000000000602 /* Frameworks */, A00000000000000000000622 /* Resources */);
+			buildRules = ();
+			dependencies = (A00000000000000000000311 /* PBXTargetDependency */);
+			name = LLMSpendMonitorTests;
+			productName = LLMSpendMonitorTests;
+			productReference = A00000000000000000000211 /* LLMSpendMonitorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A00000000000000000000503 /* LLMSpendMonitorUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000804 /* Build configuration list for PBXNativeTarget "LLMSpendMonitorUITests" */;
+			buildPhases = (A00000000000000000000613 /* Sources */, A00000000000000000000603 /* Frameworks */, A00000000000000000000623 /* Resources */);
+			buildRules = ();
+			dependencies = (A00000000000000000000312 /* PBXTargetDependency */);
+			name = LLMSpendMonitorUITests;
+			productName = LLMSpendMonitorUITests;
+			productReference = A00000000000000000000212 /* LLMSpendMonitorUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000401 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					A00000000000000000000501 = {CreatedOnToolsVersion = 26.6;};
+					A00000000000000000000502 = {CreatedOnToolsVersion = 26.6; TestTargetID = A00000000000000000000501;};
+					A00000000000000000000503 = {CreatedOnToolsVersion = 26.6; TestTargetID = A00000000000000000000501;};
+				};
+			};
+			buildConfigurationList = A00000000000000000000801 /* Build configuration list for PBXProject "LLMSpendMonitor" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = A00000000000000000000701;
+			productRefGroup = A00000000000000000000709 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A00000000000000000000501 /* LLMSpendMonitor */, A00000000000000000000502 /* LLMSpendMonitorTests */, A00000000000000000000503 /* LLMSpendMonitorUITests */);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000621 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000622 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000623 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000311 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A00000000000000000000501 /* LLMSpendMonitor */; targetProxy = A00000000000000000000301 /* PBXContainerItemProxy */; };
+		A00000000000000000000312 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A00000000000000000000501 /* LLMSpendMonitor */; targetProxy = A00000000000000000000302 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000901 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_STRICT_CONCURRENCY = complete;}; name = Debug; };
+		A00000000000000000000902 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_STRICT_CONCURRENCY = complete;}; name = Release; };
+		A00000000000000000000903 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = LLMSpendMonitor/LLMSpendMonitor.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; ENABLE_TESTABILITY = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = LLMSpendMonitor/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitor; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_VERSION = 6.0;}; name = Debug; };
+		A00000000000000000000904 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = LLMSpendMonitor/LLMSpendMonitor.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = LLMSpendMonitor/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitor; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0;}; name = Release; };
+		A00000000000000000000905 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitorTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LLMSpendMonitor.app/Contents/MacOS/LLMSpendMonitor";}; name = Debug; };
+		A00000000000000000000906 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitorTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LLMSpendMonitor.app/Contents/MacOS/LLMSpendMonitor";}; name = Release; };
+		A00000000000000000000907 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitorUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TEST_TARGET_NAME = LLMSpendMonitor;}; name = Debug; };
+		A00000000000000000000908 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.bestmark.LLMSpendMonitorUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TEST_TARGET_NAME = LLMSpendMonitor;}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000801 /* Build configuration list for PBXProject "LLMSpendMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000901, A00000000000000000000902); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000802 /* Build configuration list for PBXNativeTarget "LLMSpendMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000903, A00000000000000000000904); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000803 /* Build configuration list for PBXNativeTarget "LLMSpendMonitorTests" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000905, A00000000000000000000906); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000804 /* Build configuration list for PBXNativeTarget "LLMSpendMonitorUITests" */ = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000907, A00000000000000000000908); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000401 /* Project object */;
+}
