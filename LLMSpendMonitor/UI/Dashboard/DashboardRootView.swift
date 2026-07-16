@@ -134,38 +134,3 @@ private struct DashboardView: View {
         .accessibilityIdentifier("dashboard.root")
     }
 }
-
-private struct ConnectionsView: View {
-    let showDashboard: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Button("Back", systemImage: "chevron.left", action: showDashboard)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("connections.back")
-                Text("Connections")
-                    .font(.title2.bold())
-            }
-
-            Text("Provider credentials are added in the next milestone.")
-                .foregroundStyle(.secondary)
-
-            ForEach(["OpenAI", "Anthropic", "Gemini", "DeepSeek"], id: \.self) { provider in
-                HStack {
-                    Text(provider)
-                    Spacer()
-                    Text("Not connected")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(12)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-            }
-
-            Spacer()
-        }
-        .padding(20)
-        .accessibilityIdentifier("connections.root")
-    }
-}

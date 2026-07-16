@@ -1,0 +1,44 @@
+import SwiftUI
+
+struct ConnectionsView: View {
+    let showDashboard: () -> Void
+    private let connectionModels: [ConnectionViewModel]
+
+    @MainActor
+    init(
+        showDashboard: @escaping () -> Void,
+        credentialStore: CredentialStoring = KeychainStore()
+    ) {
+        self.showDashboard = showDashboard
+        connectionModels = ProviderRegistry.all.map {
+            ConnectionViewModel(metadata: $0, credentialStore: credentialStore)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Button("Back", systemImage: "chevron.left", action: showDashboard)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("connections.back")
+                Text("Connections")
+                    .font(.title2.bold())
+            }
+
+            Text("Keys stay in this Mac’s Keychain and are never shown again after saving.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(connectionModels) { model in
+                        ProviderConnectionView(viewModel: model)
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .accessibilityIdentifier("connections.root")
+    }
+}

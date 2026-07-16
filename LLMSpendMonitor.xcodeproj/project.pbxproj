@@ -13,6 +13,21 @@
 		A00000000000000000000105 /* DashboardRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000205 /* DashboardRootView.swift */; };
 		A00000000000000000000106 /* MenuBarShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000206 /* MenuBarShellTests.swift */; };
 		A00000000000000000000107 /* MenuBarLifecycleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000207 /* MenuBarLifecycleUITests.swift */; };
+		A00000000000000000000108 /* MoneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000213 /* MoneyTests.swift */; };
+		A00000000000000000000109 /* ProviderRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000214 /* ProviderRegistryTests.swift */; };
+		A0000000000000000000010A /* KeychainStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000215 /* KeychainStoreTests.swift */; };
+		A0000000000000000000010B /* ConnectionViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000216 /* ConnectionViewModelTests.swift */; };
+		A0000000000000000000010C /* SecretLeakRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000217 /* SecretLeakRegressionTests.swift */; };
+		A0000000000000000000010D /* ConnectionFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000218 /* ConnectionFlowUITests.swift */; };
+		A0000000000000000000010E /* ProviderID.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000219 /* ProviderID.swift */; };
+		A0000000000000000000010F /* ProviderCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021A /* ProviderCapability.swift */; };
+		A00000000000000000000110 /* ExternalLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021B /* ExternalLink.swift */; };
+		A00000000000000000000111 /* Money.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021C /* Money.swift */; };
+		A00000000000000000000112 /* ProviderRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021D /* ProviderRegistry.swift */; };
+		A00000000000000000000113 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021E /* KeychainStore.swift */; };
+		A00000000000000000000114 /* ConnectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021F /* ConnectionViewModel.swift */; };
+		A00000000000000000000115 /* ProviderConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000220 /* ProviderConnectionView.swift */; };
+		A00000000000000000000116 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000221 /* ConnectionsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +60,21 @@
 		A00000000000000000000210 /* LLMSpendMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LLMSpendMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000211 /* LLMSpendMonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LLMSpendMonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000212 /* LLMSpendMonitorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LLMSpendMonitorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000213 /* MoneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000214 /* ProviderRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderRegistryTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000215 /* KeychainStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStoreTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000216 /* ConnectionViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionViewModelTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000217 /* SecretLeakRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretLeakRegressionTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000218 /* ConnectionFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFlowUITests.swift; sourceTree = "<group>"; };
+		A00000000000000000000219 /* ProviderID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderID.swift; sourceTree = "<group>"; };
+		A0000000000000000000021A /* ProviderCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderCapability.swift; sourceTree = "<group>"; };
+		A0000000000000000000021B /* ExternalLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalLink.swift; sourceTree = "<group>"; };
+		A0000000000000000000021C /* Money.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Money.swift; sourceTree = "<group>"; };
+		A0000000000000000000021D /* ProviderRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderRegistry.swift; sourceTree = "<group>"; };
+		A0000000000000000000021E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		A0000000000000000000021F /* ConnectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionViewModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000220 /* ProviderConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderConnectionView.swift; sourceTree = "<group>"; };
+		A00000000000000000000221 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +98,10 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000703 /* App */,
+				A00000000000000000000710 /* Domain */,
+				A00000000000000000000711 /* Providers */,
+				A00000000000000000000712 /* Infrastructure */,
+				A00000000000000000000713 /* Features */,
 				A00000000000000000000704 /* UI */,
 				A00000000000000000000208 /* Info.plist */,
 				A00000000000000000000209 /* LLMSpendMonitor.entitlements */,
@@ -90,6 +124,7 @@
 			children = (
 				A00000000000000000000705 /* MenuBar */,
 				A0000000000000000000070A /* Dashboard */,
+				A00000000000000000000717 /* Connections */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -108,7 +143,14 @@
 		};
 		A00000000000000000000706 /* LLMSpendMonitorTests */ = {
 			isa = PBXGroup;
-			children = (A00000000000000000000707 /* App */);
+			children = (
+				A00000000000000000000707 /* App */,
+				A0000000000000000000070B /* Domain */,
+				A0000000000000000000070C /* Providers */,
+				A0000000000000000000070D /* Infrastructure */,
+				A0000000000000000000070E /* Features */,
+				A0000000000000000000070F /* Security */,
+			);
 			path = LLMSpendMonitorTests;
 			sourceTree = "<group>";
 		};
@@ -120,10 +162,25 @@
 		};
 		A00000000000000000000708 /* LLMSpendMonitorUITests */ = {
 			isa = PBXGroup;
-			children = (A00000000000000000000207 /* MenuBarLifecycleUITests.swift */);
+			children = (
+				A00000000000000000000207 /* MenuBarLifecycleUITests.swift */,
+				A00000000000000000000218 /* ConnectionFlowUITests.swift */,
+			);
 			path = LLMSpendMonitorUITests;
 			sourceTree = "<group>";
 		};
+		A0000000000000000000070B /* Domain */ = {isa = PBXGroup; children = (A00000000000000000000213 /* MoneyTests.swift */); path = Domain; sourceTree = "<group>"; };
+		A0000000000000000000070C /* Providers */ = {isa = PBXGroup; children = (A00000000000000000000214 /* ProviderRegistryTests.swift */); path = Providers; sourceTree = "<group>"; };
+		A0000000000000000000070D /* Infrastructure */ = {isa = PBXGroup; children = (A00000000000000000000215 /* KeychainStoreTests.swift */); path = Infrastructure; sourceTree = "<group>"; };
+		A0000000000000000000070E /* Features */ = {isa = PBXGroup; children = (A00000000000000000000216 /* ConnectionViewModelTests.swift */); path = Features; sourceTree = "<group>"; };
+		A0000000000000000000070F /* Security */ = {isa = PBXGroup; children = (A00000000000000000000217 /* SecretLeakRegressionTests.swift */); path = Security; sourceTree = "<group>"; };
+		A00000000000000000000710 /* Domain */ = {isa = PBXGroup; children = (A00000000000000000000219 /* ProviderID.swift */, A0000000000000000000021A /* ProviderCapability.swift */, A0000000000000000000021B /* ExternalLink.swift */, A0000000000000000000021C /* Money.swift */); path = Domain; sourceTree = "<group>"; };
+		A00000000000000000000711 /* Providers */ = {isa = PBXGroup; children = (A0000000000000000000021D /* ProviderRegistry.swift */); path = Providers; sourceTree = "<group>"; };
+		A00000000000000000000712 /* Infrastructure */ = {isa = PBXGroup; children = (A00000000000000000000714 /* Security */); path = Infrastructure; sourceTree = "<group>"; };
+		A00000000000000000000713 /* Features */ = {isa = PBXGroup; children = (A00000000000000000000715 /* Connections */); path = Features; sourceTree = "<group>"; };
+		A00000000000000000000714 /* Security */ = {isa = PBXGroup; children = (A0000000000000000000021E /* KeychainStore.swift */); path = Security; sourceTree = "<group>"; };
+		A00000000000000000000715 /* Connections */ = {isa = PBXGroup; children = (A0000000000000000000021F /* ConnectionViewModel.swift */); path = Connections; sourceTree = "<group>"; };
+		A00000000000000000000717 /* Connections */ = {isa = PBXGroup; children = (A00000000000000000000220 /* ProviderConnectionView.swift */, A00000000000000000000221 /* ConnectionsView.swift */); path = Connections; sourceTree = "<group>"; };
 		A00000000000000000000709 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -205,9 +262,9 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107, A0000000000000000000010D); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
