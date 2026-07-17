@@ -122,24 +122,14 @@ private struct DashboardView: View {
                     .buttonStyle(.plain)
             }
 
-            Picker("Period", selection: $viewModel.selectedPeriod) {
-                ForEach(DashboardPeriod.allCases) { period in
-                    Text(period.title).tag(period)
-                }
-            }
-            .pickerStyle(.segmented)
+            PeriodPicker(selection: $viewModel.selectedPeriod)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Official spend")
-                    .foregroundStyle(.secondary)
-                Text(MetricFormatting.money(viewModel.officialUSDTotal))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                Text("Complete official USD reports only")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
+            SummaryCard(
+                total: viewModel.officialUSDTotal,
+                breakdown: viewModel.officialUSDBreakdown,
+                dailySpend: viewModel.officialUSDDailySpend,
+                excludedProviderCount: viewModel.excludedOfficialCostProviderCount
+            )
 
             ScrollView {
                 LazyVStack(spacing: 12) {
