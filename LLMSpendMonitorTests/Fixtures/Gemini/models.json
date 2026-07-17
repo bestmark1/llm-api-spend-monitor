@@ -1,0 +1,10 @@
+{
+  "models": [
+    {
+      "name": "models/gemini-3.5-flash",
+      "displayName": "Gemini 3.5 Flash",
+      "supportedGenerationMethods": ["generateContent", "countTokens"]
+    }
+  ],
+  "nextPageToken": "unused-for-validation"
+}
