@@ -9,6 +9,7 @@ final class ProviderTargetFactory: Sendable {
         credentialStore: any CredentialStoring = KeychainStore(),
         openAIProvider: any ProviderClient = OpenAIProvider(),
         anthropicProvider: any ProviderClient = AnthropicProvider(),
+        geminiProvider: any ProviderClient = GeminiProvider(),
         deepSeekProvider: any ProviderClient = DeepSeekProvider(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
@@ -17,16 +18,29 @@ final class ProviderTargetFactory: Sendable {
             ProviderConfiguration(
                 provider: openAIProvider,
                 minimumInterval: 15 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
                 usesReportingWindow: true
             ),
             ProviderConfiguration(
                 provider: anthropicProvider,
                 minimumInterval: 15 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
                 usesReportingWindow: true
+            ),
+            ProviderConfiguration(
+                provider: geminiProvider,
+                minimumInterval: 0,
+                automaticRefreshEnabled: false,
+                purpose: .credentialValidation,
+                usesReportingWindow: false
             ),
             ProviderConfiguration(
                 provider: deepSeekProvider,
                 minimumInterval: 5 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
                 usesReportingWindow: false
             )
         ]
@@ -45,11 +59,16 @@ final class ProviderTargetFactory: Sendable {
                 providerID: provider.providerID,
                 generation: 0,
                 minimumInterval: configuration.minimumInterval,
-                automaticRefreshEnabled: true,
-                fetch: { [now, usesReportingWindow = configuration.usesReportingWindow] in
+                automaticRefreshEnabled: configuration.automaticRefreshEnabled,
+                fetch: {
+                    [
+                        now,
+                        purpose = configuration.purpose,
+                        usesReportingWindow = configuration.usesReportingWindow
+                    ] in
                     try await provider.fetch(
                         ProviderFetchRequest(
-                            purpose: .full,
+                            purpose: purpose,
                             reportingInterval: usesReportingWindow
                                 ? Self.thirtyDayUTCInterval(containing: now())
                                 : nil
@@ -78,6 +97,8 @@ private extension ProviderTargetFactory {
     struct ProviderConfiguration: Sendable {
         let provider: any ProviderClient
         let minimumInterval: TimeInterval
+        let automaticRefreshEnabled: Bool
+        let purpose: ProviderFetchRequest.Purpose
         let usesReportingWindow: Bool
     }
 }

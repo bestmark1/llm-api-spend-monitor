@@ -111,23 +111,53 @@ final class ProviderTargetFactoryTests: XCTestCase {
         XCTAssertNil(call?.request.reportingInterval)
     }
 
+    func testGeminiTargetValidatesOnlyOnCredentialChanges() async throws {
+        let store = TargetCredentialStore()
+        try store.save("gemini-token", for: Self.geminiIdentity)
+        let provider = ProviderClientRecorder(providerID: .gemini)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            geminiProvider: provider,
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek)
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .gemini)
+        XCTAssertEqual(target.minimumInterval, 0)
+        XCTAssertFalse(target.automaticRefreshEnabled)
+        XCTAssertEqual(call?.credential, "gemini-token")
+        XCTAssertEqual(call?.request.purpose, .credentialValidation)
+        XCTAssertNil(call?.request.reportingInterval)
+    }
+
     func testCreatesTargetsForEveryConnectedProvider() throws {
         let store = TargetCredentialStore()
         try store.save("openai-admin-token", for: Self.openAIIdentity)
         try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
+        try store.save("gemini-token", for: Self.geminiIdentity)
         try store.save("deepseek-token", for: Self.deepSeekIdentity)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            geminiProvider: ProviderClientRecorder(providerID: .gemini),
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek)
         )
 
-        XCTAssertEqual(factory.makeTargets().map(\.providerID), [.openAI, .anthropic, .deepSeek])
+        XCTAssertEqual(
+            factory.makeTargets().map(\.providerID),
+            [.openAI, .anthropic, .gemini, .deepSeek]
+        )
     }
 
     private static let openAIIdentity = CredentialIdentity(providerID: .openAI)
     private static let anthropicIdentity = CredentialIdentity(providerID: .anthropic)
+    private static let geminiIdentity = CredentialIdentity(providerID: .gemini)
     private static let deepSeekIdentity = CredentialIdentity(providerID: .deepSeek)
 }
 
@@ -163,9 +193,14 @@ private actor ProviderClientRecorder: ProviderClient {
 
     init(providerID: ProviderID = .openAI) {
         self.providerID = providerID
-        capabilities = providerID == .deepSeek
-            ? [.balance]
-            : [.officialCostHistory, .tokenUsage, .modelBreakdown]
+        switch providerID {
+        case .gemini:
+            capabilities = [.credentialValidation]
+        case .deepSeek:
+            capabilities = [.balance]
+        case .openAI, .anthropic:
+            capabilities = [.officialCostHistory, .tokenUsage, .modelBreakdown]
+        }
     }
 
     func fetch(
