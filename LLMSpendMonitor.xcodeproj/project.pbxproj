@@ -33,6 +33,9 @@
 		A00000000000000000000119 /* ProviderClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000224 /* ProviderClient.swift */; };
 		A0000000000000000000011A /* SnapshotCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000225 /* SnapshotCacheTests.swift */; };
 		A0000000000000000000011B /* SnapshotCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000226 /* SnapshotCache.swift */; };
+		A0000000000000000000011C /* RefreshTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000227 /* RefreshTrigger.swift */; };
+		A0000000000000000000011D /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000228 /* RefreshCoordinator.swift */; };
+		A0000000000000000000011E /* RefreshCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000229 /* RefreshCoordinatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +88,9 @@
 		A00000000000000000000224 /* ProviderClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderClient.swift; sourceTree = "<group>"; };
 		A00000000000000000000225 /* SnapshotCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotCacheTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000226 /* SnapshotCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotCache.swift; sourceTree = "<group>"; };
+		A00000000000000000000227 /* RefreshTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshTrigger.swift; sourceTree = "<group>"; };
+		A00000000000000000000228 /* RefreshCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000229 /* RefreshCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinatorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +118,7 @@
 				A00000000000000000000711 /* Providers */,
 				A00000000000000000000712 /* Infrastructure */,
 				A00000000000000000000713 /* Features */,
+				A00000000000000000000719 /* Services */,
 				A00000000000000000000704 /* UI */,
 				A00000000000000000000208 /* Info.plist */,
 				A00000000000000000000209 /* LLMSpendMonitor.entitlements */,
@@ -160,6 +167,7 @@
 				A0000000000000000000070D /* Infrastructure */,
 				A0000000000000000000070E /* Features */,
 				A0000000000000000000070F /* Security */,
+				A0000000000000000000071A /* Services */,
 			);
 			path = LLMSpendMonitorTests;
 			sourceTree = "<group>";
@@ -192,6 +200,8 @@
 		A00000000000000000000715 /* Connections */ = {isa = PBXGroup; children = (A0000000000000000000021F /* ConnectionViewModel.swift */); path = Connections; sourceTree = "<group>"; };
 		A00000000000000000000717 /* Connections */ = {isa = PBXGroup; children = (A00000000000000000000220 /* ProviderConnectionView.swift */, A00000000000000000000221 /* ConnectionsView.swift */); path = Connections; sourceTree = "<group>"; };
 		A00000000000000000000718 /* Persistence */ = {isa = PBXGroup; children = (A00000000000000000000226 /* SnapshotCache.swift */); path = Persistence; sourceTree = "<group>"; };
+		A00000000000000000000719 /* Services */ = {isa = PBXGroup; children = (A00000000000000000000227 /* RefreshTrigger.swift */, A00000000000000000000228 /* RefreshCoordinator.swift */); path = Services; sourceTree = "<group>"; };
+		A0000000000000000000071A /* Services */ = {isa = PBXGroup; children = (A00000000000000000000229 /* RefreshCoordinatorTests.swift */); path = Services; sourceTree = "<group>"; };
 		A00000000000000000000709 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -273,8 +283,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C, A00000000000000000000117, A0000000000000000000011A); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B, A0000000000000000000011C, A0000000000000000000011D); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C, A00000000000000000000117, A0000000000000000000011A, A0000000000000000000011E); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107, A0000000000000000000010D); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
