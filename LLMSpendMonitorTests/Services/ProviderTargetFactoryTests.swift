@@ -4,7 +4,7 @@ import XCTest
 final class ProviderTargetFactoryTests: XCTestCase {
     func testOpenAITargetUsesKeychainCredentialAndUTCThirtyDayWindow() async throws {
         let store = TargetCredentialStore()
-        try store.save("openai-admin-token", for: Self.identity)
+        try store.save("openai-admin-token", for: Self.openAIIdentity)
         let provider = ProviderClientRecorder()
         let now = Date(timeIntervalSince1970: 1_784_283_600)
         let factory = ProviderTargetFactory(
@@ -32,7 +32,7 @@ final class ProviderTargetFactoryTests: XCTestCase {
 
     func testTargetBecomesStaleWhenCredentialIsReplacedOrDeleted() async throws {
         let store = TargetCredentialStore()
-        try store.save("first-token", for: Self.identity)
+        try store.save("first-token", for: Self.openAIIdentity)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder()
@@ -42,11 +42,11 @@ final class ProviderTargetFactoryTests: XCTestCase {
         let initiallyCurrent = await target.generationIsCurrent(target.generation)
         XCTAssertTrue(initiallyCurrent)
 
-        try store.save("replacement-token", for: Self.identity)
+        try store.save("replacement-token", for: Self.openAIIdentity)
         let currentAfterReplacement = await target.generationIsCurrent(target.generation)
         XCTAssertFalse(currentAfterReplacement)
 
-        try store.delete(for: Self.identity)
+        try store.delete(for: Self.openAIIdentity)
         let currentAfterDeletion = await target.generationIsCurrent(target.generation)
         XCTAssertFalse(currentAfterDeletion)
     }
@@ -60,7 +60,50 @@ final class ProviderTargetFactoryTests: XCTestCase {
         XCTAssertTrue(factory.makeTargets().isEmpty)
     }
 
-    private static let identity = CredentialIdentity(providerID: .openAI)
+    func testAnthropicTargetUsesAdminCredentialAndUTCThirtyDayWindow() async throws {
+        let store = TargetCredentialStore()
+        try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
+        let provider = ProviderClientRecorder(providerID: .anthropic)
+        let now = Date(timeIntervalSince1970: 1_784_283_600)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: provider,
+            now: { now }
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .anthropic)
+        XCTAssertEqual(target.minimumInterval, 15 * 60)
+        XCTAssertEqual(call?.credential, "anthropic-admin-token")
+        XCTAssertEqual(call?.request.purpose, .full)
+        XCTAssertEqual(
+            call?.request.reportingInterval,
+            DateInterval(
+                start: Date(timeIntervalSince1970: 1_781_740_800),
+                end: Date(timeIntervalSince1970: 1_784_332_800)
+            )
+        )
+    }
+
+    func testCreatesTargetsForEveryConnectedProvider() throws {
+        let store = TargetCredentialStore()
+        try store.save("openai-admin-token", for: Self.openAIIdentity)
+        try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic)
+        )
+
+        XCTAssertEqual(factory.makeTargets().map(\.providerID), [.openAI, .anthropic])
+    }
+
+    private static let openAIIdentity = CredentialIdentity(providerID: .openAI)
+    private static let anthropicIdentity = CredentialIdentity(providerID: .anthropic)
 }
 
 private final class TargetCredentialStore: CredentialStoring, @unchecked Sendable {
@@ -89,13 +132,17 @@ private actor ProviderClientRecorder: ProviderClient {
         let credential: String
     }
 
-    nonisolated let providerID: ProviderID = .openAI
+    nonisolated let providerID: ProviderID
     nonisolated let capabilities: Set<ProviderCapability> = [
         .officialCostHistory,
         .tokenUsage,
         .modelBreakdown
     ]
     private(set) var lastCall: Call?
+
+    init(providerID: ProviderID = .openAI) {
+        self.providerID = providerID
+    }
 
     func fetch(
         _ request: ProviderFetchRequest,

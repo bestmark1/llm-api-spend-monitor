@@ -2,33 +2,34 @@ import Foundation
 
 final class ProviderTargetFactory: Sendable {
     private let credentialStore: any CredentialStoring
-    private let openAIProvider: any ProviderClient
+    private let providers: [any ProviderClient]
     private let now: @Sendable () -> Date
 
     init(
         credentialStore: any CredentialStoring = KeychainStore(),
         openAIProvider: any ProviderClient = OpenAIProvider(),
+        anthropicProvider: any ProviderClient = AnthropicProvider(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.credentialStore = credentialStore
-        self.openAIProvider = openAIProvider
+        providers = [openAIProvider, anthropicProvider]
         self.now = now
     }
 
     func makeTargets() -> [ProviderRefreshTarget] {
-        let identity = CredentialIdentity(providerID: .openAI)
-        guard let credential = try? credentialStore.read(for: identity) else {
-            return []
-        }
+        providers.compactMap { provider in
+            let identity = CredentialIdentity(providerID: provider.providerID)
+            guard let credential = try? credentialStore.read(for: identity) else {
+                return nil
+            }
 
-        return [
-            ProviderRefreshTarget(
-                providerID: .openAI,
+            return ProviderRefreshTarget(
+                providerID: provider.providerID,
                 generation: 0,
                 minimumInterval: 15 * 60,
                 automaticRefreshEnabled: true,
-                fetch: { [openAIProvider, now] in
-                    try await openAIProvider.fetch(
+                fetch: { [now] in
+                    try await provider.fetch(
                         ProviderFetchRequest(
                             purpose: .full,
                             reportingInterval: Self.thirtyDayUTCInterval(containing: now())
@@ -40,7 +41,7 @@ final class ProviderTargetFactory: Sendable {
                     (try? credentialStore.read(for: identity)) == credential
                 }
             )
-        ]
+        }
     }
 
     private static func thirtyDayUTCInterval(containing date: Date) -> DateInterval {
