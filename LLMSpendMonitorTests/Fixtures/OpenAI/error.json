@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Your API key does not have permission for this organization report.",
+    "type": "insufficient_permissions"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "object": "page",
+  "data": [
+    {
+      "object": "bucket",
+      "start_time": 1783641600,
+      "end_time": 1783728000,
+      "results": [
+        {
+          "object": "organization.costs.result",
+          "amount": { "value": 0.012345, "currency": "usd" },
+          "line_item": "Text models"
+        },
+        {
+          "object": "organization.costs.result",
+          "amount": { "value": 0.5, "currency": "usd" },
+          "line_item": "Unknown future line item"
+        }
+      ]
+    }
+  ],
+  "has_more": true,
+  "next_page": "costs-next"
+}
