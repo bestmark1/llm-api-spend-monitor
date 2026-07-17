@@ -47,6 +47,32 @@ final class DashboardViewModelTests: XCTestCase {
         await model.loadCache()
 
         XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "1.25"))
+        XCTAssertTrue(model.isOfficialCostPartial)
+        XCTAssertEqual(model.excludedOfficialCostProviderCount, 1)
+    }
+
+    func testAggregateProvidesOfficialProviderBreakdown() async throws {
+        let openAI = try makeCostSnapshot(providerID: .openAI, amount: "1.25")
+        let anthropic = try makeCostSnapshot(providerID: .anthropic, amount: "2.75")
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: openAI, .anthropic: anthropic],
+            refreshed: [:]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { openAI.coverage!.through.addingTimeInterval(-1) }
+        )
+
+        await model.loadCache()
+
+        XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "4.00"))
+        XCTAssertEqual(model.officialUSDBreakdown.map(\.providerID), [.anthropic, .openAI])
+        XCTAssertEqual(
+            model.officialUSDBreakdown.map(\.amount.amount),
+            [Decimal(string: "2.75"), Decimal(string: "1.25")]
+        )
+        XCTAssertFalse(model.isOfficialCostPartial)
     }
 
     func testAggregateExcludesErroredProviderCost() async throws {
@@ -111,6 +137,34 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(model.snapshot(for: .openAI)?.buckets.count, 3)
     }
 
+    func testDailySpendAggregatesProvidersByUTCDay() async throws {
+        let openAI = try makeDailyCostSnapshot(
+            providerID: .openAI,
+            amounts: ["1.00", "2.00", "3.00"]
+        )
+        let anthropic = try makeDailyCostSnapshot(
+            providerID: .anthropic,
+            amounts: ["0.50", "1.50", "2.50"]
+        )
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: openAI, .anthropic: anthropic],
+            refreshed: [:]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { Date(timeIntervalSince1970: 1_700_265_599) }
+        )
+        model.selectedPeriod = .thirtyDays
+
+        await model.loadCache()
+
+        XCTAssertEqual(
+            model.officialUSDDailySpend.map(\.amount.amount),
+            [Decimal(string: "1.50"), Decimal(string: "3.50"), Decimal(string: "5.50")]
+        )
+    }
+
     private func makeCostSnapshot(
         providerID: ProviderID,
         amount: String,
@@ -134,7 +188,10 @@ final class DashboardViewModelTests: XCTestCase {
         )
     }
 
-    private func makeDailyCostSnapshot(amounts: [String]) throws -> ProviderSnapshot {
+    private func makeDailyCostSnapshot(
+        providerID: ProviderID = .openAI,
+        amounts: [String]
+    ) throws -> ProviderSnapshot {
         let start = Date(timeIntervalSince1970: 1_700_006_400)
         let buckets = try amounts.enumerated().map { index, amount in
             let bucketStart = start.addingTimeInterval(TimeInterval(index) * 86_400)
@@ -151,7 +208,7 @@ final class DashboardViewModelTests: XCTestCase {
             )
         }
         return try ProviderSnapshot(
-            providerID: .openAI,
+            providerID: providerID,
             capabilities: [.officialCostHistory],
             fetchedAt: buckets.last!.end,
             coverage: ReportingCoverage(
