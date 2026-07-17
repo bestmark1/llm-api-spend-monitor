@@ -89,21 +89,46 @@ final class ProviderTargetFactoryTests: XCTestCase {
         )
     }
 
+    func testDeepSeekTargetUsesStandardCredentialWithoutReportingWindow() async throws {
+        let store = TargetCredentialStore()
+        try store.save("deepseek-token", for: Self.deepSeekIdentity)
+        let provider = ProviderClientRecorder(providerID: .deepSeek)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            deepSeekProvider: provider
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .deepSeek)
+        XCTAssertEqual(target.minimumInterval, 5 * 60)
+        XCTAssertEqual(call?.credential, "deepseek-token")
+        XCTAssertEqual(call?.request.purpose, .full)
+        XCTAssertNil(call?.request.reportingInterval)
+    }
+
     func testCreatesTargetsForEveryConnectedProvider() throws {
         let store = TargetCredentialStore()
         try store.save("openai-admin-token", for: Self.openAIIdentity)
         try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
+        try store.save("deepseek-token", for: Self.deepSeekIdentity)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
-            anthropicProvider: ProviderClientRecorder(providerID: .anthropic)
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek)
         )
 
-        XCTAssertEqual(factory.makeTargets().map(\.providerID), [.openAI, .anthropic])
+        XCTAssertEqual(factory.makeTargets().map(\.providerID), [.openAI, .anthropic, .deepSeek])
     }
 
     private static let openAIIdentity = CredentialIdentity(providerID: .openAI)
     private static let anthropicIdentity = CredentialIdentity(providerID: .anthropic)
+    private static let deepSeekIdentity = CredentialIdentity(providerID: .deepSeek)
 }
 
 private final class TargetCredentialStore: CredentialStoring, @unchecked Sendable {
@@ -133,15 +158,14 @@ private actor ProviderClientRecorder: ProviderClient {
     }
 
     nonisolated let providerID: ProviderID
-    nonisolated let capabilities: Set<ProviderCapability> = [
-        .officialCostHistory,
-        .tokenUsage,
-        .modelBreakdown
-    ]
+    nonisolated let capabilities: Set<ProviderCapability>
     private(set) var lastCall: Call?
 
     init(providerID: ProviderID = .openAI) {
         self.providerID = providerID
+        capabilities = providerID == .deepSeek
+            ? [.balance]
+            : [.officialCostHistory, .tokenUsage, .modelBreakdown]
     }
 
     func fetch(
@@ -149,16 +173,18 @@ private actor ProviderClientRecorder: ProviderClient {
         credential: String
     ) throws -> ProviderSnapshot {
         lastCall = Call(request: request, credential: credential)
-        let interval = request.reportingInterval!
+        let interval = request.reportingInterval
         return try ProviderSnapshot(
             providerID: providerID,
             capabilities: capabilities,
-            fetchedAt: interval.end,
-            coverage: ReportingCoverage(
-                start: interval.start,
-                through: interval.end,
-                completeness: .complete
-            ),
+            fetchedAt: interval?.end ?? Date(timeIntervalSince1970: 0),
+            coverage: interval.map {
+                ReportingCoverage(
+                    start: $0.start,
+                    through: $0.end,
+                    completeness: .complete
+                )
+            },
             buckets: [],
             balances: [],
             issue: nil
