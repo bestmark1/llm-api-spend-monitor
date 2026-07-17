@@ -22,6 +22,7 @@ struct MetricRow: View {
 enum MetricFormatting {
     static func money(_ money: Money) -> String {
         let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
         formatter.numberStyle = .currency
         formatter.currencyCode = money.currencyCode
         formatter.minimumFractionDigits = 2
