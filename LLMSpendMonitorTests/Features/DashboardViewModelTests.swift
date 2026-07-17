@@ -55,6 +55,22 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(model.officialUSDTotal.amount, 0)
     }
 
+    func testCredentialChangePurgesOldSnapshotBeforeRefreshing() async throws {
+        let cached = try makeCostSnapshot(providerID: .openAI, amount: "4.00")
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: cached],
+            refreshed: [:]
+        )
+        let model = DashboardViewModel(dataSource: dataSource, targets: [])
+        await model.loadCache()
+
+        await model.credentialDidChange(.openAI)
+
+        XCTAssertNil(model.snapshots[.openAI])
+        let purgedProviders = await dataSource.purgedProviders
+        XCTAssertEqual(purgedProviders, [.openAI])
+    }
+
     private func makeCostSnapshot(
         providerID: ProviderID,
         amount: String,
@@ -82,6 +98,7 @@ final class DashboardViewModelTests: XCTestCase {
 private actor DashboardDataSourceStub: DashboardDataRefreshing {
     let cached: [ProviderID: ProviderSnapshot]
     let refreshed: [ProviderID: ProviderSnapshot]
+    private(set) var purgedProviders: [ProviderID] = []
 
     init(
         cached: [ProviderID: ProviderSnapshot],
@@ -100,5 +117,9 @@ private actor DashboardDataSourceStub: DashboardDataRefreshing {
         targets: [ProviderRefreshTarget]
     ) -> [ProviderID: ProviderSnapshot] {
         refreshed
+    }
+
+    func purge(_ providerID: ProviderID) {
+        purgedProviders.append(providerID)
     }
 }

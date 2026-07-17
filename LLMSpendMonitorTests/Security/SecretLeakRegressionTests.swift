@@ -25,7 +25,7 @@ final class SecretLeakRegressionTests: XCTestCase {
     }
 }
 
-private final class CanaryCredentialStore: CredentialStoring {
+private final class CanaryCredentialStore: CredentialStoring, @unchecked Sendable {
     private(set) var savedSecret: String?
 
     func save(_ secret: String, for identity: CredentialIdentity) throws {

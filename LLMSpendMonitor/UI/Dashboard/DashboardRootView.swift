@@ -23,7 +23,12 @@ struct DashboardRootView: View {
                     quitApplication: quitApplication
                 )
             case .connections:
-                ConnectionsView(showDashboard: appState.showDashboard)
+                ConnectionsView(
+                    showDashboard: appState.showDashboard,
+                    credentialDidChange: { providerID in
+                        Task { await dashboardViewModel.credentialDidChange(providerID) }
+                    }
+                )
             }
         }
         .frame(width: 420, height: 640)

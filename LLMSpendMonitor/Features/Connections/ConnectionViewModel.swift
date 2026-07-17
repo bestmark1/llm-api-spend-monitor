@@ -26,6 +26,7 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
     let metadata: ProviderMetadata
     let identity: CredentialIdentity
     private let credentialStore: CredentialStoring
+    private let credentialDidChange: (ProviderID) -> Void
 
     @Published var draftSecret = ""
     @Published private(set) var connectionStatus: ConnectionStatus
@@ -43,12 +44,14 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
     init(
         metadata: ProviderMetadata,
         accountID: String = CredentialIdentity.personalAccountID,
-        credentialStore: CredentialStoring = KeychainStore()
+        credentialStore: CredentialStoring = KeychainStore(),
+        credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
         id = metadata.id
         self.metadata = metadata
         identity = CredentialIdentity(providerID: metadata.id, accountID: accountID)
         self.credentialStore = credentialStore
+        self.credentialDidChange = credentialDidChange
         connectionStatus = Self.loadStatus(for: identity, from: credentialStore)
     }
 
@@ -61,6 +64,7 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
             connectionStatus = .connected
             generation &+= 1
             resultMessage = "Credential saved."
+            credentialDidChange(id)
         } catch {
             apply(error)
         }
@@ -73,6 +77,7 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
             connectionStatus = .notConnected
             generation &+= 1
             resultMessage = "Credential deleted."
+            credentialDidChange(id)
         } catch {
             apply(error)
         }

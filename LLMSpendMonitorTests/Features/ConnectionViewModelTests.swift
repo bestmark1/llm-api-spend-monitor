@@ -6,7 +6,12 @@ final class ConnectionViewModelTests: XCTestCase {
     func testSaveReplaceAndDeleteIncrementGenerationAndClearDraft() throws {
         let store = InMemoryCredentialStore()
         let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .openAI))
-        let model = ConnectionViewModel(metadata: metadata, credentialStore: store)
+        var changedProviders: [ProviderID] = []
+        let model = ConnectionViewModel(
+            metadata: metadata,
+            credentialStore: store,
+            credentialDidChange: { changedProviders.append($0) }
+        )
 
         model.draftSecret = "CANARY-U2-SECRET"
         model.saveOrReplace()
@@ -21,10 +26,11 @@ final class ConnectionViewModelTests: XCTestCase {
         model.deleteCredential()
         XCTAssertEqual(model.generation, 3)
         XCTAssertEqual(model.connectionStatus, .notConnected)
+        XCTAssertEqual(changedProviders, [.openAI, .openAI, .openAI])
     }
 }
 
-private final class InMemoryCredentialStore: CredentialStoring {
+private final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendable {
     private var values: [CredentialIdentity: String] = [:]
 
     func save(_ secret: String, for identity: CredentialIdentity) throws {

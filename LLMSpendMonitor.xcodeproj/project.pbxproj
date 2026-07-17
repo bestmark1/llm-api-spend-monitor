@@ -46,6 +46,8 @@
 		A00000000000000000000126 /* RefreshBackoffPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000231 /* RefreshBackoffPolicy.swift */; };
 		A00000000000000000000127 /* OpenAIProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000232 /* OpenAIProviderTests.swift */; };
 		A00000000000000000000128 /* OpenAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000233 /* OpenAIProvider.swift */; };
+		A00000000000000000000129 /* ProviderTargetFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000234 /* ProviderTargetFactoryTests.swift */; };
+		A0000000000000000000012A /* ProviderTargetFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000235 /* ProviderTargetFactory.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +113,8 @@
 		A00000000000000000000231 /* RefreshBackoffPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshBackoffPolicy.swift; sourceTree = "<group>"; };
 		A00000000000000000000232 /* OpenAIProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIProviderTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000233 /* OpenAIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIProvider.swift; sourceTree = "<group>"; };
+		A00000000000000000000234 /* ProviderTargetFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTargetFactoryTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000235 /* ProviderTargetFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTargetFactory.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,8 +225,8 @@
 		A00000000000000000000715 /* Connections */ = {isa = PBXGroup; children = (A0000000000000000000021F /* ConnectionViewModel.swift */); path = Connections; sourceTree = "<group>"; };
 		A00000000000000000000717 /* Connections */ = {isa = PBXGroup; children = (A00000000000000000000220 /* ProviderConnectionView.swift */, A00000000000000000000221 /* ConnectionsView.swift */); path = Connections; sourceTree = "<group>"; };
 		A00000000000000000000718 /* Persistence */ = {isa = PBXGroup; children = (A00000000000000000000226 /* SnapshotCache.swift */); path = Persistence; sourceTree = "<group>"; };
-		A00000000000000000000719 /* Services */ = {isa = PBXGroup; children = (A00000000000000000000227 /* RefreshTrigger.swift */, A00000000000000000000228 /* RefreshCoordinator.swift */, A00000000000000000000231 /* RefreshBackoffPolicy.swift */); path = Services; sourceTree = "<group>"; };
-		A0000000000000000000071A /* Services */ = {isa = PBXGroup; children = (A00000000000000000000229 /* RefreshCoordinatorTests.swift */); path = Services; sourceTree = "<group>"; };
+		A00000000000000000000719 /* Services */ = {isa = PBXGroup; children = (A00000000000000000000227 /* RefreshTrigger.swift */, A00000000000000000000228 /* RefreshCoordinator.swift */, A00000000000000000000231 /* RefreshBackoffPolicy.swift */, A00000000000000000000235 /* ProviderTargetFactory.swift */); path = Services; sourceTree = "<group>"; };
+		A0000000000000000000071A /* Services */ = {isa = PBXGroup; children = (A00000000000000000000229 /* RefreshCoordinatorTests.swift */, A00000000000000000000234 /* ProviderTargetFactoryTests.swift */); path = Services; sourceTree = "<group>"; };
 		A0000000000000000000071B /* Dashboard */ = {isa = PBXGroup; children = (A0000000000000000000022A /* DashboardViewModel.swift */); path = Dashboard; sourceTree = "<group>"; };
 		A0000000000000000000071C /* Providers */ = {isa = PBXGroup; children = (A0000000000000000000022C /* ProviderCard.swift */, A0000000000000000000022D /* MetricRow.swift */); path = Providers; sourceTree = "<group>"; };
 		A0000000000000000000071D /* Networking */ = {isa = PBXGroup; children = (A0000000000000000000022F /* HTTPClient.swift */, A00000000000000000000230 /* URLSessionHTTPClient.swift */); path = Networking; sourceTree = "<group>"; };
@@ -309,8 +313,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B, A0000000000000000000011C, A0000000000000000000011D, A0000000000000000000011F, A00000000000000000000121, A00000000000000000000122, A00000000000000000000124, A00000000000000000000125, A00000000000000000000126, A00000000000000000000128); runOnlyForDeploymentPostprocessing = 0; };
-		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C, A00000000000000000000117, A0000000000000000000011A, A0000000000000000000011E, A00000000000000000000120, A00000000000000000000123, A00000000000000000000127); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B, A0000000000000000000011C, A0000000000000000000011D, A0000000000000000000011F, A00000000000000000000121, A00000000000000000000122, A00000000000000000000124, A00000000000000000000125, A00000000000000000000126, A00000000000000000000128, A0000000000000000000012A); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C, A00000000000000000000117, A0000000000000000000011A, A0000000000000000000011E, A00000000000000000000120, A00000000000000000000123, A00000000000000000000127, A00000000000000000000129); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107, A0000000000000000000010D); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 

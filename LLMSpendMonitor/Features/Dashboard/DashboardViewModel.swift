@@ -6,6 +6,7 @@ protocol DashboardDataRefreshing: Sendable {
         trigger: RefreshTrigger,
         targets: [ProviderRefreshTarget]
     ) async -> [ProviderID: ProviderSnapshot]
+    func purge(_ providerID: ProviderID) async
 }
 
 extension RefreshCoordinator: DashboardDataRefreshing {}
@@ -16,15 +17,18 @@ final class DashboardViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
 
     private let dataSource: any DashboardDataRefreshing
-    private let targets: [ProviderRefreshTarget]
+    private let fixedTargets: [ProviderRefreshTarget]?
+    private let targetFactory: ProviderTargetFactory
     private var hasStarted = false
 
     init(
         dataSource: any DashboardDataRefreshing = RefreshCoordinator(),
-        targets: [ProviderRefreshTarget] = []
+        targets: [ProviderRefreshTarget]? = nil,
+        targetFactory: ProviderTargetFactory = ProviderTargetFactory()
     ) {
         self.dataSource = dataSource
-        self.targets = targets
+        fixedTargets = targets
+        self.targetFactory = targetFactory
     }
 
     var officialUSDTotal: Money {
@@ -61,7 +65,16 @@ final class DashboardViewModel: ObservableObject {
     func refresh(trigger: RefreshTrigger) async {
         guard !isRefreshing else { return }
         isRefreshing = true
-        snapshots = await dataSource.refresh(trigger: trigger, targets: targets)
+        snapshots = await dataSource.refresh(
+            trigger: trigger,
+            targets: fixedTargets ?? targetFactory.makeTargets()
+        )
         isRefreshing = false
+    }
+
+    func credentialDidChange(_ providerID: ProviderID) async {
+        snapshots.removeValue(forKey: providerID)
+        await dataSource.purge(providerID)
+        await refresh(trigger: .credentialValidation)
     }
 }

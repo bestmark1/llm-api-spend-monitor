@@ -7,11 +7,16 @@ struct ConnectionsView: View {
     @MainActor
     init(
         showDashboard: @escaping () -> Void,
-        credentialStore: CredentialStoring = KeychainStore()
+        credentialStore: CredentialStoring = KeychainStore(),
+        credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
         self.showDashboard = showDashboard
         connectionModels = ProviderRegistry.all.map {
-            ConnectionViewModel(metadata: $0, credentialStore: credentialStore)
+            ConnectionViewModel(
+                metadata: $0,
+                credentialStore: credentialStore,
+                credentialDidChange: credentialDidChange
+            )
         }
     }
 
