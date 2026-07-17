@@ -18,6 +18,9 @@ final class MenuBarShellTests: XCTestCase {
         state.showConnections()
         XCTAssertEqual(state.destination, .connections)
 
+        state.showCustomize()
+        XCTAssertEqual(state.destination, .customize)
+
         state.showDashboard()
         XCTAssertEqual(state.destination, .dashboard)
     }

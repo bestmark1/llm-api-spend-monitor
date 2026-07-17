@@ -6,6 +6,7 @@ final class AppState: ObservableObject {
         case onboarding
         case dashboard
         case connections
+        case customize
     }
 
     @Published private(set) var destination: Destination = .onboarding
@@ -20,5 +21,9 @@ final class AppState: ObservableObject {
 
     func showDashboard() {
         destination = .dashboard
+    }
+
+    func showCustomize() {
+        destination = .customize
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardRootView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var dashboardViewModel: DashboardViewModel
+    @StateObject private var customizeViewModel = CustomizeViewModel()
     let closePanel: () -> Void
     let quitApplication: () -> Void
 
@@ -18,7 +19,11 @@ struct DashboardRootView: View {
             case .dashboard:
                 DashboardView(
                     viewModel: dashboardViewModel,
+                    providers: customizeViewModel.items
+                        .filter(\.isVisible)
+                        .map(\.metadata),
                     showConnections: appState.showConnections,
+                    showCustomize: appState.showCustomize,
                     closePanel: closePanel,
                     quitApplication: quitApplication
                 )
@@ -28,6 +33,11 @@ struct DashboardRootView: View {
                     credentialDidChange: { providerID in
                         Task { await dashboardViewModel.credentialDidChange(providerID) }
                     }
+                )
+            case .customize:
+                CustomizeProvidersView(
+                    viewModel: customizeViewModel,
+                    showDashboard: appState.showDashboard
                 )
             }
         }
@@ -88,7 +98,9 @@ private struct OnboardingView: View {
 
 private struct DashboardView: View {
     @ObservedObject var viewModel: DashboardViewModel
+    let providers: [ProviderMetadata]
     let showConnections: () -> Void
+    let showCustomize: () -> Void
     let closePanel: () -> Void
     let quitApplication: () -> Void
 
@@ -131,13 +143,30 @@ private struct DashboardView: View {
 
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(ProviderRegistry.all) { provider in
+                    ForEach(providers) { provider in
                         ProviderCard(metadata: provider, snapshot: viewModel.snapshot(for: provider.id))
+                    }
+
+                    if providers.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "eye.slash")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                            Text("No providers shown")
+                                .font(.headline)
+                            Button("Choose Providers", action: showCustomize)
+                                .buttonStyle(.link)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .accessibilityIdentifier("dashboard.noProviders")
                     }
                 }
             }
 
             Menu("Options", systemImage: "ellipsis.circle") {
+                Button("Customize", action: showCustomize)
+                    .accessibilityIdentifier("options.customize")
                 Button("Connections", action: showConnections)
                     .accessibilityIdentifier("options.connections")
                 SettingsLink {
