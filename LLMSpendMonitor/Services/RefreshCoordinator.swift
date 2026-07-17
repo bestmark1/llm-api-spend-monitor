@@ -3,29 +3,34 @@ import Foundation
 actor RefreshCoordinator {
     private enum Outcome: Sendable {
         case success(ProviderSnapshot)
-        case failure(ProviderID, ProviderIssue)
+        case failure(ProviderID, ProviderIssue, retryAfter: TimeInterval?)
         case stale(ProviderID)
 
         var providerID: ProviderID {
             switch self {
             case let .success(snapshot): snapshot.providerID
-            case let .failure(providerID, _), let .stale(providerID): providerID
+            case let .failure(providerID, _, _), let .stale(providerID): providerID
             }
         }
     }
 
     private let cache: SnapshotCaching
     private let now: @Sendable () -> Date
+    private let backoffPolicy: RefreshBackoffPolicy
     private var snapshots: [ProviderID: ProviderSnapshot] = [:]
     private var lastAttemptAt: [ProviderID: Date] = [:]
+    private var consecutiveFailures: [ProviderID: Int] = [:]
+    private var retryNotBefore: [ProviderID: Date] = [:]
     private var inFlight: Task<Void, Never>?
 
     init(
         cache: SnapshotCaching = SnapshotCache(),
-        now: @escaping @Sendable () -> Date = Date.init
+        now: @escaping @Sendable () -> Date = Date.init,
+        backoffPolicy: RefreshBackoffPolicy = RefreshBackoffPolicy()
     ) {
         self.cache = cache
         self.now = now
+        self.backoffPolicy = backoffPolicy
     }
 
     func loadCachedSnapshots() async -> [ProviderID: ProviderSnapshot] {
@@ -63,6 +68,8 @@ actor RefreshCoordinator {
     func purge(_ providerID: ProviderID) async {
         snapshots.removeValue(forKey: providerID)
         lastAttemptAt.removeValue(forKey: providerID)
+        consecutiveFailures.removeValue(forKey: providerID)
+        retryNotBefore.removeValue(forKey: providerID)
         try? await cache.remove(providerID)
     }
 
@@ -70,6 +77,9 @@ actor RefreshCoordinator {
         _ target: ProviderRefreshTarget,
         for trigger: RefreshTrigger
     ) -> Bool {
+        if let retryDate = retryNotBefore[target.providerID], now() < retryDate {
+            return false
+        }
         if !target.automaticRefreshEnabled {
             return trigger == .credentialValidation
         }
@@ -87,12 +97,21 @@ actor RefreshCoordinator {
         let outcomes = await Self.fetchOutcomes(for: targets)
 
         for outcome in outcomes {
-            lastAttemptAt[outcome.providerID] = attemptedAt
-
             switch outcome {
             case let .success(snapshot):
+                lastAttemptAt[snapshot.providerID] = attemptedAt
+                consecutiveFailures.removeValue(forKey: snapshot.providerID)
+                retryNotBefore.removeValue(forKey: snapshot.providerID)
                 snapshots[snapshot.providerID] = snapshot
-            case let .failure(providerID, issue):
+            case let .failure(providerID, issue, retryAfter):
+                lastAttemptAt[providerID] = attemptedAt
+                let failureCount = consecutiveFailures[providerID, default: 0] + 1
+                consecutiveFailures[providerID] = failureCount
+                let delay = backoffPolicy.delay(
+                    consecutiveFailureCount: failureCount,
+                    retryAfter: retryAfter
+                )
+                retryNotBefore[providerID] = attemptedAt.addingTimeInterval(delay)
                 guard let previous = snapshots[providerID] else { continue }
                 snapshots[providerID] = Self.retainingMetrics(from: previous, issue: issue)
             case .stale:
@@ -112,14 +131,18 @@ actor RefreshCoordinator {
                     do {
                         let snapshot = try await target.fetch()
                         guard snapshot.providerID == target.providerID else {
-                            return .failure(target.providerID, .malformedResponse)
+                            return .failure(target.providerID, .malformedResponse, retryAfter: nil)
                         }
                         guard await target.generationIsCurrent(target.generation) else {
                             return .stale(target.providerID)
                         }
                         return .success(snapshot)
                     } catch {
-                        return .failure(target.providerID, issue(for: error))
+                        return .failure(
+                            target.providerID,
+                            issue(for: error),
+                            retryAfter: retryAfter(for: error)
+                        )
                     }
                 }
             }
@@ -151,6 +174,13 @@ actor RefreshCoordinator {
         default:
             .providerUnavailable
         }
+    }
+
+    private static func retryAfter(for error: Error) -> TimeInterval? {
+        guard
+            case let .rateLimited(retryAfterSeconds) = error as? ProviderClientError
+        else { return nil }
+        return retryAfterSeconds
     }
 
     private static func retainingMetrics(

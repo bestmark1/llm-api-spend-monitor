@@ -84,6 +84,64 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertNil(cached[.openAI])
     }
 
+    func testRetryAfterBlocksEveryTriggerUntilProviderCooldownExpires() async throws {
+        let clock = LockedTestClock(Date(timeIntervalSince1970: 2_000_000_000))
+        let coordinator = RefreshCoordinator(
+            cache: InMemorySnapshotCache(),
+            now: { clock.now },
+            backoffPolicy: RefreshBackoffPolicy(baseDelay: 10, maximumDelay: 300, jitter: { 0.5 })
+        )
+        let probe = SequencedFetchProbe(results: [
+            .failure(ProviderClientError.rateLimited(retryAfterSeconds: 120)),
+            .success(try makeSnapshot(providerID: .openAI, amount: "2.00"))
+        ])
+        let target = makeTarget(providerID: .openAI, fetch: { try await probe.fetch() })
+
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        clock.advance(by: 119)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let callsBeforeRetryAfter = await probe.callCount
+        XCTAssertEqual(callsBeforeRetryAfter, 1)
+
+        clock.advance(by: 1)
+        _ = await coordinator.refresh(trigger: .panelOpen, targets: [target])
+        let callsAfterRetryAfter = await probe.callCount
+        XCTAssertEqual(callsAfterRetryAfter, 2)
+    }
+
+    func testFailuresUseDeterministicExponentialBackoff() async throws {
+        let clock = LockedTestClock(Date(timeIntervalSince1970: 2_000_000_000))
+        let coordinator = RefreshCoordinator(
+            cache: InMemorySnapshotCache(),
+            now: { clock.now },
+            backoffPolicy: RefreshBackoffPolicy(baseDelay: 10, maximumDelay: 60, jitter: { 0.5 })
+        )
+        let probe = SequencedFetchProbe(results: [
+            .failure(ProviderClientError.unavailable),
+            .failure(ProviderClientError.unavailable),
+            .failure(ProviderClientError.unavailable)
+        ])
+        let target = makeTarget(providerID: .anthropic, fetch: { try await probe.fetch() })
+
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        clock.advance(by: 9)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let callsDuringFirstBackoff = await probe.callCount
+        XCTAssertEqual(callsDuringFirstBackoff, 1)
+
+        clock.advance(by: 1)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        clock.advance(by: 19)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let callsDuringSecondBackoff = await probe.callCount
+        XCTAssertEqual(callsDuringSecondBackoff, 2)
+
+        clock.advance(by: 1)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let callsAfterSecondBackoff = await probe.callCount
+        XCTAssertEqual(callsAfterSecondBackoff, 3)
+    }
+
     private func makeTarget(
         providerID: ProviderID,
         generation: UInt64 = 0,
@@ -97,6 +155,20 @@ final class RefreshCoordinatorTests: XCTestCase {
             minimumInterval: minimumInterval,
             automaticRefreshEnabled: automaticRefreshEnabled,
             fetch: { try await probe.fetch() },
+            generationIsCurrent: { _ in true }
+        )
+    }
+
+    private func makeTarget(
+        providerID: ProviderID,
+        fetch: @escaping @Sendable () async throws -> ProviderSnapshot
+    ) -> ProviderRefreshTarget {
+        ProviderRefreshTarget(
+            providerID: providerID,
+            generation: 0,
+            minimumInterval: 0,
+            automaticRefreshEnabled: true,
+            fetch: fetch,
             generationIsCurrent: { _ in true }
         )
     }
@@ -129,6 +201,37 @@ final class RefreshCoordinatorTests: XCTestCase {
             balances: [],
             issue: nil
         )
+    }
+}
+
+private actor SequencedFetchProbe {
+    private(set) var callCount = 0
+    private var results: [Result<ProviderSnapshot, Error>]
+
+    init(results: [Result<ProviderSnapshot, Error>]) {
+        self.results = results
+    }
+
+    func fetch() throws -> ProviderSnapshot {
+        callCount += 1
+        return try results.removeFirst().get()
+    }
+}
+
+private final class LockedTestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var date: Date
+
+    init(_ date: Date) {
+        self.date = date
+    }
+
+    var now: Date {
+        lock.withLock { date }
+    }
+
+    func advance(by interval: TimeInterval) {
+        lock.withLock { date = date.addingTimeInterval(interval) }
     }
 }
 
