@@ -110,9 +110,9 @@ For each provider, record:
 | Closed UTC interval | 2026-07-10–2026-07-17 | 2026-07-10–2026-07-17 |
 | All pages captured | Pass: 7/7 | Pass: 7/7 |
 | API money total | Computed locally with `Decimal` | Computed locally with `Decimal`, then divided by 100 |
-| Dashboard money total for same interval | Pending | Pending |
-| Difference explained and accepted | Pending | Pending |
-| Token total reconciled | Computed locally; dashboard pending | Computed locally; dashboard pending |
+| Dashboard money total for same interval | Pass at displayed USD precision | Pending |
+| Difference explained and accepted | Pass: exact API decimal rounds to dashboard cents | Pending |
+| Token total reconciled | Pass: input tokens and request count match exactly | Computed locally; dashboard pending |
 | Freshness delay observed | Pending | Pending |
 | Sanitized fixtures reviewed | Pass locally; not tracked | Pass locally; not tracked |
 
