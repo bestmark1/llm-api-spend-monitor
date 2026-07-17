@@ -53,77 +53,27 @@ Official references:
 
 Choose one fully closed UTC day with known activity. Record the same start and end boundary in the provider dashboard before running the requests.
 
+The preferred path is the checked local collector. It prompts for both keys without echoing them, keeps credentials out of process arguments, follows pagination with a 20-page safety cap, and writes raw plus sanitized captures under the gitignored `.local/` directory:
+
 ```bash
-mkdir -p .local/provider-contract-validation/{openai,anthropic}
-
-# Replace these two timestamps with the selected closed UTC day.
-export START_UTC='2026-07-14T00:00:00Z'
-export END_UTC='2026-07-15T00:00:00Z'
-export START_UNIX="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$START_UTC" '+%s')"
-export END_UNIX="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$END_UTC" '+%s')"
-
-read -s 'OPENAI_ADMIN_KEY?OpenAI Admin API key: '; export OPENAI_ADMIN_KEY; echo
-curl --fail-with-body --silent --show-error --get \
-  'https://api.openai.com/v1/organization/costs' \
-  -H "Authorization: Bearer $OPENAI_ADMIN_KEY" \
-  --data-urlencode "start_time=$START_UNIX" \
-  --data-urlencode "end_time=$END_UNIX" \
-  --data-urlencode 'bucket_width=1d' \
-  --data-urlencode 'limit=1' \
-  > .local/provider-contract-validation/openai/costs-page-1.raw.json
-curl --fail-with-body --silent --show-error --get \
-  'https://api.openai.com/v1/organization/usage/completions' \
-  -H "Authorization: Bearer $OPENAI_ADMIN_KEY" \
-  --data-urlencode "start_time=$START_UNIX" \
-  --data-urlencode "end_time=$END_UNIX" \
-  --data-urlencode 'bucket_width=1d' \
-  --data-urlencode 'group_by=model' \
-  --data-urlencode 'limit=1' \
-  > .local/provider-contract-validation/openai/usage-page-1.raw.json
-unset OPENAI_ADMIN_KEY
-
-read -s 'ANTHROPIC_ADMIN_KEY?Anthropic Admin API key: '; export ANTHROPIC_ADMIN_KEY; echo
-curl --fail-with-body --silent --show-error --get \
-  'https://api.anthropic.com/v1/organizations/cost_report' \
-  -H 'anthropic-version: 2023-06-01' \
-  -H "x-api-key: $ANTHROPIC_ADMIN_KEY" \
-  --data-urlencode "starting_at=$START_UTC" \
-  --data-urlencode "ending_at=$END_UTC" \
-  --data-urlencode 'bucket_width=1d' \
-  --data-urlencode 'limit=1' \
-  > .local/provider-contract-validation/anthropic/costs-page-1.raw.json
-curl --fail-with-body --silent --show-error --get \
-  'https://api.anthropic.com/v1/organizations/usage_report/messages' \
-  -H 'anthropic-version: 2023-06-01' \
-  -H "x-api-key: $ANTHROPIC_ADMIN_KEY" \
-  --data-urlencode "starting_at=$START_UTC" \
-  --data-urlencode "ending_at=$END_UTC" \
-  --data-urlencode 'bucket_width=1d' \
-  --data-urlencode 'group_by[]=model' \
-  --data-urlencode 'limit=1' \
-  > .local/provider-contract-validation/anthropic/usage-page-1.raw.json
-unset ANTHROPIC_ADMIN_KEY START_UTC END_UTC START_UNIX END_UNIX
+./scripts/collect-provider-contract-samples.zsh
 ```
 
-If a response has `has_more: true`, fetch the next page with the unchanged interval and `page=<next_page>`. At least one sanitized two-page sample is required across the two providers; if the selected day does not paginate naturally, use a longer closed interval for the pagination case.
+By default it captures the previous fully closed UTC day. Override the interval only when that day has no representative activity:
+
+```bash
+START_UTC='2026-07-14T00:00:00Z' \
+END_UTC='2026-07-15T00:00:00Z' \
+./scripts/collect-provider-contract-samples.zsh
+```
+
+The collector follows `next_page` with unchanged interval parameters until `has_more` is false. At least one sanitized two-page sample is required across the two providers; if the selected day does not paginate naturally, use a longer closed interval for the pagination case.
 
 ## Sanitization
 
-Run this for each raw response and inspect the output manually before moving it into a tracked fixture directory:
+The collector redacts non-null organization, workspace, project, user and API-key identifiers, plus pagination cursors. It preserves nulls because nullability is part of the provider contract. Inspect every `*.sanitized.json` file manually before moving it into a tracked fixture directory.
 
-```bash
-jq 'walk(
-  if type == "object" then
-    with_entries(
-      if (.key | test("^(organization|workspace|project|user|api_key)(_id|_ids)?$"))
-      then .value = (if (.value | type) == "array" then ["REDACTED"] else "REDACTED" end)
-      else . end
-    )
-  else . end
-)' input.raw.json > output.sanitized.json
-```
-
-Reject the sanitized file if it contains a credential prefix, email address, person name, organization name, or an unredacted identifier. Empty and null identifier fields may remain unchanged.
+Reject a sanitized file if it contains a credential prefix, email address, person name, organization name, or an unredacted identifier.
 
 ## Dashboard reconciliation record
 
@@ -153,9 +103,9 @@ Do not implement `ProviderSnapshot` or the disk cache schema until live samples 
 
 ## Local signing prerequisite
 
-The production credential store uses `kSecUseDataProtectionKeychain=true`, `kSecAttrSynchronizable=false`, and `WhenUnlockedThisDeviceOnly`. The current ad-hoc build has no signed `com.apple.application-identifier`, so live Keychain integration tests correctly skip with `errSecMissingEntitlement`.
+The production credential store uses `kSecUseDataProtectionKeychain=true`, `kSecAttrSynchronizable=false`, and `WhenUnlockedThisDeviceOnly`. Apple Development signing and the Keychain access group are configured; the signed app contains `com.apple.application-identifier`, and all 16 Keychain/domain tests pass without skips.
 
-Before live connection testing, select an Apple Development Team for the app target in Xcode and confirm the signed app contains an application identifier. Do not add a legacy Keychain fallback just to make an ad-hoc test build pass.
+Do not add a legacy Keychain fallback if signing changes later. A missing entitlement must fail visibly rather than silently weakening credential storage.
 
 Apple references:
 
