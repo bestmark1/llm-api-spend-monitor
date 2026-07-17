@@ -18,7 +18,7 @@ readonly start_unix="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$start_utc" '+%s')"
 readonly end_unix="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$end_utc" '+%s')"
 readonly page_cap=20
 
-mkdir -p "$output_root/openai" "$output_root/anthropic"
+mkdir -p "$output_root/openai" "$output_root/anthropic" "$output_root/deepseek"
 
 if [[ -z "${OPENAI_ADMIN_KEY:-}" ]]; then
   read -r -s 'OPENAI_ADMIN_KEY?OpenAI Organization Admin API key: '
@@ -30,8 +30,13 @@ if [[ -z "${ANTHROPIC_ADMIN_KEY:-}" ]]; then
   print
 fi
 
+if [[ -z "${DEEPSEEK_API_KEY:-}" ]]; then
+  read -r -s 'DEEPSEEK_API_KEY?DeepSeek standard API key: '
+  print
+fi
+
 cleanup() {
-  unset OPENAI_ADMIN_KEY ANTHROPIC_ADMIN_KEY
+  unset OPENAI_ADMIN_KEY ANTHROPIC_ADMIN_KEY DEEPSEEK_API_KEY
 }
 trap cleanup EXIT INT TERM
 
@@ -43,6 +48,11 @@ openai_request() {
 anthropic_request() {
   print -r -- 'header = "anthropic-version: 2023-06-01"'
   print -r -- 'header = "x-api-key: '"$ANTHROPIC_ADMIN_KEY"'"'
+}
+
+deepseek_request() {
+  print -r -- 'header = "Accept: application/json"'
+  print -r -- 'header = "Authorization: Bearer '"$DEEPSEEK_API_KEY"'"'
 }
 
 sanitize() {
@@ -150,6 +160,10 @@ fetch_pages \
   --data-urlencode 'bucket_width=1d' \
   --data-urlencode 'group_by[]=model' \
   --data-urlencode 'limit=1'
+
+fetch_pages \
+  deepseek balance deepseek_request \
+  'https://api.deepseek.com/user/balance'
 
 print
 print "Capture complete: $output_root"
