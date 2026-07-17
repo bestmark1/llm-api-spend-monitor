@@ -116,6 +116,9 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
     }
 
     func windowDidResignKey(_ notification: Notification) {
+#if DEBUG
+        guard !DebugLaunchOptions.keepPanelOpen else { return }
+#endif
         hide()
     }
 
