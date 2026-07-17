@@ -16,7 +16,7 @@ enum ProviderRegistry {
             displayName: "OpenAI",
             systemImageName: "circle.hexagongrid",
             credentialHelp: "Requires an Organization Admin API key for official usage and cost reports.",
-            capabilities: [.officialCostHistory, .tokenUsage],
+            capabilities: [.officialCostHistory, .tokenUsage, .modelBreakdown],
             externalLinks: [
                 link(.usage, "https://platform.openai.com/usage"),
                 link(.billing, "https://platform.openai.com/settings/organization/billing/overview"),
@@ -29,7 +29,7 @@ enum ProviderRegistry {
             displayName: "Anthropic",
             systemImageName: "sparkles",
             credentialHelp: "Requires a Console Admin API key for official usage and cost reports.",
-            capabilities: [.officialCostHistory, .tokenUsage],
+            capabilities: [.officialCostHistory, .tokenUsage, .modelBreakdown],
             externalLinks: [
                 link(.usage, "https://console.anthropic.com/settings/usage"),
                 link(.billing, "https://console.anthropic.com/settings/billing"),

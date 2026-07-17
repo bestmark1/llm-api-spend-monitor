@@ -13,8 +13,8 @@ final class ProviderRegistryTests: XCTestCase {
         let gemini = try XCTUnwrap(ProviderRegistry.metadata(for: .gemini))
         let deepSeek = try XCTUnwrap(ProviderRegistry.metadata(for: .deepSeek))
 
-        XCTAssertEqual(openAI.capabilities, [.officialCostHistory, .tokenUsage])
-        XCTAssertEqual(anthropic.capabilities, [.officialCostHistory, .tokenUsage])
+        XCTAssertEqual(openAI.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
+        XCTAssertEqual(anthropic.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(gemini.capabilities, [.credentialValidation])
         XCTAssertEqual(deepSeek.capabilities, [.balance])
     }
