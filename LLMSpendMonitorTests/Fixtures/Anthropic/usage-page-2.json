@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-07-11T00:00:00Z",
+      "ending_at": "2026-07-12T00:00:00Z",
+      "results": [
+        {
+          "uncached_input_tokens": 200,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 10,
+            "ephemeral_5m_input_tokens": 20
+          },
+          "cache_read_input_tokens": 80,
+          "output_tokens": 30,
+          "server_tool_use": { "web_search_requests": 0 },
+          "model": "claude-sonnet-4-20250514",
+          "service_tier": "standard"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

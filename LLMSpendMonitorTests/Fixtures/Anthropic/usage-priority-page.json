@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-07-10T00:00:00Z",
+      "ending_at": "2026-07-11T00:00:00Z",
+      "results": [
+        {
+          "uncached_input_tokens": 100,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_read_input_tokens": 0,
+          "output_tokens": 10,
+          "model": "claude-opus-4-20250514",
+          "service_tier": "priority_on_demand"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

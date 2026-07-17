@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-07-11T00:00:00Z",
+      "ending_at": "2026-07-12T00:00:00Z",
+      "results": [
+        {
+          "amount": "25.000000",
+          "currency": "USD",
+          "cost_type": "code_execution"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

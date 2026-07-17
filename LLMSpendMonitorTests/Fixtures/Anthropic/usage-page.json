@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-07-10T00:00:00Z",
+      "ending_at": "2026-07-11T00:00:00Z",
+      "results": [
+        {
+          "uncached_input_tokens": 1000,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 200,
+            "ephemeral_5m_input_tokens": 100
+          },
+          "cache_read_input_tokens": 400,
+          "output_tokens": 50,
+          "server_tool_use": { "web_search_requests": 2 },
+          "model": "claude-sonnet-4-20250514",
+          "service_tier": "standard"
+        },
+        {
+          "uncached_input_tokens": 500,
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_read_input_tokens": 0,
+          "output_tokens": 25,
+          "server_tool_use": { "web_search_requests": 0 },
+          "model": "claude-haiku-4-5-20251001",
+          "service_tier": "batch"
+        }
+      ]
+    }
+  ],
+  "has_more": true,
+  "next_page": "usage-next"
+}
