@@ -64,14 +64,16 @@ Official references:
 
 ## Live schema observations
 
-The first sanitized capture covered the closed UTC interval from 2026-07-16 through 2026-07-17. It established the response shapes but did not exercise pagination or produce dashboard totals large enough for reliable displayed-precision reconciliation.
+The first sanitized capture covered the closed UTC interval from 2026-07-16 through 2026-07-17. It established the response shapes but did not exercise pagination or produce dashboard totals large enough for reliable displayed-precision reconciliation. A second capture covered 2026-07-10 through 2026-07-17 and returned seven consecutive daily pages for each OpenAI and Anthropic report.
 
 - OpenAI Costs returned decimal money as a string with trailing precision, nullable grouping metadata, and additional ISO timestamp fields alongside Unix boundaries.
 - OpenAI completion usage returned model-grouped integer token fields and explicit cached, uncached, text, audio, and image counters.
 - Anthropic Cost Report returned a decimal string in the documented lowest USD unit and nullable cost dimensions.
 - Anthropic message usage returned model-grouped token counters, nested cache-creation counters, and nullable account/service-account dimensions.
 - DeepSeek returned one USD balance entry with decimal strings for total, granted, and topped-up balances.
-- All three responses terminated without pagination; a longer capture remains required for cursor validation.
+- In the seven-day capture, pages one through six reported `has_more=true` with a cursor and page seven terminated with `has_more=false` and a null cursor for all four paginated reports.
+- Exact `Decimal` aggregation succeeded for both money reports; integer aggregation succeeded for request and token counters. The computed personal totals remain untracked under `.local/`.
+- DeepSeek balance remained a single non-paginated account-level response.
 
 ## Live capture procedure
 
@@ -105,14 +107,14 @@ For each provider, record:
 
 | Check | OpenAI | Anthropic |
 |---|---|---|
-| Closed UTC interval | Pending | Pending |
-| All pages captured | Pending | Pending |
-| API money total | Pending | Pending |
+| Closed UTC interval | 2026-07-10–2026-07-17 | 2026-07-10–2026-07-17 |
+| All pages captured | Pass: 7/7 | Pass: 7/7 |
+| API money total | Computed locally with `Decimal` | Computed locally with `Decimal`, then divided by 100 |
 | Dashboard money total for same interval | Pending | Pending |
 | Difference explained and accepted | Pending | Pending |
-| Token total reconciled | Pending | Pending |
+| Token total reconciled | Computed locally; dashboard pending | Computed locally; dashboard pending |
 | Freshness delay observed | Pending | Pending |
-| Sanitized fixtures reviewed | Pending | Pending |
+| Sanitized fixtures reviewed | Pass locally; not tracked | Pass locally; not tracked |
 
 Acceptance requires exact agreement at the provider's displayed precision, or a written provider-specific explanation for tax, credits, discounts, omitted Priority Tier cost, or reporting lag. A mismatch must not be hidden with rounding.
 
