@@ -34,6 +34,13 @@ final class StatusBarController: NSObject {
     }
 
     func showOnboardingIfNeeded() {
+#if DEBUG
+        if DebugLaunchOptions.dashboardPreview {
+            appState.skipOnboarding()
+            panelPresenter.show()
+            return
+        }
+#endif
         guard appState.destination == .onboarding else { return }
         panelPresenter.show()
     }
@@ -76,7 +83,11 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.isFloatingPanel = true
+#if DEBUG
+        panel.hidesOnDeactivate = !DebugLaunchOptions.keepPanelOpen
+#else
         panel.hidesOnDeactivate = true
+#endif
         panel.hasShadow = true
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -145,6 +156,13 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
         )
     }
 }
+
+#if DEBUG
+private enum DebugLaunchOptions {
+    static let dashboardPreview = ProcessInfo.processInfo.arguments.contains("--dashboard-preview")
+    static let keepPanelOpen = ProcessInfo.processInfo.arguments.contains("--keep-panel-open")
+}
+#endif
 
 final class MenuBarPanel: NSPanel {
     override var canBecomeKey: Bool { true }
