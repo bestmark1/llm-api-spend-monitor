@@ -110,10 +110,10 @@ private struct DashboardView: View {
                     .buttonStyle(.plain)
             }
 
-            Picker("Period", selection: .constant(0)) {
-                Text("Today").tag(0)
-                Text("Yesterday").tag(1)
-                Text("30 Days").tag(2)
+            Picker("Period", selection: $viewModel.selectedPeriod) {
+                ForEach(DashboardPeriod.allCases) { period in
+                    Text(period.title).tag(period)
+                }
             }
             .pickerStyle(.segmented)
 
@@ -132,7 +132,7 @@ private struct DashboardView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(ProviderRegistry.all) { provider in
-                        ProviderCard(metadata: provider, snapshot: viewModel.snapshots[provider.id])
+                        ProviderCard(metadata: provider, snapshot: viewModel.snapshot(for: provider.id))
                     }
                 }
             }

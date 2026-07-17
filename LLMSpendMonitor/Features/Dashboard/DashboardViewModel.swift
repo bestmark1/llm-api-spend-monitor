@@ -1,5 +1,42 @@
 import Foundation
 
+enum DashboardPeriod: Int, CaseIterable, Identifiable, Sendable {
+    case today
+    case yesterday
+    case thirtyDays
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .today: "Today"
+        case .yesterday: "Yesterday"
+        case .thirtyDays: "30 Days"
+        }
+    }
+
+    func interval(containing date: Date) -> DateInterval {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let today = calendar.startOfDay(for: date)
+
+        switch self {
+        case .today:
+            return DateInterval(
+                start: today,
+                end: calendar.date(byAdding: .day, value: 1, to: today)!
+            )
+        case .yesterday:
+            let start = calendar.date(byAdding: .day, value: -1, to: today)!
+            return DateInterval(start: start, end: today)
+        case .thirtyDays:
+            let start = calendar.date(byAdding: .day, value: -29, to: today)!
+            let end = calendar.date(byAdding: .day, value: 1, to: today)!
+            return DateInterval(start: start, end: end)
+        }
+    }
+}
+
 protocol DashboardDataRefreshing: Sendable {
     func loadCachedSnapshots() async -> [ProviderID: ProviderSnapshot]
     func refresh(
@@ -15,24 +52,28 @@ extension RefreshCoordinator: DashboardDataRefreshing {}
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var snapshots: [ProviderID: ProviderSnapshot] = [:]
     @Published private(set) var isRefreshing = false
+    @Published var selectedPeriod: DashboardPeriod = .today
 
     private let dataSource: any DashboardDataRefreshing
     private let fixedTargets: [ProviderRefreshTarget]?
     private let targetFactory: ProviderTargetFactory
+    private let now: @Sendable () -> Date
     private var hasStarted = false
 
     init(
         dataSource: any DashboardDataRefreshing = RefreshCoordinator(),
         targets: [ProviderRefreshTarget]? = nil,
-        targetFactory: ProviderTargetFactory = ProviderTargetFactory()
+        targetFactory: ProviderTargetFactory = ProviderTargetFactory(),
+        now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.dataSource = dataSource
         fixedTargets = targets
         self.targetFactory = targetFactory
+        self.now = now
     }
 
     var officialUSDTotal: Money {
-        let total = snapshots.values.reduce(into: Decimal.zero) { result, snapshot in
+        let total = snapshots.keys.compactMap(snapshot(for:)).reduce(into: Decimal.zero) { result, snapshot in
             guard
                 snapshot.issue == nil,
                 snapshot.capabilities.contains(.officialCostHistory),
@@ -49,6 +90,35 @@ final class DashboardViewModel: ObservableObject {
             }
         }
         return try! Money(amount: total, currencyCode: "USD")
+    }
+
+    func snapshot(for providerID: ProviderID) -> ProviderSnapshot? {
+        guard let source = snapshots[providerID], let sourceCoverage = source.coverage else {
+            return snapshots[providerID]
+        }
+
+        let interval = selectedPeriod.interval(containing: now())
+        let fullyCovered = sourceCoverage.start <= interval.start
+            && sourceCoverage.through >= interval.end
+            && sourceCoverage.completeness == .complete
+        let completeness: ReportingCoverage.Completeness = fullyCovered ? .complete : .partial
+        let issue = source.issue ?? (fullyCovered ? nil : .partialData)
+
+        return try? ProviderSnapshot(
+            providerID: source.providerID,
+            capabilities: source.capabilities,
+            fetchedAt: source.fetchedAt,
+            coverage: ReportingCoverage(
+                start: interval.start,
+                through: interval.end,
+                completeness: completeness
+            ),
+            buckets: source.buckets.filter {
+                $0.start >= interval.start && $0.end <= interval.end
+            },
+            balances: source.balances,
+            issue: issue
+        )
     }
 
     func start() async {

@@ -10,7 +10,11 @@ final class DashboardViewModelTests: XCTestCase {
             cached: [.openAI: cached],
             refreshed: [.openAI: refreshed]
         )
-        let model = DashboardViewModel(dataSource: dataSource, targets: [])
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { cached.coverage!.through.addingTimeInterval(-1) }
+        )
 
         await model.loadCache()
 
@@ -34,7 +38,11 @@ final class DashboardViewModelTests: XCTestCase {
             cached: [.openAI: complete, .anthropic: partial],
             refreshed: [:]
         )
-        let model = DashboardViewModel(dataSource: dataSource, targets: [])
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { complete.coverage!.through.addingTimeInterval(-1) }
+        )
 
         await model.loadCache()
 
@@ -48,7 +56,11 @@ final class DashboardViewModelTests: XCTestCase {
             issue: .providerUnavailable
         )
         let dataSource = DashboardDataSourceStub(cached: [.openAI: errored], refreshed: [:])
-        let model = DashboardViewModel(dataSource: dataSource, targets: [])
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { errored.coverage!.through.addingTimeInterval(-1) }
+        )
 
         await model.loadCache()
 
@@ -61,7 +73,11 @@ final class DashboardViewModelTests: XCTestCase {
             cached: [.openAI: cached],
             refreshed: [:]
         )
-        let model = DashboardViewModel(dataSource: dataSource, targets: [])
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { cached.coverage!.through.addingTimeInterval(-1) }
+        )
         await model.loadCache()
 
         await model.credentialDidChange(.openAI)
@@ -71,13 +87,37 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(purgedProviders, [.openAI])
     }
 
+    func testPeriodSelectionFiltersOfficialCostAndProviderSnapshot() async throws {
+        let snapshot = try makeDailyCostSnapshot(amounts: ["1.00", "2.00", "3.00"])
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: snapshot],
+            refreshed: [.openAI: snapshot]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { Date(timeIntervalSince1970: 1_700_265_599) }
+        )
+        await model.loadCache()
+
+        XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "3.00"))
+        XCTAssertEqual(model.snapshot(for: .openAI)?.buckets.count, 1)
+
+        model.selectedPeriod = .yesterday
+        XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "2.00"))
+
+        model.selectedPeriod = .thirtyDays
+        XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "6.00"))
+        XCTAssertEqual(model.snapshot(for: .openAI)?.buckets.count, 3)
+    }
+
     private func makeCostSnapshot(
         providerID: ProviderID,
         amount: String,
         completeness: ReportingCoverage.Completeness = .complete,
         issue: ProviderIssue? = nil
     ) throws -> ProviderSnapshot {
-        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let start = Date(timeIntervalSince1970: 1_700_006_400)
         let end = start.addingTimeInterval(86_400)
         let metric = MoneyMetric(
             value: try Money(amount: Decimal(string: amount)!, currencyCode: "USD"),
@@ -91,6 +131,37 @@ final class DashboardViewModelTests: XCTestCase {
             buckets: [PeriodBucket(start: start, end: end, cost: metric)],
             balances: [],
             issue: issue
+        )
+    }
+
+    private func makeDailyCostSnapshot(amounts: [String]) throws -> ProviderSnapshot {
+        let start = Date(timeIntervalSince1970: 1_700_006_400)
+        let buckets = try amounts.enumerated().map { index, amount in
+            let bucketStart = start.addingTimeInterval(TimeInterval(index) * 86_400)
+            return PeriodBucket(
+                start: bucketStart,
+                end: bucketStart.addingTimeInterval(86_400),
+                cost: MoneyMetric(
+                    value: try Money(
+                        amount: Decimal(string: amount)!,
+                        currencyCode: "USD"
+                    ),
+                    provenance: .official
+                )
+            )
+        }
+        return try ProviderSnapshot(
+            providerID: .openAI,
+            capabilities: [.officialCostHistory],
+            fetchedAt: buckets.last!.end,
+            coverage: ReportingCoverage(
+                start: start.addingTimeInterval(-27 * 86_400),
+                through: buckets.last!.end,
+                completeness: .complete
+            ),
+            buckets: buckets,
+            balances: [],
+            issue: nil
         )
     }
 }
