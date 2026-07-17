@@ -5,60 +5,76 @@ struct ProviderCard: View {
     let snapshot: ProviderSnapshot?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label(metadata.displayName, systemImage: metadata.systemImageName)
-                    .font(.headline)
-                Spacer()
-                Text(statusText)
-                    .font(.caption)
-                    .foregroundStyle(statusColor)
-            }
+        VStack(alignment: .leading, spacing: 13) {
+            header
 
             if let snapshot {
                 metricContent(snapshot)
             } else {
-                Text(emptyStateText)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                emptyState
             }
 
-            HStack(spacing: 8) {
-                ForEach(metadata.externalLinks.filter { $0.kind == .dashboard || $0.kind == .status }, id: \.kind) { link in
-                    Link(destination: link.url) {
-                        Text(link.kind == .status ? "Status" : "Dashboard")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
+            footer
         }
-        .padding(14)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(15)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).card")
     }
 
+    private var header: some View {
+        HStack(spacing: 10) {
+            Image(systemName: metadata.systemImageName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(ProviderVisualStyle.color(for: metadata.id))
+                .frame(width: 30, height: 30)
+                .background(
+                    ProviderVisualStyle.color(for: metadata.id).opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(metadata.displayName)
+                    .font(.headline)
+                Text(capabilityText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+            statusBadge
+        }
+    }
+
     @ViewBuilder
     private func metricContent(_ snapshot: ProviderSnapshot) -> some View {
-        let costs = costTotals(snapshot)
-        ForEach(costs, id: \.currencyCode) { money in
-            MetricRow(label: "Official cost", value: MetricFormatting.money(money))
-        }
+        if metadata.capabilities.contains(.balance), let balance = snapshot.balances.first {
+            primaryMetric(label: "Available balance", money: balance.total.value)
 
-        ForEach(snapshot.balances, id: \.total.value.currencyCode) { balance in
-            MetricRow(
-                label: "Balance · \(balance.total.value.currencyCode)",
-                value: MetricFormatting.money(balance.total.value)
-            )
-        }
-
-        if let tokens = tokenTotal(snapshot) {
-            MetricRow(label: "Input tokens", value: MetricFormatting.tokens(tokens.input))
-            MetricRow(label: "Output tokens", value: MetricFormatting.tokens(tokens.output))
-        }
-
-        if costs.isEmpty && snapshot.balances.isEmpty && tokenTotal(snapshot) == nil {
+            if balance.granted != nil || balance.toppedUp != nil {
+                VStack(spacing: 7) {
+                    if let granted = balance.granted {
+                        MetricRow(label: "Granted", value: MetricFormatting.money(granted.value))
+                    }
+                    if let toppedUp = balance.toppedUp {
+                        MetricRow(label: "Topped up", value: MetricFormatting.money(toppedUp.value))
+                    }
+                }
+            }
+        } else if let cost = costTotals(snapshot).first {
+            primaryMetric(label: "Period spend", money: cost)
+            tokenRows(snapshot)
+            modelRows(snapshot)
+        } else if metadata.capabilities == [.credentialValidation], snapshot.issue == nil {
+            Label("API key verified", systemImage: "checkmark.seal.fill")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
+            Text("Official spend and balance remain available only in Google AI Studio.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
             Text("Connected · financial metrics unavailable")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -67,28 +83,152 @@ struct ProviderCard: View {
         Text(updateText(snapshot))
             .font(.caption)
             .foregroundStyle(.secondary)
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).updated")
+    }
+
+    private func primaryMetric(label: String, money: Money) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(MetricFormatting.money(money))
+                .font(.system(size: 25, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func tokenRows(_ snapshot: ProviderSnapshot) -> some View {
+        if let tokens = tokenTotal(snapshot) {
+            HStack(spacing: 20) {
+                compactMetric("Input", value: MetricFormatting.tokens(tokens.input))
+                compactMetric("Output", value: MetricFormatting.tokens(tokens.output))
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func compactMetric(_ label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout.weight(.medium))
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func modelRows(_ snapshot: ProviderSnapshot) -> some View {
+        let models = modelSummaries(snapshot)
+        if !models.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Top models")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                ForEach(models.prefix(3)) { model in
+                    HStack(spacing: 8) {
+                        Text(model.modelID)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: 8)
+                        Text(MetricFormatting.tokens(model.tokens))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    .font(.caption)
+                    .help(model.modelID)
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "link.badge.plus")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(emptyStateText)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            ForEach(
+                metadata.externalLinks.filter { $0.kind == .dashboard || $0.kind == .status },
+                id: \.kind
+            ) { link in
+                Link(destination: link.url) {
+                    HStack(spacing: 4) {
+                        Text(link.kind == .status ? "Status" : "Dashboard")
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption2)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityIdentifier(
+                    "provider.\(metadata.id.rawValue).\(link.kind == .status ? "status" : "dashboard")"
+                )
+            }
+        }
+    }
+
+    private var statusBadge: some View {
+        Label(status.title, systemImage: status.icon)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(status.color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(status.color.opacity(0.1), in: Capsule())
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).status")
+    }
+
+    private var status: (title: String, icon: String, color: Color) {
+        guard let snapshot else {
+            return ("Not connected", "circle", .secondary)
+        }
+        guard let issue = snapshot.issue else {
+            return ("Current", "checkmark.circle.fill", .green)
+        }
+        switch issue {
+        case .authentication, .insufficientPermissions, .keychainLocked:
+            return ("Action needed", "exclamationmark.circle.fill", .red)
+        case .partialData:
+            return ("Partial", "circle.lefthalf.filled", .orange)
+        case .rateLimited, .offline, .malformedResponse, .providerUnavailable:
+            return ("Cached", "clock.badge.exclamationmark", .orange)
+        }
+    }
+
+    private var capabilityText: String {
+        if metadata.capabilities.contains(.officialCostHistory) {
+            return "Cost · tokens · models"
+        }
+        if metadata.capabilities.contains(.balance) {
+            return "Official balance"
+        }
+        return "Key validation"
     }
 
     private var emptyStateText: String {
         metadata.capabilities == [.credentialValidation]
-            ? "Connection validation only; spend and balance are unavailable."
+            ? "Connect a key to verify access. Spend stays in Google AI Studio."
             : "Connect this provider to load official data."
-    }
-
-    private var statusText: String {
-        guard let snapshot else { return "Not connected" }
-        return snapshot.issue == nil ? "Connected" : "Outdated"
-    }
-
-    private var statusColor: Color {
-        guard let snapshot else { return .secondary }
-        return snapshot.issue == nil ? .green : .orange
     }
 
     private func updateText(_ snapshot: ProviderSnapshot) -> String {
         let timestamp = snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened)
         guard let issue = snapshot.issue else { return "Updated \(timestamp)" }
-        return "Last success \(timestamp) · \(issueText(issue))"
+        return "Last update \(timestamp) · \(issueText(issue))"
     }
 
     private func issueText(_ issue: ProviderIssue) -> String {
@@ -100,7 +240,7 @@ struct ProviderCard: View {
         case .keychainLocked: "Keychain locked"
         case .malformedResponse: "Unexpected response"
         case .providerUnavailable: "Provider unavailable"
-        case .partialData: "Partial data"
+        case .partialData: "Partial report"
         }
     }
 
@@ -122,4 +262,23 @@ struct ProviderCard: View {
             values.reduce(0) { $0 + $1.outputTokens }
         )
     }
+
+    private func modelSummaries(_ snapshot: ProviderSnapshot) -> [ModelSummary] {
+        var totals: [String: Int64] = [:]
+        for model in snapshot.buckets.flatMap(\.modelBreakdown) {
+            guard let usage = model.tokenUsage else { continue }
+            totals[model.modelID, default: 0] += usage.inputTokens + usage.outputTokens
+        }
+        return totals.map { ModelSummary(modelID: $0.key, tokens: $0.value) }
+            .sorted { lhs, rhs in
+                lhs.tokens == rhs.tokens ? lhs.modelID < rhs.modelID : lhs.tokens > rhs.tokens
+            }
+    }
+}
+
+private struct ModelSummary: Identifiable {
+    let modelID: String
+    let tokens: Int64
+
+    var id: String { modelID }
 }

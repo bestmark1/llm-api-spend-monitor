@@ -15,6 +15,7 @@ struct MetricRow: View {
                 .monospacedDigit()
         }
         .font(.callout)
+        .accessibilityElement(children: .combine)
     }
 }
 
