@@ -21,7 +21,7 @@ This gate exists to prevent the app from silently showing financially incorrect 
 - Completion usage: `GET https://api.openai.com/v1/organization/usage/completions`.
 - Time boundary: inclusive Unix `start_time`, exclusive Unix `end_time`.
 - Pagination: request `page` from the previous response's `next_page` until `has_more` is false.
-- Costs support daily buckets, up to 180 buckets per request. The response documents `amount.value` as a JSON number in major currency units and `amount.currency` as a lowercase ISO 4217 code.
+- Costs support daily buckets, up to 180 buckets per request. The live response returned `amount.value` as a decimal JSON string in major currency units and `amount.currency` as a lowercase ISO 4217 code. The decoder must also tolerate a JSON number for compatibility with the documented schema.
 - Completion usage supports `1m`, `1h`, and `1d` buckets; a daily request is limited to 31 buckets. Token fields are integer counts, and model detail requires `group_by=model`.
 - Cost is authoritative. The app must not recompute money from tokens and a local pricing table.
 
@@ -61,6 +61,17 @@ Official references:
 
 - https://api-docs.deepseek.com/api/get-user-balance/
 - https://api-docs.deepseek.com/faq
+
+## Live schema observations
+
+The first sanitized capture covered the closed UTC interval from 2026-07-16 through 2026-07-17. It established the response shapes but did not exercise pagination or produce dashboard totals large enough for reliable displayed-precision reconciliation.
+
+- OpenAI Costs returned decimal money as a string with trailing precision, nullable grouping metadata, and additional ISO timestamp fields alongside Unix boundaries.
+- OpenAI completion usage returned model-grouped integer token fields and explicit cached, uncached, text, audio, and image counters.
+- Anthropic Cost Report returned a decimal string in the documented lowest USD unit and nullable cost dimensions.
+- Anthropic message usage returned model-grouped token counters, nested cache-creation counters, and nullable account/service-account dimensions.
+- DeepSeek returned one USD balance entry with decimal strings for total, granted, and topped-up balances.
+- All three responses terminated without pagination; a longer capture remains required for cursor validation.
 
 ## Live capture procedure
 
