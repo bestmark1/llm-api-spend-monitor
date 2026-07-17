@@ -62,7 +62,7 @@ sanitize() {
   jq 'walk(
     if type == "object" then
       with_entries(
-        if (.key | test("^(organization|workspace|project|user|api_key)(_id|_ids)?$")) and .value != null then
+        if (.key | test("^(organization|workspace|project|user|api_key|account|service_account)(_id|_ids|_name|_email)?$")) and .value != null then
           .value = (if (.value | type) == "array" then ["REDACTED"] else "REDACTED" end)
         elif .key == "next_page" and .value != null then
           .value = "REDACTED_PAGE_TOKEN"

@@ -84,7 +84,7 @@ The collector follows `next_page` with unchanged interval parameters until `has_
 
 ## Sanitization
 
-The collector redacts non-null organization, workspace, project, user and API-key identifiers, plus pagination cursors. It preserves nulls because nullability is part of the provider contract. Inspect every `*.sanitized.json` file manually before moving it into a tracked fixture directory.
+The collector redacts non-null organization, workspace, project, user, account, service-account and API-key identifiers and names, user-associated email fields, plus pagination cursors. It preserves nulls because nullability is part of the provider contract. Inspect every `*.sanitized.json` file manually before moving it into a tracked fixture directory.
 
 Reject a sanitized file if it contains a credential prefix, email address, person name, organization name, or an unredacted identifier.
 
