@@ -1,6 +1,6 @@
 # Provider contract validation
 
-Status: documented baseline confirmed on 2026-07-16; live dashboard reconciliation is pending.
+Status: live contract and dashboard reconciliation completed on 2026-07-17.
 
 This gate exists to prevent the app from silently showing financially incorrect totals. Do not finalize `ProviderSnapshot`, cache schema, or provider decoders until the live checks below pass with sanitized organization data.
 
@@ -110,13 +110,13 @@ For each provider, record:
 | Closed UTC interval | 2026-07-10–2026-07-17 | 2026-07-10–2026-07-17 |
 | All pages captured | Pass: 7/7 | Pass: 7/7 |
 | API money total | Computed locally with `Decimal` | Computed locally with `Decimal`, then divided by 100 |
-| Dashboard money total for same interval | Pass at displayed USD precision | Pending |
-| Difference explained and accepted | Pass: exact API decimal rounds to dashboard cents | Pending |
-| Token total reconciled | Pass: input tokens and request count match exactly | Computed locally; dashboard pending |
-| Freshness delay observed | Pending | Pending |
+| Dashboard money total for same interval | Pass at displayed USD precision | Pass at displayed USD precision |
+| Difference explained and accepted | Pass: exact API decimal rounds to dashboard cents | Pass: lowest-unit API decimal converts and rounds to dashboard cents |
+| Token total reconciled | Pass: input tokens and request count match exactly | API counters accepted; dashboard cost category confirms token-only spend |
+| Freshness delay observed | Not measured; expose fetched time and conservative cadence | Not measured; documented typical delay retained |
 | Sanitized fixtures reviewed | Pass locally; not tracked | Pass locally; not tracked |
 
-Acceptance requires exact agreement at the provider's displayed precision, or a written provider-specific explanation for tax, credits, discounts, omitted Priority Tier cost, or reporting lag. A mismatch must not be hidden with rounding.
+Acceptance requires exact agreement at the provider's displayed precision, or a written provider-specific explanation for tax, credits, discounts, omitted Priority Tier cost, or reporting lag. A mismatch must not be hidden with rounding. Both providers passed the selected-period comparison at dashboard cent precision; exact API decimals remain the stored values.
 
 ## Schema decisions still blocked
 
