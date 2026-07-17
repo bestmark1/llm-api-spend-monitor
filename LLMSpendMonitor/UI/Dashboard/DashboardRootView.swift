@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardRootView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject var dashboardViewModel: DashboardViewModel
     let closePanel: () -> Void
     let quitApplication: () -> Void
 
@@ -16,6 +17,7 @@ struct DashboardRootView: View {
                 )
             case .dashboard:
                 DashboardView(
+                    viewModel: dashboardViewModel,
                     showConnections: appState.showConnections,
                     closePanel: closePanel,
                     quitApplication: quitApplication
@@ -24,7 +26,7 @@ struct DashboardRootView: View {
                 ConnectionsView(showDashboard: appState.showDashboard)
             }
         }
-        .frame(width: 380, height: 560)
+        .frame(width: 420, height: 640)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityIdentifier("menu.panel")
@@ -80,6 +82,7 @@ private struct OnboardingView: View {
 }
 
 private struct DashboardView: View {
+    @ObservedObject var viewModel: DashboardViewModel
     let showConnections: () -> Void
     let closePanel: () -> Void
     let quitApplication: () -> Void
@@ -90,6 +93,13 @@ private struct DashboardView: View {
                 Text("LLM Spend")
                     .font(.title2.bold())
                 Spacer()
+                Button("Refresh", systemImage: "arrow.clockwise") {
+                    Task { await viewModel.refresh(trigger: .manual) }
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .disabled(viewModel.isRefreshing)
+                .accessibilityIdentifier("dashboard.refresh")
                 Button("Close", systemImage: "xmark", action: closePanel)
                     .labelStyle(.iconOnly)
                     .buttonStyle(.plain)
@@ -105,16 +115,22 @@ private struct DashboardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Official spend")
                     .foregroundStyle(.secondary)
-                Text("$0.00")
+                Text(MetricFormatting.money(viewModel.officialUSDTotal))
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                Text("Connect a provider to load official data.")
+                Text("Complete official USD reports only")
                     .foregroundStyle(.secondary)
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
 
-            Spacer()
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(ProviderRegistry.all) { provider in
+                        ProviderCard(metadata: provider, snapshot: viewModel.snapshots[provider.id])
+                    }
+                }
+            }
 
             Menu("Options", systemImage: "ellipsis.circle") {
                 Button("Connections", action: showConnections)
@@ -132,5 +148,6 @@ private struct DashboardView: View {
         }
         .padding(20)
         .accessibilityIdentifier("dashboard.root")
+        .task { await viewModel.start() }
     }
 }

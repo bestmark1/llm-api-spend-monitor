@@ -12,16 +12,19 @@ protocol MenuPanelPresenting: AnyObject {
 @MainActor
 final class StatusBarController: NSObject {
     private let appState: AppState
+    private let dashboardViewModel: DashboardViewModel
     private let statusItem: NSStatusItem
     private let panelPresenter: MenuPanelPresenter
 
     init(
         appState: AppState = AppState(),
+        dashboardViewModel: DashboardViewModel = DashboardViewModel(),
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     ) {
         self.appState = appState
+        self.dashboardViewModel = dashboardViewModel
         self.statusItem = statusItem
-        panelPresenter = MenuPanelPresenter(appState: appState)
+        panelPresenter = MenuPanelPresenter(appState: appState, dashboardViewModel: dashboardViewModel)
         super.init()
 
         configureStatusItem()
@@ -60,9 +63,9 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
 
     var isVisible: Bool { panel.isVisible }
 
-    init(appState: AppState) {
+    init(appState: AppState, dashboardViewModel: DashboardViewModel) {
         panel = MenuBarPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 640),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: true
@@ -80,6 +83,7 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
         panel.contentView = NSHostingView(
             rootView: DashboardRootView(
                 appState: appState,
+                dashboardViewModel: dashboardViewModel,
                 closePanel: { [weak self] in self?.hide() },
                 quitApplication: { NSApplication.shared.terminate(nil) }
             )
