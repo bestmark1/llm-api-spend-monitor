@@ -139,7 +139,7 @@ private struct DashboardView: View {
                             snapshot: viewModel.snapshot(for: provider.id),
                             platformBalance: viewModel.platformBalance(for: provider.id),
                             synchronizeBalance: viewModel.canSynchronizePlatformBalance(for: provider.id) ? { balance in
-                                viewModel.synchronizePlatformBalance(
+                                await viewModel.synchronizePlatformBalance(
                                     providerID: provider.id,
                                     balance: balance
                                 )

@@ -42,14 +42,16 @@ struct PlatformBalanceEditor: View {
 
     let metadata: ProviderMetadata
     let currentBalance: PlatformBalanceStatus?
-    let save: (Money) -> Void
+    let save: (Money) async -> Bool
 
     @State private var amountText: String
+    @State private var isSaving = false
+    @State private var saveFailed = false
 
     init(
         metadata: ProviderMetadata,
         currentBalance: PlatformBalanceStatus?,
-        save: @escaping (Money) -> Void
+        save: @escaping (Money) async -> Bool
     ) {
         self.metadata = metadata
         self.currentBalance = currentBalance
@@ -104,13 +106,31 @@ struct PlatformBalanceEditor: View {
                 Spacer()
                 Button(currentBalance == nil ? "Add Balance" : "Update Balance") {
                     guard let money = parsedMoney else { return }
-                    save(money)
-                    dismiss()
+                    Task {
+                        isSaving = true
+                        saveFailed = false
+                        if await save(money) {
+                            dismiss()
+                        } else {
+                            saveFailed = true
+                            isSaving = false
+                        }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(parsedMoney == nil)
+                .disabled(parsedMoney == nil || isSaving)
                 .accessibilityIdentifier("balance.save")
+            }
+
+            if isSaving {
+                ProgressView("Refreshing official costs…")
+                    .controlSize(.small)
+            } else if saveFailed {
+                Text("Couldn’t load a complete cost report. Check the connection and try again.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("balance.saveError")
             }
         }
         .padding(24)

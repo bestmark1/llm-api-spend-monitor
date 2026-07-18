@@ -188,8 +188,14 @@ final class DashboardViewModel: ObservableObject {
     func synchronizePlatformBalance(
         providerID: ProviderID,
         balance: Money
-    ) -> Bool {
+    ) async -> Bool {
         guard canSynchronizePlatformBalance(for: providerID) else { return false }
+
+        if ProviderRegistry.metadata(for: providerID)?.capabilities.contains(.officialCostHistory) == true {
+            guard !isRefreshing else { return false }
+            await refresh(trigger: .manual)
+            guard hasCompleteCurrentCostCoverage(for: providerID) else { return false }
+        }
 
         let synchronizedAt = now()
         let anchors = synchronizationAnchors(
@@ -270,6 +276,19 @@ final class DashboardViewModel: ObservableObject {
             snapshot.coverage?.completeness == .complete
         else { return nil }
         return snapshot
+    }
+
+    private func hasCompleteCurrentCostCoverage(for providerID: ProviderID) -> Bool {
+        guard
+            let snapshot = snapshots[providerID],
+            snapshot.issue == nil,
+            snapshot.capabilities.contains(.officialCostHistory),
+            let coverage = snapshot.coverage,
+            coverage.completeness == .complete
+        else { return false }
+
+        let currentDay = utcDayInterval(containing: now())
+        return coverage.start <= currentDay.start && coverage.through >= currentDay.end
     }
 
     private func reconcilePlatformBalances() {

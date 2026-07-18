@@ -30,19 +30,21 @@ final class PlatformBalanceTests: XCTestCase {
         let store = InMemoryPlatformBalanceStore()
         let snapshot = try makeSnapshot(firstDay: "15.00")
         let model = DashboardViewModel(
-            dataSource: DashboardDataSourceStubForBalance(cached: [.openAI: snapshot]),
+            dataSource: DashboardDataSourceStubForBalance(
+                cached: [.openAI: snapshot],
+                refreshed: [.openAI: snapshot]
+            ),
             targets: [],
             platformBalanceStore: store,
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
 
-        XCTAssertTrue(
-            model.synchronizePlatformBalance(
-                providerID: .openAI,
-                balance: try Money(amount: 100, currencyCode: "USD")
-            )
+        let synchronized = await model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
         )
+        XCTAssertTrue(synchronized)
 
         let balance = try XCTUnwrap(model.platformBalance(for: .openAI))
         XCTAssertEqual(balance.remaining.amount, 100)
@@ -54,9 +56,12 @@ final class PlatformBalanceTests: XCTestCase {
     func testReconcileSubtractsOnlySpendObservedAfterSynchronization() async throws {
         let initial = try makeSnapshot(firstDay: "15.00")
         let refreshed = try makeSnapshot(firstDay: "17.00", secondDay: "4.00")
-        let dataSource = DashboardDataSourceStubForBalance(
+        let dataSource = SequencedDashboardDataSourceForBalance(
             cached: [.openAI: initial],
-            refreshed: [.openAI: refreshed]
+            refreshes: [
+                [.openAI: initial],
+                [.openAI: refreshed]
+            ]
         )
         let model = DashboardViewModel(
             dataSource: dataSource,
@@ -65,7 +70,7 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -80,9 +85,12 @@ final class PlatformBalanceTests: XCTestCase {
     func testFirstSpendLaterOnSynchronizationDayIsDeducted() async throws {
         let initial = try makeEmptySnapshot()
         let refreshed = try makeSnapshot(firstDay: "4.00")
-        let dataSource = DashboardDataSourceStubForBalance(
+        let dataSource = SequencedDashboardDataSourceForBalance(
             cached: [.openAI: initial],
-            refreshed: [.openAI: refreshed]
+            refreshes: [
+                [.openAI: initial],
+                [.openAI: refreshed]
+            ]
         )
         let model = DashboardViewModel(
             dataSource: dataSource,
@@ -91,7 +99,7 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -101,7 +109,7 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 96)
     }
 
-    func testRepeatedIdenticalRefreshDoesNotDeductSpendTwice() async throws {
+    func testSynchronizationRefreshesStaleCostBaselineBeforeSavingBalance() async throws {
         let initial = try makeSnapshot(firstDay: "15.00")
         let refreshed = try makeSnapshot(firstDay: "17.00")
         let model = DashboardViewModel(
@@ -114,7 +122,34 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 100)
+    }
+
+    func testRepeatedIdenticalRefreshDoesNotDeductSpendTwice() async throws {
+        let initial = try makeSnapshot(firstDay: "15.00")
+        let refreshed = try makeSnapshot(firstDay: "17.00")
+        let model = DashboardViewModel(
+            dataSource: SequencedDashboardDataSourceForBalance(
+                cached: [.openAI: initial],
+                refreshes: [
+                    [.openAI: initial],
+                    [.openAI: refreshed],
+                    [.openAI: refreshed]
+                ]
+            ),
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -130,6 +165,7 @@ final class PlatformBalanceTests: XCTestCase {
         let dataSource = SequencedDashboardDataSourceForBalance(
             cached: [.openAI: initial],
             refreshes: [
+                [.openAI: initial],
                 [.openAI: try makeSnapshot(firstDay: "17.00")],
                 [.openAI: try makeSnapshot(firstDay: "14.00")],
                 [.openAI: try makeSnapshot(firstDay: "16.00")]
@@ -142,7 +178,7 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -163,6 +199,7 @@ final class PlatformBalanceTests: XCTestCase {
         let dataSource = SequencedDashboardDataSourceForBalance(
             cached: [.openAI: initial],
             refreshes: [
+                [.openAI: initial],
                 [.openAI: returned],
                 [.openAI: missing],
                 [.openAI: returned]
@@ -175,7 +212,7 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -190,9 +227,12 @@ final class PlatformBalanceTests: XCTestCase {
     func testIncompleteReportsDoNotChangeTrackedBalance() async throws {
         let initial = try makeSnapshot(firstDay: "15.00")
         let partial = try makeSnapshot(firstDay: "25.00", completeness: .partial)
-        let dataSource = DashboardDataSourceStubForBalance(
+        let dataSource = SequencedDashboardDataSourceForBalance(
             cached: [.openAI: initial],
-            refreshed: [.openAI: partial]
+            refreshes: [
+                [.openAI: initial],
+                [.openAI: partial]
+            ]
         )
         let model = DashboardViewModel(
             dataSource: dataSource,
@@ -201,7 +241,7 @@ final class PlatformBalanceTests: XCTestCase {
             now: { platformBalanceSyncDate }
         )
         await model.loadCache()
-        _ = model.synchronizePlatformBalance(
+        _ = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
@@ -211,7 +251,7 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 100)
     }
 
-    func testTrackedBalancePersistsAcrossViewModelRecreation() throws {
+    func testTrackedBalancePersistsAcrossViewModelRecreation() async throws {
         let store = InMemoryPlatformBalanceStore()
         let firstModel = DashboardViewModel(
             dataSource: DashboardDataSourceStubForBalance(),
@@ -219,8 +259,8 @@ final class PlatformBalanceTests: XCTestCase {
             platformBalanceStore: store,
             now: { platformBalanceSyncDate }
         )
-        _ = firstModel.synchronizePlatformBalance(
-            providerID: .anthropic,
+        _ = await firstModel.synchronizePlatformBalance(
+            providerID: .gemini,
             balance: try Money(amount: 42, currencyCode: "USD")
         )
 
@@ -230,23 +270,22 @@ final class PlatformBalanceTests: XCTestCase {
             platformBalanceStore: store
         )
 
-        XCTAssertEqual(relaunched.platformBalance(for: .anthropic)?.remaining.amount, 42)
-        XCTAssertEqual(relaunched.platformBalance(for: .anthropic)?.synchronizedAt, platformBalanceSyncDate)
+        XCTAssertEqual(relaunched.platformBalance(for: .gemini)?.remaining.amount, 42)
+        XCTAssertEqual(relaunched.platformBalance(for: .gemini)?.synchronizedAt, platformBalanceSyncDate)
     }
 
-    func testDeepSeekRejectsManualBalanceBecauseItsBalanceIsOfficial() throws {
+    func testDeepSeekRejectsManualBalanceBecauseItsBalanceIsOfficial() async throws {
         let model = DashboardViewModel(
             dataSource: DashboardDataSourceStubForBalance(),
             targets: [],
             platformBalanceStore: InMemoryPlatformBalanceStore()
         )
 
-        XCTAssertFalse(
-            model.synchronizePlatformBalance(
-                providerID: .deepSeek,
-                balance: try Money(amount: 10, currencyCode: "USD")
-            )
+        let synchronized = await model.synchronizePlatformBalance(
+            providerID: .deepSeek,
+            balance: try Money(amount: 10, currencyCode: "USD")
         )
+        XCTAssertFalse(synchronized)
         XCTAssertNil(model.platformBalance(for: .deepSeek))
     }
 
@@ -256,14 +295,14 @@ final class PlatformBalanceTests: XCTestCase {
             targets: [],
             platformBalanceStore: InMemoryPlatformBalanceStore()
         )
-        _ = model.synchronizePlatformBalance(
-            providerID: .openAI,
+        _ = await model.synchronizePlatformBalance(
+            providerID: .gemini,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
 
-        await model.credentialDidChange(.openAI)
+        await model.credentialDidChange(.gemini)
 
-        XCTAssertNil(model.platformBalance(for: .openAI))
+        XCTAssertNil(model.platformBalance(for: .gemini))
     }
 
     private func makeSnapshot(

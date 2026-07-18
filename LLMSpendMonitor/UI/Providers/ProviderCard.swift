@@ -4,7 +4,7 @@ struct ProviderCard: View {
     let metadata: ProviderMetadata
     let snapshot: ProviderSnapshot?
     let platformBalance: PlatformBalanceStatus?
-    let synchronizeBalance: ((Money) -> Void)?
+    let synchronizeBalance: ((Money) async -> Bool)?
 
     @State private var isBalanceEditorPresented = false
 
@@ -12,7 +12,7 @@ struct ProviderCard: View {
         metadata: ProviderMetadata,
         snapshot: ProviderSnapshot?,
         platformBalance: PlatformBalanceStatus? = nil,
-        synchronizeBalance: ((Money) -> Void)? = nil
+        synchronizeBalance: ((Money) async -> Bool)? = nil
     ) {
         self.metadata = metadata
         self.snapshot = snapshot
