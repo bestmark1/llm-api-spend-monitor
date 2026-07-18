@@ -10,6 +10,7 @@ struct PeriodPicker: View {
             }
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
         .accessibilityIdentifier("dashboard.period")
     }
 }
