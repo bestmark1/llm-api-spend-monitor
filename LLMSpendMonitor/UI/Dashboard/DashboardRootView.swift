@@ -137,6 +137,7 @@ private struct DashboardView: View {
                         ProviderCard(
                             metadata: provider,
                             snapshot: viewModel.snapshot(for: provider.id),
+                            freshness: viewModel.providerFreshness(for: provider.id),
                             platformBalance: viewModel.platformBalance(for: provider.id),
                             synchronizeBalance: viewModel.canSynchronizePlatformBalance(for: provider.id) ? { balance in
                                 await viewModel.synchronizePlatformBalance(

@@ -206,6 +206,34 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(model.menuBarUSDTotal.amount, Decimal(string: "3.00"))
     }
 
+    func testProviderFreshnessDistinguishesCurrentProcessingAndStaleData() async throws {
+        let current = try makeCostSnapshot(providerID: .openAI, amount: "1.00")
+        let processing = try makeProcessingSnapshot(providerID: .anthropic, fetchedAt: current.fetchedAt)
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: current, .anthropic: processing],
+            refreshed: [:]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { current.fetchedAt.addingTimeInterval(60) }
+        )
+
+        await model.loadCache()
+
+        XCTAssertEqual(model.providerFreshness(for: .openAI), .current)
+        XCTAssertEqual(model.providerFreshness(for: .anthropic), .processing)
+
+        let staleModel = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { current.fetchedAt.addingTimeInterval(30 * 60 + 1) }
+        )
+        await staleModel.loadCache()
+
+        XCTAssertEqual(staleModel.providerFreshness(for: .openAI), .stale)
+    }
+
     private func makeTarget(_ providerID: ProviderID) -> ProviderRefreshTarget {
         ProviderRefreshTarget(
             providerID: providerID,
@@ -214,6 +242,33 @@ final class DashboardViewModelTests: XCTestCase {
             automaticRefreshEnabled: true,
             fetch: { throw ProviderClientError.unavailable },
             generationIsCurrent: { _ in true }
+        )
+    }
+
+    private func makeProcessingSnapshot(
+        providerID: ProviderID,
+        fetchedAt: Date
+    ) throws -> ProviderSnapshot {
+        let start = fetchedAt.addingTimeInterval(-86_400)
+        return try ProviderSnapshot(
+            providerID: providerID,
+            capabilities: [.officialCostHistory, .tokenUsage],
+            fetchedAt: fetchedAt,
+            coverage: ReportingCoverage(start: start, through: fetchedAt, completeness: .complete),
+            buckets: [
+                PeriodBucket(
+                    start: start,
+                    end: fetchedAt,
+                    tokenUsage: TokenUsage(
+                        inputTokens: 10,
+                        outputTokens: 5,
+                        cachedInputTokens: 0,
+                        provenance: .official
+                    )
+                )
+            ],
+            balances: [],
+            issue: nil
         )
     }
 

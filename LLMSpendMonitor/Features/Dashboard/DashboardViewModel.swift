@@ -58,6 +58,12 @@ struct PlatformBalanceStatus: Equatable, Sendable {
     let automaticallyDeductsSpend: Bool
 }
 
+enum ProviderFreshness: Equatable, Sendable {
+    case current
+    case processing
+    case stale
+}
+
 private struct PlatformBalanceAnchorKey: Hashable {
     let start: Date
     let end: Date
@@ -202,6 +208,25 @@ final class DashboardViewModel: ObservableObject {
             balances: source.balances,
             issue: issue
         )
+    }
+
+    func providerFreshness(for providerID: ProviderID) -> ProviderFreshness? {
+        guard let snapshot = snapshots[providerID], snapshot.issue == nil else { return nil }
+
+        if now().timeIntervalSince(snapshot.fetchedAt) > staleInterval(for: providerID) {
+            return .stale
+        }
+
+        let latestUsageBucket = snapshot.buckets
+            .filter { $0.tokenUsage != nil }
+            .max { $0.end < $1.end }
+        if snapshot.capabilities.contains(.officialCostHistory),
+           let latestUsageBucket,
+           latestUsageBucket.cost == nil {
+            return .processing
+        }
+
+        return .current
     }
 
     @discardableResult
@@ -503,5 +528,13 @@ final class DashboardViewModel: ObservableObject {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar.startOfDay(for: date)
+    }
+
+    private func staleInterval(for providerID: ProviderID) -> TimeInterval {
+        switch providerID {
+        case .openAI, .anthropic: 30 * 60
+        case .deepSeek: 15 * 60
+        case .gemini: 24 * 60 * 60
+        }
     }
 }

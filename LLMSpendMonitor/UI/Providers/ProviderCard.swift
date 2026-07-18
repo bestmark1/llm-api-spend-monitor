@@ -3,6 +3,7 @@ import SwiftUI
 struct ProviderCard: View {
     let metadata: ProviderMetadata
     let snapshot: ProviderSnapshot?
+    let freshness: ProviderFreshness?
     let platformBalance: PlatformBalanceStatus?
     let synchronizeBalance: ((Money) async -> Bool)?
 
@@ -11,11 +12,13 @@ struct ProviderCard: View {
     init(
         metadata: ProviderMetadata,
         snapshot: ProviderSnapshot?,
+        freshness: ProviderFreshness? = nil,
         platformBalance: PlatformBalanceStatus? = nil,
         synchronizeBalance: ((Money) async -> Bool)? = nil
     ) {
         self.metadata = metadata
         self.snapshot = snapshot
+        self.freshness = freshness
         self.platformBalance = platformBalance
         self.synchronizeBalance = synchronizeBalance
     }
@@ -293,7 +296,14 @@ struct ProviderCard: View {
             return ("Not connected", "circle", .secondary)
         }
         guard let issue = snapshot.issue else {
-            return ("Current", "checkmark.circle.fill", .green)
+            switch freshness ?? .current {
+            case .current:
+                return ("Current", "checkmark.circle.fill", .green)
+            case .processing:
+                return ("Processing", "clock.arrow.2.circlepath", .blue)
+            case .stale:
+                return ("Stale", "clock.badge.exclamationmark", .orange)
+            }
         }
         switch issue {
         case .authentication, .insufficientPermissions, .keychainLocked:
@@ -323,7 +333,13 @@ struct ProviderCard: View {
 
     private func updateText(_ snapshot: ProviderSnapshot) -> String {
         let timestamp = snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened)
-        guard let issue = snapshot.issue else { return "Updated \(timestamp)" }
+        guard let issue = snapshot.issue else {
+            switch freshness ?? .current {
+            case .current: return "Updated \(timestamp)"
+            case .processing: return "Updated \(timestamp) · cost report processing"
+            case .stale: return "Last update \(timestamp) · refresh pending"
+            }
+        }
         return "Last update \(timestamp) · \(issueText(issue))"
     }
 
