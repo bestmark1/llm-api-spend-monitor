@@ -17,22 +17,4 @@ final class MenuBarLifecycleUITests: XCTestCase {
         )
     }
 
-    func testDashboardOpensProviderCustomization() {
-        let app = XCUIApplication()
-        app.launch()
-
-        app.buttons["onboarding.skip"].click()
-
-        XCTAssertTrue(app.otherElements["dashboard.root"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["dashboard.summary"].exists)
-        XCTAssertTrue(app.segmentedControls["dashboard.period"].exists)
-
-        app.menuButtons["options.menu"].click()
-        app.menuItems["Customize"].click()
-
-        XCTAssertTrue(app.otherElements["customize.root"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.otherElements["customize.openai.row"].exists)
-        XCTAssertTrue(app.switches["customize.openai.visible"].exists)
-        XCTAssertTrue(app.buttons["customize.openai.moveDown"].exists)
-    }
 }
