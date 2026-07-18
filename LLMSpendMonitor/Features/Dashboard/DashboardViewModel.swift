@@ -51,6 +51,12 @@ struct DailySpendPoint: Identifiable, Equatable, Sendable {
     var id: Date { date }
 }
 
+private struct PlatformBalanceAnchorKey: Hashable {
+    let start: Date
+    let end: Date
+    let currencyCode: String
+}
+
 protocol DashboardDataRefreshing: Sendable {
     func loadCachedSnapshots() async -> [ProviderID: ProviderSnapshot]
     func refresh(
@@ -65,12 +71,14 @@ extension RefreshCoordinator: DashboardDataRefreshing {}
 @MainActor
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var snapshots: [ProviderID: ProviderSnapshot] = [:]
+    @Published private(set) var platformBalanceCheckpoints: [ProviderID: PlatformBalanceCheckpoint]
     @Published private(set) var isRefreshing = false
     @Published var selectedPeriod: DashboardPeriod = .today
 
     private let dataSource: any DashboardDataRefreshing
     private let fixedTargets: [ProviderRefreshTarget]?
     private let targetFactory: ProviderTargetFactory
+    private let platformBalanceStore: any PlatformBalanceStoring
     private let now: @Sendable () -> Date
     private var hasStarted = false
 
@@ -78,11 +86,14 @@ final class DashboardViewModel: ObservableObject {
         dataSource: any DashboardDataRefreshing = RefreshCoordinator(),
         targets: [ProviderRefreshTarget]? = nil,
         targetFactory: ProviderTargetFactory = ProviderTargetFactory(),
+        platformBalanceStore: any PlatformBalanceStoring = UserDefaultsPlatformBalanceStore(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.dataSource = dataSource
         fixedTargets = targets
         self.targetFactory = targetFactory
+        self.platformBalanceStore = platformBalanceStore
+        platformBalanceCheckpoints = platformBalanceStore.load()
         self.now = now
     }
 
@@ -166,6 +177,47 @@ final class DashboardViewModel: ObservableObject {
         )
     }
 
+    @discardableResult
+    func synchronizePlatformBalance(
+        providerID: ProviderID,
+        balance: Money,
+        snapshot: ProviderSnapshot?
+    ) -> Bool {
+        guard providerID != .deepSeek else { return false }
+
+        let anchors = officialCostAnchors(
+            in: snapshot,
+            currencyCode: balance.currencyCode
+        )
+        platformBalanceCheckpoints[providerID] = PlatformBalanceCheckpoint(
+            providerID: providerID,
+            enteredBalance: balance,
+            synchronizedAt: now(),
+            deductedSpend: try! Money(amount: 0, currencyCode: balance.currencyCode),
+            costAnchors: anchors
+        )
+        persistPlatformBalances()
+        return true
+    }
+
+    func platformBalance(for providerID: ProviderID) -> PlatformBalanceStatus? {
+        guard let checkpoint = platformBalanceCheckpoints[providerID] else { return nil }
+        let remainingAmount = max(
+            Decimal.zero,
+            checkpoint.enteredBalance.amount - checkpoint.deductedSpend.amount
+        )
+        return PlatformBalanceStatus(
+            remaining: try! Money(
+                amount: remainingAmount,
+                currencyCode: checkpoint.enteredBalance.currencyCode
+            ),
+            deductedSpend: checkpoint.deductedSpend,
+            synchronizedAt: checkpoint.synchronizedAt,
+            automaticallyDeductsSpend: ProviderRegistry.metadata(for: providerID)?
+                .capabilities.contains(.officialCostHistory) == true
+        )
+    }
+
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
@@ -175,6 +227,7 @@ final class DashboardViewModel: ObservableObject {
 
     func loadCache() async {
         snapshots = await dataSource.loadCachedSnapshots()
+        reconcilePlatformBalances()
     }
 
     func refresh(trigger: RefreshTrigger) async {
@@ -184,6 +237,7 @@ final class DashboardViewModel: ObservableObject {
             trigger: trigger,
             targets: fixedTargets ?? targetFactory.makeTargets()
         )
+        reconcilePlatformBalances()
         isRefreshing = false
     }
 
@@ -201,6 +255,97 @@ final class DashboardViewModel: ObservableObject {
             snapshot.coverage?.completeness == .complete
         else { return nil }
         return snapshot
+    }
+
+    private func reconcilePlatformBalances() {
+        var changed = false
+
+        for (providerID, checkpoint) in platformBalanceCheckpoints {
+            guard let snapshot = snapshots[providerID] else { continue }
+            let reconciled = reconcile(checkpoint, with: snapshot)
+            guard reconciled != checkpoint else { continue }
+            platformBalanceCheckpoints[providerID] = reconciled
+            changed = true
+        }
+
+        if changed {
+            persistPlatformBalances()
+        }
+    }
+
+    private func reconcile(
+        _ checkpoint: PlatformBalanceCheckpoint,
+        with snapshot: ProviderSnapshot
+    ) -> PlatformBalanceCheckpoint {
+        guard
+            snapshot.providerID == checkpoint.providerID,
+            snapshot.issue == nil,
+            snapshot.coverage?.completeness == .complete,
+            snapshot.capabilities.contains(.officialCostHistory)
+        else { return checkpoint }
+
+        let currentAnchors = officialCostAnchors(
+            in: snapshot,
+            currencyCode: checkpoint.enteredBalance.currencyCode
+        )
+        let previousCosts = Dictionary(uniqueKeysWithValues: checkpoint.costAnchors.map {
+            (anchorKey(for: $0), $0.cost.amount)
+        })
+        let delta = currentAnchors.reduce(into: Decimal.zero) { result, anchor in
+            if let previous = previousCosts[anchorKey(for: anchor)] {
+                result += anchor.cost.amount - previous
+            } else if anchor.start >= checkpoint.synchronizedAt {
+                result += anchor.cost.amount
+            }
+        }
+        let deductedAmount = max(Decimal.zero, checkpoint.deductedSpend.amount + delta)
+
+        return PlatformBalanceCheckpoint(
+            providerID: checkpoint.providerID,
+            enteredBalance: checkpoint.enteredBalance,
+            synchronizedAt: checkpoint.synchronizedAt,
+            deductedSpend: try! Money(
+                amount: deductedAmount,
+                currencyCode: checkpoint.enteredBalance.currencyCode
+            ),
+            costAnchors: currentAnchors
+        )
+    }
+
+    private func officialCostAnchors(
+        in snapshot: ProviderSnapshot?,
+        currencyCode: String
+    ) -> [PlatformBalanceCostAnchor] {
+        guard
+            let snapshot,
+            snapshot.issue == nil,
+            snapshot.coverage?.completeness == .complete
+        else { return [] }
+
+        return snapshot.buckets.compactMap { bucket in
+            guard
+                let cost = bucket.cost,
+                cost.provenance == .official,
+                cost.value.currencyCode == currencyCode
+            else { return nil }
+            return PlatformBalanceCostAnchor(
+                start: bucket.start,
+                end: bucket.end,
+                cost: cost.value
+            )
+        }
+    }
+
+    private func anchorKey(for anchor: PlatformBalanceCostAnchor) -> PlatformBalanceAnchorKey {
+        PlatformBalanceAnchorKey(
+            start: anchor.start,
+            end: anchor.end,
+            currencyCode: anchor.cost.currencyCode
+        )
+    }
+
+    private func persistPlatformBalances() {
+        platformBalanceStore.save(platformBalanceCheckpoints)
     }
 
     private func officialUSDCosts(in snapshot: ProviderSnapshot) -> [Money] {
