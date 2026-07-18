@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -71,6 +72,7 @@ final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
     private let panelPresenter: MenuPanelPresenter
     private let refreshScheduler: RefreshScheduler
+    private var cancellables: Set<AnyCancellable> = []
 
     init(
         appState: AppState = AppState(),
@@ -87,6 +89,7 @@ final class StatusBarController: NSObject {
         super.init()
 
         configureStatusItem()
+        observeDashboardMetric()
         panelPresenter.anchorProvider = { [weak statusItem] in
             statusItem?.button
         }
@@ -153,11 +156,23 @@ final class StatusBarController: NSObject {
 
         button.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: nil)
         button.imagePosition = .imageLeading
-        button.title = MenuBarLabelView.metricText
         button.target = self
         button.action = #selector(togglePanel)
         button.sendAction(on: [.leftMouseUp])
-        button.setAccessibilityLabel(MenuBarLabelView.accessibilityLabel)
+        updateDashboardMetric()
+    }
+
+    private func observeDashboardMetric() {
+        dashboardViewModel.$snapshots
+            .sink { [weak self] _ in self?.updateDashboardMetric() }
+            .store(in: &cancellables)
+    }
+
+    private func updateDashboardMetric() {
+        guard let button = statusItem.button else { return }
+        let total = dashboardViewModel.menuBarUSDTotal
+        button.title = MenuBarLabelView.metricText(for: total)
+        button.setAccessibilityLabel(MenuBarLabelView.accessibilityLabel(for: total))
     }
 }
 

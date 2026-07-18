@@ -28,6 +28,13 @@ final class MenuBarShellTests: XCTestCase {
     func testMenuBarLabelExposesMetricAndAccessibleDescription() {
         XCTAssertEqual(MenuBarLabelView.metricText, "$0.00")
         XCTAssertEqual(MenuBarLabelView.accessibilityLabel, "LLM API spend today: $0.00")
+
+        let total = try! Money(amount: Decimal(string: "12.34")!, currencyCode: "USD")
+        XCTAssertEqual(MenuBarLabelView.metricText(for: total), "$12.34")
+        XCTAssertEqual(
+            MenuBarLabelView.accessibilityLabel(for: total),
+            "LLM API spend today: $12.34"
+        )
     }
 
     func testRefreshSchedulerStartsOnlyOnePeriodicLoop() async {

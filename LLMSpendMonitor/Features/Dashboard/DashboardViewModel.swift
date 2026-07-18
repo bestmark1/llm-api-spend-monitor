@@ -111,6 +111,26 @@ final class DashboardViewModel: ObservableObject {
         return try! Money(amount: total, currencyCode: "USD")
     }
 
+    var menuBarUSDTotal: Money {
+        let interval = DashboardPeriod.today.interval(containing: now())
+        let total = snapshots.values.reduce(into: Decimal.zero) { result, snapshot in
+            guard
+                snapshot.issue == nil,
+                snapshot.capabilities.contains(.officialCostHistory),
+                let coverage = snapshot.coverage,
+                coverage.completeness == .complete,
+                coverage.start <= interval.start,
+                coverage.through >= interval.end
+            else { return }
+
+            for bucket in snapshot.buckets where
+                bucket.start >= interval.start && bucket.end <= interval.end {
+                result += officialUSDCost(in: bucket)?.amount ?? 0
+            }
+        }
+        return try! Money(amount: total, currencyCode: "USD")
+    }
+
     var officialUSDBreakdown: [ProviderSpendSummary] {
         snapshots.keys.sorted(by: { $0.rawValue < $1.rawValue }).compactMap { providerID in
             guard let snapshot = completeOfficialCostSnapshot(for: providerID) else { return nil }

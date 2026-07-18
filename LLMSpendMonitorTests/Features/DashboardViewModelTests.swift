@@ -187,6 +187,25 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(requests, [[.openAI]])
     }
 
+    func testMenuBarTotalUsesTodayRegardlessOfSelectedDashboardPeriod() async throws {
+        let snapshot = try makeDailyCostSnapshot(amounts: ["2.00", "3.00"])
+        let dataSource = DashboardDataSourceStub(
+            cached: [.openAI: snapshot],
+            refreshed: [:]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            now: { snapshot.buckets[1].start.addingTimeInterval(3_600) }
+        )
+        model.selectedPeriod = .yesterday
+
+        await model.loadCache()
+
+        XCTAssertEqual(model.officialUSDTotal.amount, Decimal(string: "2.00"))
+        XCTAssertEqual(model.menuBarUSDTotal.amount, Decimal(string: "3.00"))
+    }
+
     private func makeTarget(_ providerID: ProviderID) -> ProviderRefreshTarget {
         ProviderRefreshTarget(
             providerID: providerID,
