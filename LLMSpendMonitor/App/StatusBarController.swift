@@ -2,6 +2,61 @@ import AppKit
 import SwiftUI
 
 @MainActor
+final class RefreshScheduler {
+    typealias Sleep = @Sendable (TimeInterval) async throws -> Void
+    typealias Refresh = @MainActor @Sendable (RefreshTrigger) async -> Void
+
+    private let interval: TimeInterval
+    private let sleep: Sleep
+    private let refresh: Refresh
+    private var periodicTask: Task<Void, Never>?
+
+    init(
+        interval: TimeInterval = 60,
+        sleep: @escaping Sleep = { interval in
+            try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+        },
+        refresh: @escaping Refresh
+    ) {
+        self.interval = interval
+        self.sleep = sleep
+        self.refresh = refresh
+    }
+
+    deinit {
+        periodicTask?.cancel()
+    }
+
+    func start() {
+        guard periodicTask == nil else { return }
+        let interval = interval
+        let sleep = sleep
+        let refresh = refresh
+
+        periodicTask = Task {
+            while !Task.isCancelled {
+                do {
+                    try await sleep(interval)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                await refresh(.timer)
+            }
+        }
+    }
+
+    func stop() {
+        periodicTask?.cancel()
+        periodicTask = nil
+    }
+
+    func refreshNow(for trigger: RefreshTrigger) async {
+        await refresh(trigger)
+    }
+}
+
+@MainActor
 protocol MenuPanelPresenting: AnyObject {
     var isVisible: Bool { get }
     func show()
@@ -15,6 +70,7 @@ final class StatusBarController: NSObject {
     private let dashboardViewModel: DashboardViewModel
     private let statusItem: NSStatusItem
     private let panelPresenter: MenuPanelPresenter
+    private let refreshScheduler: RefreshScheduler
 
     init(
         appState: AppState = AppState(),
@@ -25,12 +81,25 @@ final class StatusBarController: NSObject {
         self.dashboardViewModel = dashboardViewModel
         self.statusItem = statusItem
         panelPresenter = MenuPanelPresenter(appState: appState, dashboardViewModel: dashboardViewModel)
+        refreshScheduler = RefreshScheduler { [weak dashboardViewModel] trigger in
+            await dashboardViewModel?.refresh(trigger: trigger)
+        }
         super.init()
 
         configureStatusItem()
         panelPresenter.anchorProvider = { [weak statusItem] in
             statusItem?.button
         }
+        panelPresenter.didShow = { [weak self] in
+            self?.requestRefresh(for: .panelOpen)
+        }
+        observeWorkspaceLifecycle()
+        refreshScheduler.start()
+        Task { await dashboardViewModel.start() }
+    }
+
+    deinit {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
     func showOnboardingIfNeeded() {
@@ -49,6 +118,36 @@ final class StatusBarController: NSObject {
         panelPresenter.toggle()
     }
 
+    @objc private func workspaceDidWake(_ notification: Notification) {
+        requestRefresh(for: .wake)
+    }
+
+    @objc private func workspaceSessionDidBecomeActive(_ notification: Notification) {
+        requestRefresh(for: .unlock)
+    }
+
+    private func requestRefresh(for trigger: RefreshTrigger) {
+        Task { [weak self] in
+            await self?.refreshScheduler.refreshNow(for: trigger)
+        }
+    }
+
+    private func observeWorkspaceLifecycle() {
+        let notificationCenter = NSWorkspace.shared.notificationCenter
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceDidWake(_:)),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceSessionDidBecomeActive(_:)),
+            name: NSWorkspace.sessionDidBecomeActiveNotification,
+            object: nil
+        )
+    }
+
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
 
@@ -65,6 +164,7 @@ final class StatusBarController: NSObject {
 @MainActor
 final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate {
     var anchorProvider: (() -> NSStatusBarButton?)?
+    var didShow: (() -> Void)?
 
     private let panel: MenuBarPanel
 
@@ -105,6 +205,7 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
         positionPanel()
         NSApplication.shared.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        didShow?()
     }
 
     func hide() {
