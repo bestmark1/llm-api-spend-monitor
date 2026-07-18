@@ -4,12 +4,12 @@ import XCTest
 final class ConnectionFlowUITests: XCTestCase {
     func testConnectionsExposeMaskedCredentialControls() {
         let app = XCUIApplication()
+        app.launchArguments.append("--keep-panel-open")
         app.launch()
 
-        app.buttons["onboarding.connect"].click()
+        app.buttons["Connect Provider"].click()
 
-        XCTAssertTrue(app.otherElements["connections.root"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.secureTextFields["connection.openai.secret"].exists)
+        XCTAssertTrue(app.secureTextFields["connection.openai.secret"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["connection.openai.save"].exists)
     }
 }

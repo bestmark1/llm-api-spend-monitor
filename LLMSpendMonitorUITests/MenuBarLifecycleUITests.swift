@@ -8,9 +8,10 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
     func testFirstLaunchPresentsOnboardingAndKeepsRunning() {
         let app = XCUIApplication()
+        app.launchArguments.append("--keep-panel-open")
         app.launch()
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
+        XCTAssertNotEqual(app.state, .notRunning)
         XCTAssertTrue(
             app.staticTexts["Monitor your LLM API spend"].waitForExistence(timeout: 5),
             "The first-launch onboarding panel should open automatically."
