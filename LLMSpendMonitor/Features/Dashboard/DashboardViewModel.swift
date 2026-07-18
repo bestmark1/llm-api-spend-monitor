@@ -193,7 +193,7 @@ final class DashboardViewModel: ObservableObject {
 
         if ProviderRegistry.metadata(for: providerID)?.capabilities.contains(.officialCostHistory) == true {
             guard !isRefreshing else { return false }
-            await refresh(trigger: .manual)
+            await refresh(trigger: .manual, providerID: providerID)
             guard hasCompleteCurrentCostCoverage(for: providerID) else { return false }
         }
 
@@ -249,12 +249,16 @@ final class DashboardViewModel: ObservableObject {
         reconcilePlatformBalances()
     }
 
-    func refresh(trigger: RefreshTrigger) async {
+    func refresh(trigger: RefreshTrigger, providerID: ProviderID? = nil) async {
         guard !isRefreshing else { return }
         isRefreshing = true
+        let targets = fixedTargets ?? targetFactory.makeTargets()
+        let selectedTargets = providerID.map { requestedProviderID in
+            targets.filter { $0.providerID == requestedProviderID }
+        } ?? targets
         snapshots = await dataSource.refresh(
             trigger: trigger,
-            targets: fixedTargets ?? targetFactory.makeTargets()
+            targets: selectedTargets
         )
         reconcilePlatformBalances()
         isRefreshing = false
@@ -266,7 +270,7 @@ final class DashboardViewModel: ObservableObject {
             persistPlatformBalances()
         }
         await dataSource.purge(providerID)
-        await refresh(trigger: .credentialValidation)
+        await refresh(trigger: .credentialValidation, providerID: providerID)
     }
 
     private func completeOfficialCostSnapshot(for providerID: ProviderID) -> ProviderSnapshot? {

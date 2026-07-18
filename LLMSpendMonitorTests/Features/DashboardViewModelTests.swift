@@ -165,6 +165,39 @@ final class DashboardViewModelTests: XCTestCase {
         )
     }
 
+    func testTargetedRefreshFetchesOnlyRequestedProvider() async throws {
+        let snapshot = try makeCostSnapshot(providerID: .openAI, amount: "1.00")
+        let dataSource = DashboardDataSourceStub(
+            cached: [:],
+            refreshed: [.openAI: snapshot]
+        )
+        let targets = [
+            makeTarget(.openAI),
+            makeTarget(.anthropic)
+        ]
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: targets,
+            now: { snapshot.coverage!.through.addingTimeInterval(-1) }
+        )
+
+        await model.refresh(trigger: .manual, providerID: .openAI)
+
+        let requests = await dataSource.refreshTargetIDs
+        XCTAssertEqual(requests, [[.openAI]])
+    }
+
+    private func makeTarget(_ providerID: ProviderID) -> ProviderRefreshTarget {
+        ProviderRefreshTarget(
+            providerID: providerID,
+            generation: 0,
+            minimumInterval: 0,
+            automaticRefreshEnabled: true,
+            fetch: { throw ProviderClientError.unavailable },
+            generationIsCurrent: { _ in true }
+        )
+    }
+
     private func makeCostSnapshot(
         providerID: ProviderID,
         amount: String,
@@ -227,6 +260,7 @@ private actor DashboardDataSourceStub: DashboardDataRefreshing {
     let cached: [ProviderID: ProviderSnapshot]
     let refreshed: [ProviderID: ProviderSnapshot]
     private(set) var purgedProviders: [ProviderID] = []
+    private(set) var refreshTargetIDs: [[ProviderID]] = []
 
     init(
         cached: [ProviderID: ProviderSnapshot],
@@ -244,7 +278,8 @@ private actor DashboardDataSourceStub: DashboardDataRefreshing {
         trigger: RefreshTrigger,
         targets: [ProviderRefreshTarget]
     ) -> [ProviderID: ProviderSnapshot] {
-        refreshed
+        refreshTargetIDs.append(targets.map(\.providerID))
+        return refreshed
     }
 
     func purge(_ providerID: ProviderID) {
