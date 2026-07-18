@@ -191,14 +191,16 @@ final class DashboardViewModel: ObservableObject {
     ) -> Bool {
         guard canSynchronizePlatformBalance(for: providerID) else { return false }
 
-        let anchors = officialCostAnchors(
+        let synchronizedAt = now()
+        let anchors = synchronizationAnchors(
             in: snapshots[providerID],
-            currencyCode: balance.currencyCode
+            currencyCode: balance.currencyCode,
+            synchronizedAt: synchronizedAt
         )
         platformBalanceCheckpoints[providerID] = PlatformBalanceCheckpoint(
             providerID: providerID,
             enteredBalance: balance,
-            synchronizedAt: now(),
+            synchronizedAt: synchronizedAt,
             deductedSpend: try! Money(amount: 0, currencyCode: balance.currencyCode),
             costAnchors: anchors
         )
@@ -296,13 +298,17 @@ final class DashboardViewModel: ObservableObject {
             snapshot.capabilities.contains(.officialCostHistory)
         else { return checkpoint }
 
-        let currentAnchors = officialCostAnchors(
-            in: snapshot,
-            currencyCode: checkpoint.enteredBalance.currencyCode
+        let currentAnchors = preservingMissingAnchorsAsZero(
+            officialCostAnchors(
+                in: snapshot,
+                currencyCode: checkpoint.enteredBalance.currencyCode
+            ),
+            from: checkpoint.costAnchors,
+            coverage: snapshot.coverage
         )
-        let previousCosts = Dictionary(uniqueKeysWithValues: checkpoint.costAnchors.map {
-            (anchorKey(for: $0), $0.cost.amount)
-        })
+        let previousCosts = checkpoint.costAnchors.reduce(into: [PlatformBalanceAnchorKey: Decimal]()) {
+            $0[anchorKey(for: $1)] = $1.cost.amount
+        }
         let delta = currentAnchors.reduce(into: Decimal.zero) { result, anchor in
             if let previous = previousCosts[anchorKey(for: anchor)] {
                 result += anchor.cost.amount - previous
@@ -310,7 +316,7 @@ final class DashboardViewModel: ObservableObject {
                 result += anchor.cost.amount
             }
         }
-        let deductedAmount = max(Decimal.zero, checkpoint.deductedSpend.amount + delta)
+        let deductedAmount = checkpoint.deductedSpend.amount + delta
 
         return PlatformBalanceCheckpoint(
             providerID: checkpoint.providerID,
@@ -348,11 +354,84 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
+    private func synchronizationAnchors(
+        in snapshot: ProviderSnapshot?,
+        currencyCode: String,
+        synchronizedAt: Date
+    ) -> [PlatformBalanceCostAnchor] {
+        var anchors = officialCostAnchors(in: snapshot, currencyCode: currencyCode)
+        guard
+            let snapshot,
+            snapshot.issue == nil,
+            snapshot.capabilities.contains(.officialCostHistory),
+            let coverage = snapshot.coverage,
+            coverage.completeness == .complete
+        else { return anchors }
+
+        let interval = utcDayInterval(containing: synchronizedAt)
+        let currentDayKey = PlatformBalanceAnchorKey(
+            start: interval.start,
+            end: interval.end,
+            currencyCode: currencyCode
+        )
+        guard
+            coverage.start <= interval.start,
+            coverage.through >= interval.end,
+            !anchors.contains(where: { anchorKey(for: $0) == currentDayKey })
+        else { return anchors }
+
+        anchors.append(
+            PlatformBalanceCostAnchor(
+                start: interval.start,
+                end: interval.end,
+                cost: try! Money(amount: 0, currencyCode: currencyCode)
+            )
+        )
+        return anchors.sorted { $0.start < $1.start }
+    }
+
+    private func preservingMissingAnchorsAsZero(
+        _ currentAnchors: [PlatformBalanceCostAnchor],
+        from previousAnchors: [PlatformBalanceCostAnchor],
+        coverage: ReportingCoverage?
+    ) -> [PlatformBalanceCostAnchor] {
+        guard let coverage else { return currentAnchors }
+        var anchorsByKey = Dictionary(uniqueKeysWithValues: currentAnchors.map {
+            (anchorKey(for: $0), $0)
+        })
+
+        for previous in previousAnchors {
+            let key = anchorKey(for: previous)
+            guard anchorsByKey[key] == nil else { continue }
+            let isInsideCoverage = previous.start >= coverage.start && previous.end <= coverage.through
+            anchorsByKey[key] = PlatformBalanceCostAnchor(
+                start: previous.start,
+                end: previous.end,
+                cost: try! Money(
+                    amount: isInsideCoverage ? 0 : previous.cost.amount,
+                    currencyCode: previous.cost.currencyCode
+                )
+            )
+        }
+
+        return anchorsByKey.values.sorted { $0.start < $1.start }
+    }
+
     private func anchorKey(for anchor: PlatformBalanceCostAnchor) -> PlatformBalanceAnchorKey {
         PlatformBalanceAnchorKey(
             start: anchor.start,
             end: anchor.end,
             currencyCode: anchor.cost.currencyCode
+        )
+    }
+
+    private func utcDayInterval(containing date: Date) -> DateInterval {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let start = calendar.startOfDay(for: date)
+        return DateInterval(
+            start: start,
+            end: calendar.date(byAdding: .day, value: 1, to: start)!
         )
     }
 

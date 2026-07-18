@@ -1,7 +1,8 @@
 import XCTest
 @testable import LLMSpendMonitor
 
-private let platformBalanceSyncDate = Date(timeIntervalSince1970: 1_700_049_600 + 43_200)
+private let platformBalanceDayStart = Date(timeIntervalSince1970: 1_700_006_400)
+private let platformBalanceSyncDate = platformBalanceDayStart.addingTimeInterval(43_200)
 
 @MainActor
 final class PlatformBalanceTests: XCTestCase {
@@ -76,6 +77,116 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertEqual(balance.remaining.amount, 94)
     }
 
+    func testFirstSpendLaterOnSynchronizationDayIsDeducted() async throws {
+        let initial = try makeEmptySnapshot()
+        let refreshed = try makeSnapshot(firstDay: "4.00")
+        let dataSource = DashboardDataSourceStubForBalance(
+            cached: [.openAI: initial],
+            refreshed: [.openAI: refreshed]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 96)
+    }
+
+    func testRepeatedIdenticalRefreshDoesNotDeductSpendTwice() async throws {
+        let initial = try makeSnapshot(firstDay: "15.00")
+        let refreshed = try makeSnapshot(firstDay: "17.00")
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStubForBalance(
+                cached: [.openAI: initial],
+                refreshed: [.openAI: refreshed]
+            ),
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+        await model.refresh(trigger: .manual)
+
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 98)
+    }
+
+    func testReportCorrectionIsAppliedBeforeLaterGrowth() async throws {
+        let initial = try makeSnapshot(firstDay: "15.00")
+        let dataSource = SequencedDashboardDataSourceForBalance(
+            cached: [.openAI: initial],
+            refreshes: [
+                [.openAI: try makeSnapshot(firstDay: "17.00")],
+                [.openAI: try makeSnapshot(firstDay: "14.00")],
+                [.openAI: try makeSnapshot(firstDay: "16.00")]
+            ]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+        await model.refresh(trigger: .manual)
+        await model.refresh(trigger: .manual)
+
+        let balance = try XCTUnwrap(model.platformBalance(for: .openAI))
+        XCTAssertEqual(balance.deductedSpend.amount, 1)
+        XCTAssertEqual(balance.remaining.amount, 99)
+    }
+
+    func testTemporarilyMissingBucketIsNotDeductedAgainWhenItReturns() async throws {
+        let initial = try makeSnapshot(firstDay: "15.00")
+        let missing = try makeEmptySnapshot()
+        let returned = try makeSnapshot(firstDay: "17.00")
+        let dataSource = SequencedDashboardDataSourceForBalance(
+            cached: [.openAI: initial],
+            refreshes: [
+                [.openAI: returned],
+                [.openAI: missing],
+                [.openAI: returned]
+            ]
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+        await model.refresh(trigger: .manual)
+        await model.refresh(trigger: .manual)
+
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 98)
+    }
+
     func testIncompleteReportsDoNotChangeTrackedBalance() async throws {
         let initial = try makeSnapshot(firstDay: "15.00")
         let partial = try makeSnapshot(firstDay: "25.00", completeness: .partial)
@@ -144,7 +255,7 @@ final class PlatformBalanceTests: XCTestCase {
         secondDay: String? = nil,
         completeness: ReportingCoverage.Completeness = .complete
     ) throws -> ProviderSnapshot {
-        let start = Date(timeIntervalSince1970: 1_700_049_600)
+        let start = platformBalanceDayStart
         var buckets = [
             try makeBucket(start: start, amount: firstDay)
         ]
@@ -163,6 +274,23 @@ final class PlatformBalanceTests: XCTestCase {
             buckets: buckets,
             balances: [],
             issue: completeness == .complete ? nil : .partialData
+        )
+    }
+
+    private func makeEmptySnapshot() throws -> ProviderSnapshot {
+        let start = platformBalanceDayStart
+        return try ProviderSnapshot(
+            providerID: .openAI,
+            capabilities: [.officialCostHistory],
+            fetchedAt: platformBalanceSyncDate,
+            coverage: ReportingCoverage(
+                start: start.addingTimeInterval(-29 * 86_400),
+                through: start.addingTimeInterval(86_400),
+                completeness: .complete
+            ),
+            buckets: [],
+            balances: [],
+            issue: nil
         )
     }
 
@@ -214,6 +342,33 @@ private actor DashboardDataSourceStubForBalance: DashboardDataRefreshing {
         targets: [ProviderRefreshTarget]
     ) -> [ProviderID: ProviderSnapshot] {
         refreshed
+    }
+
+    func purge(_ providerID: ProviderID) {}
+}
+
+private actor SequencedDashboardDataSourceForBalance: DashboardDataRefreshing {
+    let cached: [ProviderID: ProviderSnapshot]
+    var refreshes: [[ProviderID: ProviderSnapshot]]
+
+    init(
+        cached: [ProviderID: ProviderSnapshot],
+        refreshes: [[ProviderID: ProviderSnapshot]]
+    ) {
+        self.cached = cached
+        self.refreshes = refreshes
+    }
+
+    func loadCachedSnapshots() -> [ProviderID: ProviderSnapshot] {
+        cached
+    }
+
+    func refresh(
+        trigger: RefreshTrigger,
+        targets: [ProviderRefreshTarget]
+    ) -> [ProviderID: ProviderSnapshot] {
+        guard !refreshes.isEmpty else { return [:] }
+        return refreshes.removeFirst()
     }
 
     func purge(_ providerID: ProviderID) {}
