@@ -253,14 +253,17 @@ final class PlatformBalanceTests: XCTestCase {
 
     func testTrackedBalancePersistsAcrossViewModelRecreation() async throws {
         let store = InMemoryPlatformBalanceStore()
+        let snapshot = try makeSnapshot(providerID: .anthropic, firstDay: "5.00")
         let firstModel = DashboardViewModel(
-            dataSource: DashboardDataSourceStubForBalance(),
+            dataSource: DashboardDataSourceStubForBalance(
+                refreshed: [.anthropic: snapshot]
+            ),
             targets: [],
             platformBalanceStore: store,
             now: { platformBalanceSyncDate }
         )
         _ = await firstModel.synchronizePlatformBalance(
-            providerID: .gemini,
+            providerID: .anthropic,
             balance: try Money(amount: 42, currencyCode: "USD")
         )
 
@@ -270,42 +273,48 @@ final class PlatformBalanceTests: XCTestCase {
             platformBalanceStore: store
         )
 
-        XCTAssertEqual(relaunched.platformBalance(for: .gemini)?.remaining.amount, 42)
-        XCTAssertEqual(relaunched.platformBalance(for: .gemini)?.synchronizedAt, platformBalanceSyncDate)
+        XCTAssertEqual(relaunched.platformBalance(for: .anthropic)?.remaining.amount, 42)
+        XCTAssertEqual(relaunched.platformBalance(for: .anthropic)?.synchronizedAt, platformBalanceSyncDate)
     }
 
-    func testDeepSeekRejectsManualBalanceBecauseItsBalanceIsOfficial() async throws {
+    func testProvidersWithoutOfficialCostHistoryRejectManualBalance() async throws {
         let model = DashboardViewModel(
             dataSource: DashboardDataSourceStubForBalance(),
             targets: [],
             platformBalanceStore: InMemoryPlatformBalanceStore()
         )
 
-        let synchronized = await model.synchronizePlatformBalance(
-            providerID: .deepSeek,
-            balance: try Money(amount: 10, currencyCode: "USD")
-        )
-        XCTAssertFalse(synchronized)
-        XCTAssertNil(model.platformBalance(for: .deepSeek))
+        for providerID in [ProviderID.deepSeek, .gemini] {
+            let synchronized = await model.synchronizePlatformBalance(
+                providerID: providerID,
+                balance: try Money(amount: 10, currencyCode: "USD")
+            )
+            XCTAssertFalse(synchronized)
+            XCTAssertNil(model.platformBalance(for: providerID))
+        }
     }
 
     func testCredentialChangeClearsTrackedBalance() async throws {
+        let snapshot = try makeSnapshot(firstDay: "5.00")
         let model = DashboardViewModel(
-            dataSource: DashboardDataSourceStubForBalance(),
+            dataSource: DashboardDataSourceStubForBalance(
+                refreshed: [.openAI: snapshot]
+            ),
             targets: [],
             platformBalanceStore: InMemoryPlatformBalanceStore()
         )
         _ = await model.synchronizePlatformBalance(
-            providerID: .gemini,
+            providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
 
-        await model.credentialDidChange(.gemini)
+        await model.credentialDidChange(.openAI)
 
-        XCTAssertNil(model.platformBalance(for: .gemini))
+        XCTAssertNil(model.platformBalance(for: .openAI))
     }
 
     private func makeSnapshot(
+        providerID: ProviderID = .openAI,
         firstDay: String,
         secondDay: String? = nil,
         completeness: ReportingCoverage.Completeness = .complete
@@ -318,7 +327,7 @@ final class PlatformBalanceTests: XCTestCase {
             buckets.append(try makeBucket(start: start.addingTimeInterval(86_400), amount: secondDay))
         }
         return try ProviderSnapshot(
-            providerID: .openAI,
+            providerID: providerID,
             capabilities: [.officialCostHistory],
             fetchedAt: buckets.last!.end,
             coverage: ReportingCoverage(

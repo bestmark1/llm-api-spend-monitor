@@ -215,7 +215,8 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func canSynchronizePlatformBalance(for providerID: ProviderID) -> Bool {
-        providerID != .deepSeek
+        ProviderRegistry.metadata(for: providerID)?
+            .capabilities.contains(.officialCostHistory) == true
     }
 
     func platformBalance(for providerID: ProviderID) -> PlatformBalanceStatus? {
