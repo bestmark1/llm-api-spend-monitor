@@ -11,7 +11,7 @@ struct PeriodPicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(maxWidth: .infinity)
+        .frame(width: 340)
         .accessibilityIdentifier("dashboard.period")
     }
 }
