@@ -255,6 +255,9 @@ final class DashboardViewModel: ObservableObject {
 
     func credentialDidChange(_ providerID: ProviderID) async {
         snapshots.removeValue(forKey: providerID)
+        if platformBalanceCheckpoints.removeValue(forKey: providerID) != nil {
+            persistPlatformBalances()
+        }
         await dataSource.purge(providerID)
         await refresh(trigger: .credentialValidation)
     }

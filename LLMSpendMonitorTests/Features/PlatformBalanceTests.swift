@@ -250,6 +250,22 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertNil(model.platformBalance(for: .deepSeek))
     }
 
+    func testCredentialChangeClearsTrackedBalance() async throws {
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStubForBalance(),
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore()
+        )
+        _ = model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.credentialDidChange(.openAI)
+
+        XCTAssertNil(model.platformBalance(for: .openAI))
+    }
+
     private func makeSnapshot(
         firstDay: String,
         secondDay: String? = nil,
