@@ -8,13 +8,24 @@ enum PlatformBalanceInput {
 
     static func money(from input: String, currencyCode: String) throws -> Money {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed.replacingOccurrences(of: ",", with: ".")
+        let components = normalized.split(separator: ".", omittingEmptySubsequences: false)
         guard
             !trimmed.isEmpty,
             !trimmed.contains(where: { !$0.isNumber && $0 != "." && $0 != "," }),
             !(trimmed.contains(".") && trimmed.contains(",")),
-            trimmed.filter({ $0 == "." || $0 == "," }).count <= 1,
+            components.count <= 2,
+            let integerPart = components.first,
+            !integerPart.isEmpty,
+            integerPart.count <= 12,
+            integerPart.allSatisfy(\.isNumber),
+            components.count == 1 || (
+                !components[1].isEmpty
+                    && components[1].count <= 2
+                    && components[1].allSatisfy(\.isNumber)
+            ),
             let amount = Decimal(
-                string: trimmed.replacingOccurrences(of: ",", with: "."),
+                string: normalized,
                 locale: Locale(identifier: "en_US_POSIX")
             ),
             amount >= 0

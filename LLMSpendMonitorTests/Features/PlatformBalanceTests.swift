@@ -18,7 +18,7 @@ final class PlatformBalanceTests: XCTestCase {
     }
 
     func testBalanceInputRejectsEmptyNegativeAndAmbiguousAmounts() {
-        for value in ["", "-1", "1,000.00", "hello"] {
+        for value in ["", "-1", ".", ",", "1,000.00", "1.234", "1234567890123", "hello"] {
             XCTAssertThrowsError(
                 try PlatformBalanceInput.money(from: value, currencyCode: "USD"),
                 "Expected \(value) to be rejected"
