@@ -5,6 +5,26 @@ private let platformBalanceSyncDate = Date(timeIntervalSince1970: 1_700_049_600 
 
 @MainActor
 final class PlatformBalanceTests: XCTestCase {
+    func testBalanceInputAcceptsDotAndCommaDecimals() throws {
+        XCTAssertEqual(
+            try PlatformBalanceInput.money(from: " 12.50 ", currencyCode: "USD").amount,
+            Decimal(string: "12.50")
+        )
+        XCTAssertEqual(
+            try PlatformBalanceInput.money(from: "12,50", currencyCode: "USD").amount,
+            Decimal(string: "12.50")
+        )
+    }
+
+    func testBalanceInputRejectsEmptyNegativeAndAmbiguousAmounts() {
+        for value in ["", "-1", "1,000.00", "hello"] {
+            XCTAssertThrowsError(
+                try PlatformBalanceInput.money(from: value, currencyCode: "USD"),
+                "Expected \(value) to be rejected"
+            )
+        }
+    }
+
     func testSynchronizingStartsFromEnteredBalanceWithoutSubtractingEarlierSpend() throws {
         let store = InMemoryPlatformBalanceStore()
         let model = DashboardViewModel(

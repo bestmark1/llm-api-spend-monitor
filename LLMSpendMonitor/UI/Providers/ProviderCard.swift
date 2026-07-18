@@ -3,12 +3,28 @@ import SwiftUI
 struct ProviderCard: View {
     let metadata: ProviderMetadata
     let snapshot: ProviderSnapshot?
+    let platformBalance: PlatformBalanceStatus?
+    let synchronizeBalance: ((Money) -> Void)?
+
+    @State private var isBalanceEditorPresented = false
+
+    init(
+        metadata: ProviderMetadata,
+        snapshot: ProviderSnapshot?,
+        platformBalance: PlatformBalanceStatus? = nil,
+        synchronizeBalance: ((Money) -> Void)? = nil
+    ) {
+        self.metadata = metadata
+        self.snapshot = snapshot
+        self.platformBalance = platformBalance
+        self.synchronizeBalance = synchronizeBalance
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             header
 
-            if let snapshot {
+            if snapshot != nil || platformBalance != nil {
                 metricContent(snapshot)
             } else {
                 emptyState
@@ -20,6 +36,15 @@ struct ProviderCard: View {
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).card")
+        .sheet(isPresented: $isBalanceEditorPresented) {
+            if let synchronizeBalance {
+                PlatformBalanceEditor(
+                    metadata: metadata,
+                    currentBalance: platformBalance,
+                    save: synchronizeBalance
+                )
+            }
+        }
     }
 
     private var header: some View {
@@ -48,8 +73,8 @@ struct ProviderCard: View {
     }
 
     @ViewBuilder
-    private func metricContent(_ snapshot: ProviderSnapshot) -> some View {
-        if metadata.capabilities.contains(.balance), let balance = snapshot.balances.first {
+    private func metricContent(_ snapshot: ProviderSnapshot?) -> some View {
+        if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
             primaryMetric(label: "Available balance", money: balance.total.value)
 
             if balance.granted != nil || balance.toppedUp != nil {
@@ -62,28 +87,78 @@ struct ProviderCard: View {
                     }
                 }
             }
-        } else if let cost = costTotals(snapshot).first {
-            primaryMetric(label: "Period spend", money: cost)
-            tokenRows(snapshot)
-            modelRows(snapshot)
-        } else if metadata.capabilities == [.credentialValidation], snapshot.issue == nil {
-            Label("API key verified", systemImage: "checkmark.seal.fill")
-                .font(.callout.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text("Official spend and balance remain available only in Google AI Studio.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         } else {
-            Text("Connected · financial metrics unavailable")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            if let platformBalance {
+                platformBalanceContent(platformBalance)
+            }
+
+            if let snapshot, let cost = costTotals(snapshot).first {
+                if platformBalance != nil {
+                    Divider()
+                }
+                primaryMetric(label: "Period spend", money: cost)
+                tokenRows(snapshot)
+                modelRows(snapshot)
+            } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil {
+                if platformBalance != nil {
+                    Divider()
+                }
+                Label("API key verified", systemImage: "checkmark.seal.fill")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+            } else if platformBalance == nil {
+                Text("Connected · financial metrics unavailable")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            if synchronizeBalance != nil, platformBalance == nil {
+                balanceButton(title: "Add Balance")
+            }
         }
 
-        Text(updateText(snapshot))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .accessibilityIdentifier("provider.\(metadata.id.rawValue).updated")
+        if let snapshot {
+            Text(updateText(snapshot))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("provider.\(metadata.id.rawValue).updated")
+        }
+    }
+
+    private func platformBalanceContent(_ balance: PlatformBalanceStatus) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Remaining balance")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                balanceButton(title: "Update")
+            }
+
+            Text(MetricFormatting.money(balance.remaining))
+                .font(.system(size: 25, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+
+            if balance.automaticallyDeductsSpend {
+                MetricRow(
+                    label: "Spent since sync",
+                    value: MetricFormatting.money(balance.deductedSpend)
+                )
+            }
+
+            Text("Synced \(balance.synchronizedAt.formatted(date: .abbreviated, time: .shortened))")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("provider.\(metadata.id.rawValue).platformBalance")
+    }
+
+    private func balanceButton(title: String) -> some View {
+        Button(title) { isBalanceEditorPresented = true }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).balance")
     }
 
     private func primaryMetric(label: String, money: Money) -> some View {
@@ -162,12 +237,14 @@ struct ProviderCard: View {
     private var footer: some View {
         HStack(spacing: 8) {
             ForEach(
-                metadata.externalLinks.filter { $0.kind == .dashboard || $0.kind == .status },
+                metadata.externalLinks.filter {
+                    $0.kind == .billing || $0.kind == .dashboard || $0.kind == .status
+                },
                 id: \.kind
             ) { link in
                 Link(destination: link.url) {
                     HStack(spacing: 4) {
-                        Text(link.kind == .status ? "Status" : "Dashboard")
+                        Text(linkTitle(link.kind))
                         Image(systemName: "arrow.up.right")
                             .font(.caption2)
                     }
@@ -176,9 +253,18 @@ struct ProviderCard: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .accessibilityIdentifier(
-                    "provider.\(metadata.id.rawValue).\(link.kind == .status ? "status" : "dashboard")"
+                    "provider.\(metadata.id.rawValue).\(link.kind.rawValue)"
                 )
             }
+        }
+    }
+
+    private func linkTitle(_ kind: ExternalLink.Kind) -> String {
+        switch kind {
+        case .billing: "Billing"
+        case .status: "Status"
+        case .dashboard: "Dashboard"
+        case .usage: "Usage"
         }
     }
 

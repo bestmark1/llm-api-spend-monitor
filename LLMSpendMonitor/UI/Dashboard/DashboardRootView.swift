@@ -134,7 +134,18 @@ private struct DashboardView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(providers) { provider in
-                        ProviderCard(metadata: provider, snapshot: viewModel.snapshot(for: provider.id))
+                        ProviderCard(
+                            metadata: provider,
+                            snapshot: viewModel.snapshot(for: provider.id),
+                            platformBalance: viewModel.platformBalance(for: provider.id),
+                            synchronizeBalance: provider.id == .deepSeek ? nil : { balance in
+                                viewModel.synchronizePlatformBalance(
+                                    providerID: provider.id,
+                                    balance: balance,
+                                    snapshot: viewModel.snapshots[provider.id]
+                                )
+                            }
+                        )
                     }
 
                     if providers.isEmpty {
