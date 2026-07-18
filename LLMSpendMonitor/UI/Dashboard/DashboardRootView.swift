@@ -138,13 +138,12 @@ private struct DashboardView: View {
                             metadata: provider,
                             snapshot: viewModel.snapshot(for: provider.id),
                             platformBalance: viewModel.platformBalance(for: provider.id),
-                            synchronizeBalance: provider.id == .deepSeek ? nil : { balance in
+                            synchronizeBalance: viewModel.canSynchronizePlatformBalance(for: provider.id) ? { balance in
                                 viewModel.synchronizePlatformBalance(
                                     providerID: provider.id,
-                                    balance: balance,
-                                    snapshot: viewModel.snapshots[provider.id]
+                                    balance: balance
                                 )
-                            }
+                            } : nil
                         )
                     }
 

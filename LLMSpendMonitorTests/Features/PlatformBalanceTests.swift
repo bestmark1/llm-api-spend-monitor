@@ -25,21 +25,21 @@ final class PlatformBalanceTests: XCTestCase {
         }
     }
 
-    func testSynchronizingStartsFromEnteredBalanceWithoutSubtractingEarlierSpend() throws {
+    func testSynchronizingStartsFromEnteredBalanceWithoutSubtractingEarlierSpend() async throws {
         let store = InMemoryPlatformBalanceStore()
+        let snapshot = try makeSnapshot(firstDay: "15.00")
         let model = DashboardViewModel(
-            dataSource: DashboardDataSourceStubForBalance(),
+            dataSource: DashboardDataSourceStubForBalance(cached: [.openAI: snapshot]),
             targets: [],
             platformBalanceStore: store,
             now: { platformBalanceSyncDate }
         )
-        let snapshot = try makeSnapshot(firstDay: "15.00")
+        await model.loadCache()
 
         XCTAssertTrue(
             model.synchronizePlatformBalance(
                 providerID: .openAI,
-                balance: try Money(amount: 100, currencyCode: "USD"),
-                snapshot: snapshot
+                balance: try Money(amount: 100, currencyCode: "USD")
             )
         )
 
@@ -66,8 +66,7 @@ final class PlatformBalanceTests: XCTestCase {
         await model.loadCache()
         _ = model.synchronizePlatformBalance(
             providerID: .openAI,
-            balance: try Money(amount: 100, currencyCode: "USD"),
-            snapshot: initial
+            balance: try Money(amount: 100, currencyCode: "USD")
         )
 
         await model.refresh(trigger: .manual)
@@ -93,8 +92,7 @@ final class PlatformBalanceTests: XCTestCase {
         await model.loadCache()
         _ = model.synchronizePlatformBalance(
             providerID: .openAI,
-            balance: try Money(amount: 100, currencyCode: "USD"),
-            snapshot: initial
+            balance: try Money(amount: 100, currencyCode: "USD")
         )
 
         await model.refresh(trigger: .manual)
@@ -112,8 +110,7 @@ final class PlatformBalanceTests: XCTestCase {
         )
         _ = firstModel.synchronizePlatformBalance(
             providerID: .anthropic,
-            balance: try Money(amount: 42, currencyCode: "USD"),
-            snapshot: nil
+            balance: try Money(amount: 42, currencyCode: "USD")
         )
 
         let relaunched = DashboardViewModel(
@@ -136,8 +133,7 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertFalse(
             model.synchronizePlatformBalance(
                 providerID: .deepSeek,
-                balance: try Money(amount: 10, currencyCode: "USD"),
-                snapshot: nil
+                balance: try Money(amount: 10, currencyCode: "USD")
             )
         )
         XCTAssertNil(model.platformBalance(for: .deepSeek))

@@ -75,46 +75,9 @@ struct ProviderCard: View {
     @ViewBuilder
     private func metricContent(_ snapshot: ProviderSnapshot?) -> some View {
         if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
-            primaryMetric(label: "Available balance", money: balance.total.value)
-
-            if balance.granted != nil || balance.toppedUp != nil {
-                VStack(spacing: 7) {
-                    if let granted = balance.granted {
-                        MetricRow(label: "Granted", value: MetricFormatting.money(granted.value))
-                    }
-                    if let toppedUp = balance.toppedUp {
-                        MetricRow(label: "Topped up", value: MetricFormatting.money(toppedUp.value))
-                    }
-                }
-            }
+            officialBalanceContent(balance)
         } else {
-            if let platformBalance {
-                platformBalanceContent(platformBalance)
-            }
-
-            if let snapshot, let cost = costTotals(snapshot).first {
-                if platformBalance != nil {
-                    Divider()
-                }
-                primaryMetric(label: "Period spend", money: cost)
-                tokenRows(snapshot)
-                modelRows(snapshot)
-            } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil {
-                if platformBalance != nil {
-                    Divider()
-                }
-                Label("API key verified", systemImage: "checkmark.seal.fill")
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(.secondary)
-            } else if platformBalance == nil {
-                Text("Connected · financial metrics unavailable")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            if synchronizeBalance != nil, platformBalance == nil {
-                balanceButton(title: "Add Balance")
-            }
+            trackedProviderContent(snapshot)
         }
 
         if let snapshot {
@@ -122,6 +85,53 @@ struct ProviderCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("provider.\(metadata.id.rawValue).updated")
+        }
+    }
+
+    @ViewBuilder
+    private func officialBalanceContent(_ balance: ProviderBalance) -> some View {
+        primaryMetric(label: "Available balance", money: balance.total.value)
+
+        if balance.granted != nil || balance.toppedUp != nil {
+            VStack(spacing: 7) {
+                if let granted = balance.granted {
+                    MetricRow(label: "Granted", value: MetricFormatting.money(granted.value))
+                }
+                if let toppedUp = balance.toppedUp {
+                    MetricRow(label: "Topped up", value: MetricFormatting.money(toppedUp.value))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func trackedProviderContent(_ snapshot: ProviderSnapshot?) -> some View {
+        if let platformBalance {
+            platformBalanceContent(platformBalance)
+        }
+
+        if let snapshot, let cost = costTotals(snapshot).first {
+            if platformBalance != nil {
+                Divider()
+            }
+            primaryMetric(label: "Period spend", money: cost)
+            tokenRows(snapshot)
+            modelRows(snapshot)
+        } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil {
+            if platformBalance != nil {
+                Divider()
+            }
+            Label("API key verified", systemImage: "checkmark.seal.fill")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
+        } else if platformBalance == nil {
+            Text("Connected · financial metrics unavailable")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+
+        if synchronizeBalance != nil, platformBalance == nil {
+            balanceButton(title: "Add Balance")
         }
     }
 

@@ -14,13 +14,6 @@ struct PlatformBalanceCheckpoint: Codable, Equatable, Sendable {
     let costAnchors: [PlatformBalanceCostAnchor]
 }
 
-struct PlatformBalanceStatus: Equatable, Sendable {
-    let remaining: Money
-    let deductedSpend: Money
-    let synchronizedAt: Date
-    let automaticallyDeductsSpend: Bool
-}
-
 protocol PlatformBalanceStoring: AnyObject {
     func load() -> [ProviderID: PlatformBalanceCheckpoint]
     func save(_ checkpoints: [ProviderID: PlatformBalanceCheckpoint])

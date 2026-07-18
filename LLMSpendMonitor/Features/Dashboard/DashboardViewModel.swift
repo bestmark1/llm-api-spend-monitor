@@ -51,6 +51,13 @@ struct DailySpendPoint: Identifiable, Equatable, Sendable {
     var id: Date { date }
 }
 
+struct PlatformBalanceStatus: Equatable, Sendable {
+    let remaining: Money
+    let deductedSpend: Money
+    let synchronizedAt: Date
+    let automaticallyDeductsSpend: Bool
+}
+
 private struct PlatformBalanceAnchorKey: Hashable {
     let start: Date
     let end: Date
@@ -71,7 +78,7 @@ extension RefreshCoordinator: DashboardDataRefreshing {}
 @MainActor
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var snapshots: [ProviderID: ProviderSnapshot] = [:]
-    @Published private(set) var platformBalanceCheckpoints: [ProviderID: PlatformBalanceCheckpoint]
+    @Published private var platformBalanceCheckpoints: [ProviderID: PlatformBalanceCheckpoint]
     @Published private(set) var isRefreshing = false
     @Published var selectedPeriod: DashboardPeriod = .today
 
@@ -180,13 +187,12 @@ final class DashboardViewModel: ObservableObject {
     @discardableResult
     func synchronizePlatformBalance(
         providerID: ProviderID,
-        balance: Money,
-        snapshot: ProviderSnapshot?
+        balance: Money
     ) -> Bool {
-        guard providerID != .deepSeek else { return false }
+        guard canSynchronizePlatformBalance(for: providerID) else { return false }
 
         let anchors = officialCostAnchors(
-            in: snapshot,
+            in: snapshots[providerID],
             currencyCode: balance.currencyCode
         )
         platformBalanceCheckpoints[providerID] = PlatformBalanceCheckpoint(
@@ -198,6 +204,10 @@ final class DashboardViewModel: ObservableObject {
         )
         persistPlatformBalances()
         return true
+    }
+
+    func canSynchronizePlatformBalance(for providerID: ProviderID) -> Bool {
+        providerID != .deepSeek
     }
 
     func platformBalance(for providerID: ProviderID) -> PlatformBalanceStatus? {
@@ -258,17 +268,19 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private func reconcilePlatformBalances() {
+        var reconciledCheckpoints = platformBalanceCheckpoints
         var changed = false
 
         for (providerID, checkpoint) in platformBalanceCheckpoints {
             guard let snapshot = snapshots[providerID] else { continue }
             let reconciled = reconcile(checkpoint, with: snapshot)
             guard reconciled != checkpoint else { continue }
-            platformBalanceCheckpoints[providerID] = reconciled
+            reconciledCheckpoints[providerID] = reconciled
             changed = true
         }
 
         if changed {
+            platformBalanceCheckpoints = reconciledCheckpoints
             persistPlatformBalances()
         }
     }
