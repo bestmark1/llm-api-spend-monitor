@@ -113,7 +113,15 @@ struct ProviderCard: View {
             platformBalanceContent(platformBalance)
         }
 
-        if let snapshot, let cost = costTotals(snapshot).first {
+        if let snapshot,
+           let issue = snapshot.issue,
+           snapshot.buckets.isEmpty,
+           snapshot.balances.isEmpty {
+            Label(issueEmptyStateText(issue), systemImage: "exclamationmark.triangle")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if let snapshot, let cost = costTotals(snapshot).first {
             if platformBalance != nil {
                 Divider()
             }
@@ -353,6 +361,19 @@ struct ProviderCard: View {
         case .malformedResponse: "Unexpected response"
         case .providerUnavailable: "Provider unavailable"
         case .partialData: "Partial report"
+        }
+    }
+
+    private func issueEmptyStateText(_ issue: ProviderIssue) -> String {
+        switch issue {
+        case .authentication: "The saved credential was rejected. Replace it in Connections."
+        case .insufficientPermissions: "The saved credential needs additional permissions."
+        case .rateLimited: "The provider is rate limiting requests. Try again later."
+        case .offline: "The provider could not be reached. Check your connection."
+        case .keychainLocked: "Unlock your Mac to read the saved credential."
+        case .malformedResponse: "The provider returned an unexpected response."
+        case .providerUnavailable: "The provider is temporarily unavailable."
+        case .partialData: "The provider returned an incomplete report."
         }
     }
 

@@ -112,8 +112,15 @@ actor RefreshCoordinator {
                     retryAfter: retryAfter
                 )
                 retryNotBefore[providerID] = attemptedAt.addingTimeInterval(delay)
-                guard let previous = snapshots[providerID] else { continue }
-                snapshots[providerID] = Self.retainingMetrics(from: previous, issue: issue)
+                if let previous = snapshots[providerID] {
+                    snapshots[providerID] = Self.retainingMetrics(from: previous, issue: issue)
+                } else {
+                    snapshots[providerID] = Self.diagnosticSnapshot(
+                        providerID: providerID,
+                        issue: issue,
+                        attemptedAt: attemptedAt
+                    )
+                }
             case .stale:
                 continue
             }
@@ -196,5 +203,24 @@ actor RefreshCoordinator {
             balances: snapshot.balances,
             issue: issue
         )) ?? snapshot
+    }
+
+    private static func diagnosticSnapshot(
+        providerID: ProviderID,
+        issue: ProviderIssue,
+        attemptedAt: Date
+    ) -> ProviderSnapshot? {
+        guard let capabilities = ProviderRegistry.metadata(for: providerID)?.capabilities else {
+            return nil
+        }
+        return try? ProviderSnapshot(
+            providerID: providerID,
+            capabilities: capabilities,
+            fetchedAt: attemptedAt,
+            coverage: nil,
+            buckets: [],
+            balances: [],
+            issue: issue
+        )
     }
 }

@@ -39,6 +39,28 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertEqual(snapshots[.anthropic], successfulSnapshot)
     }
 
+    func testInitialProviderFailureCreatesDiagnosticSnapshot() async {
+        let attemptedAt = Date(timeIntervalSince1970: 2_000_000_000)
+        let coordinator = RefreshCoordinator(
+            cache: InMemorySnapshotCache(),
+            now: { attemptedAt }
+        )
+        let probe = FetchProbe(result: .failure(ProviderClientError.invalidCredential))
+
+        let snapshots = await coordinator.refresh(
+            trigger: .credentialValidation,
+            targets: [makeTarget(providerID: .openAI, probe: probe)]
+        )
+
+        XCTAssertEqual(snapshots[.openAI]?.issue, .authentication)
+        XCTAssertEqual(snapshots[.openAI]?.fetchedAt, attemptedAt)
+        XCTAssertEqual(
+            snapshots[.openAI]?.capabilities,
+            [.officialCostHistory, .tokenUsage, .modelBreakdown]
+        )
+        XCTAssertTrue(snapshots[.openAI]?.buckets.isEmpty == true)
+    }
+
     func testTimerRespectsCadenceAndSkipsValidationOnlyProvider() async throws {
         let cache = InMemorySnapshotCache()
         let coordinator = RefreshCoordinator(cache: cache, now: { Date(timeIntervalSince1970: 2_000_000_000) })
