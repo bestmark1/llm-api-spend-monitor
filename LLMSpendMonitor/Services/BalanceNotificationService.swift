@@ -29,6 +29,10 @@ protocol BalanceNotificationClient: Sendable {
     func deliver(_ alert: BalanceAlert) async throws
 }
 
+protocol BalanceNotificationHandling: Sendable {
+    func evaluate(_ balances: [ProviderID: PlatformBalanceStatus]) async
+}
+
 actor BalanceNotificationService {
     static let shared: BalanceNotificationService = {
         let store = UserDefaultsBalanceNotificationStore()
@@ -161,6 +165,8 @@ actor BalanceNotificationService {
             ?? "\(money.currencyCode) \(money.amount)"
     }
 }
+
+extension BalanceNotificationService: BalanceNotificationHandling {}
 
 private actor UserDefaultsBalanceNotificationStore:
     BalanceNotificationPreferenceStoring,

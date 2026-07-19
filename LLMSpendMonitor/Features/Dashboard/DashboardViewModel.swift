@@ -93,6 +93,7 @@ final class DashboardViewModel: ObservableObject {
     private let fixedTargets: [ProviderRefreshTarget]?
     private let targetFactory: ProviderTargetFactory
     private let platformBalanceStore: any PlatformBalanceStoring
+    private let balanceNotifier: any BalanceNotificationHandling
     private let now: @Sendable () -> Date
     private var hasStarted = false
 
@@ -101,12 +102,14 @@ final class DashboardViewModel: ObservableObject {
         targets: [ProviderRefreshTarget]? = nil,
         targetFactory: ProviderTargetFactory = ProviderTargetFactory(),
         platformBalanceStore: any PlatformBalanceStoring = UserDefaultsPlatformBalanceStore(),
+        balanceNotifier: any BalanceNotificationHandling = BalanceNotificationService.shared,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.dataSource = dataSource
         fixedTargets = targets
         self.targetFactory = targetFactory
         self.platformBalanceStore = platformBalanceStore
+        self.balanceNotifier = balanceNotifier
         platformBalanceCheckpoints = platformBalanceStore.load()
         self.now = now
     }
@@ -239,7 +242,11 @@ final class DashboardViewModel: ObservableObject {
 
         if ProviderRegistry.metadata(for: providerID)?.capabilities.contains(.officialCostHistory) == true {
             guard !isRefreshing else { return false }
-            await refresh(trigger: .manual, providerID: providerID)
+            await refresh(
+                trigger: .manual,
+                providerID: providerID,
+                publishesBalanceAlerts: false
+            )
             guard hasCompleteCurrentCostCoverage(for: providerID) else { return false }
         }
 
@@ -257,6 +264,7 @@ final class DashboardViewModel: ObservableObject {
             costAnchors: anchors
         )
         persistPlatformBalances()
+        await publishBalancesForNotifications()
         return true
     }
 
@@ -294,9 +302,14 @@ final class DashboardViewModel: ObservableObject {
     func loadCache() async {
         snapshots = await dataSource.loadCachedSnapshots()
         reconcilePlatformBalances()
+        await publishBalancesForNotifications()
     }
 
-    func refresh(trigger: RefreshTrigger, providerID: ProviderID? = nil) async {
+    func refresh(
+        trigger: RefreshTrigger,
+        providerID: ProviderID? = nil,
+        publishesBalanceAlerts: Bool = true
+    ) async {
         guard !isRefreshing else { return }
         isRefreshing = true
         let targets = fixedTargets ?? targetFactory.makeTargets()
@@ -308,6 +321,9 @@ final class DashboardViewModel: ObservableObject {
             targets: selectedTargets
         )
         reconcilePlatformBalances()
+        if publishesBalanceAlerts {
+            await publishBalancesForNotifications()
+        }
         isRefreshing = false
     }
 
@@ -317,6 +333,7 @@ final class DashboardViewModel: ObservableObject {
             persistPlatformBalances()
         }
         await dataSource.purge(providerID)
+        await publishBalancesForNotifications()
         await refresh(trigger: .credentialValidation, providerID: providerID)
     }
 
@@ -511,6 +528,15 @@ final class DashboardViewModel: ObservableObject {
 
     private func persistPlatformBalances() {
         platformBalanceStore.save(platformBalanceCheckpoints)
+    }
+
+    private func publishBalancesForNotifications() async {
+        let balances = platformBalanceCheckpoints.keys.reduce(
+            into: [ProviderID: PlatformBalanceStatus]()
+        ) { result, providerID in
+            result[providerID] = platformBalance(for: providerID)
+        }
+        await balanceNotifier.evaluate(balances)
     }
 
     private func officialUSDCosts(in snapshot: ProviderSnapshot) -> [Money] {

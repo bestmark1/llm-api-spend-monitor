@@ -313,6 +313,35 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertNil(model.platformBalance(for: .openAI))
     }
 
+    func testRefreshPublishesReconciledBalanceToNotificationService() async throws {
+        let initial = try makeSnapshot(firstDay: "0.00")
+        let refreshed = try makeSnapshot(firstDay: "81.00")
+        let notifier = BalanceNotifierStub()
+        let model = DashboardViewModel(
+            dataSource: SequencedDashboardDataSourceForBalance(
+                cached: [.openAI: initial],
+                refreshes: [
+                    [.openAI: initial],
+                    [.openAI: refreshed]
+                ]
+            ),
+            targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            balanceNotifier: notifier,
+            now: { platformBalanceSyncDate }
+        )
+        await model.loadCache()
+        _ = await model.synchronizePlatformBalance(
+            providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD")
+        )
+
+        await model.refresh(trigger: .manual)
+
+        let latest = await notifier.latestBalances()
+        XCTAssertEqual(latest[.openAI]?.remaining.amount, 19)
+    }
+
     private func makeSnapshot(
         providerID: ProviderID = .openAI,
         firstDay: String,
@@ -436,4 +465,16 @@ private actor SequencedDashboardDataSourceForBalance: DashboardDataRefreshing {
     }
 
     func purge(_ providerID: ProviderID) {}
+}
+
+private actor BalanceNotifierStub: BalanceNotificationHandling {
+    private var evaluations: [[ProviderID: PlatformBalanceStatus]] = []
+
+    func evaluate(_ balances: [ProviderID: PlatformBalanceStatus]) {
+        evaluations.append(balances)
+    }
+
+    func latestBalances() -> [ProviderID: PlatformBalanceStatus] {
+        evaluations.last ?? [:]
+    }
 }
