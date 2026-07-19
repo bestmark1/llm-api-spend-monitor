@@ -61,7 +61,7 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertTrue(snapshots[.openAI]?.buckets.isEmpty == true)
     }
 
-    func testTimerRespectsCadenceAndSkipsValidationOnlyProvider() async throws {
+    func testTimerSkipsButManualRefreshesValidationOnlyProvider() async throws {
         let cache = InMemorySnapshotCache()
         let coordinator = RefreshCoordinator(cache: cache, now: { Date(timeIntervalSince1970: 2_000_000_000) })
         let openAIProbe = FetchProbe(result: .success(try makeSnapshot(providerID: .openAI, amount: "1.00")))
@@ -77,9 +77,13 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertEqual(openAICallCount, 1)
         XCTAssertEqual(automaticGeminiCallCount, 0)
 
+        _ = await coordinator.refresh(trigger: .manual, targets: [gemini])
+        let manualGeminiCallCount = await geminiProbe.callCount
+        XCTAssertEqual(manualGeminiCallCount, 1)
+
         _ = await coordinator.refresh(trigger: .credentialValidation, targets: [gemini])
         let validatedGeminiCallCount = await geminiProbe.callCount
-        XCTAssertEqual(validatedGeminiCallCount, 1)
+        XCTAssertEqual(validatedGeminiCallCount, 2)
     }
 
     func testStaleCredentialGenerationCannotRestorePurgedSnapshot() async throws {

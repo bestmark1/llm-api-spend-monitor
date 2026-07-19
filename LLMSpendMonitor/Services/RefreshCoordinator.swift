@@ -81,7 +81,7 @@ actor RefreshCoordinator {
             return false
         }
         if !target.automaticRefreshEnabled {
-            return trigger == .credentialValidation
+            return trigger == .credentialValidation || trigger == .manual
         }
         if trigger == .credentialValidation || trigger == .manual {
             return true
