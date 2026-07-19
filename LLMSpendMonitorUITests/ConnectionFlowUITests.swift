@@ -4,7 +4,6 @@ import XCTest
 final class ConnectionFlowUITests: XCTestCase {
     func testConnectionsExposeMaskedCredentialControls() {
         let app = XCUIApplication()
-        app.launchArguments.append("--keep-panel-open")
         app.launch()
 
         app.buttons["Connect Provider"].click()

@@ -177,7 +177,7 @@ final class StatusBarController: NSObject {
 }
 
 @MainActor
-final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate {
+final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
     var anchorProvider: (() -> NSStatusBarButton?)?
     var didShow: (() -> Void)?
 
@@ -194,15 +194,10 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
         )
         super.init()
 
-        panel.delegate = self
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.isFloatingPanel = true
-#if DEBUG
-        panel.hidesOnDeactivate = !DebugLaunchOptions.keepPanelOpen
-#else
-        panel.hidesOnDeactivate = true
-#endif
+        panel.hidesOnDeactivate = false
         panel.hasShadow = true
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -229,13 +224,6 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
 
     func toggle() {
         isVisible ? hide() : show()
-    }
-
-    func windowDidResignKey(_ notification: Notification) {
-#if DEBUG
-        guard !DebugLaunchOptions.keepPanelOpen else { return }
-#endif
-        hide()
     }
 
     private func positionPanel() {
@@ -279,7 +267,6 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting, NSWindowDelegate 
 #if DEBUG
 private enum DebugLaunchOptions {
     static let dashboardPreview = ProcessInfo.processInfo.arguments.contains("--dashboard-preview")
-    static let keepPanelOpen = ProcessInfo.processInfo.arguments.contains("--keep-panel-open")
 }
 #endif
 

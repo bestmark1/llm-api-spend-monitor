@@ -8,7 +8,6 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
     func testFirstLaunchPresentsOnboardingAndKeepsRunning() {
         let app = XCUIApplication()
-        app.launchArguments.append("--keep-panel-open")
         app.launch()
 
         XCTAssertNotEqual(app.state, .notRunning)
@@ -20,7 +19,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
     func testSettingsExposeLowBalanceAlerts() {
         let app = XCUIApplication()
-        app.launchArguments += ["--dashboard-preview", "--keep-panel-open"]
+        app.launchArguments.append("--dashboard-preview")
         app.launch()
 
         app.menuButtons["Options"].click()
@@ -34,6 +33,22 @@ final class MenuBarLifecycleUITests: XCTestCase {
         screenshot.name = "Low balance notification settings"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    func testDashboardPanelRemainsVisibleWhenAnotherApplicationActivates() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--dashboard-preview")
+        app.launch()
+
+        let heading = app.staticTexts["LLM Spend"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+
+        XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
+
+        XCTAssertTrue(
+            heading.waitForExistence(timeout: 3),
+            "The dashboard should remain visible until the user closes it."
+        )
     }
 
 }
