@@ -348,15 +348,43 @@ private extension OpenAIProvider {
                 value = decimal
                 return
             }
-            if let string = try? container.decode(String.self),
-               let decimal = Decimal(string: string, locale: Locale(identifier: "en_US_POSIX")) {
-                value = decimal
-                return
+            if let string = try? container.decode(String.self) {
+                if let decimal = Decimal(
+                    string: string,
+                    locale: Locale(identifier: "en_US_POSIX")
+                ) {
+                    value = decimal
+                    return
+                }
+                if Self.isScientificZero(string) {
+                    value = .zero
+                    return
+                }
             }
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "Expected a base-10 decimal number or string."
             )
+        }
+
+        private static func isScientificZero(_ string: String) -> Bool {
+            let parts = string.split(
+                omittingEmptySubsequences: false,
+                whereSeparator: { $0 == "e" || $0 == "E" }
+            )
+            guard
+                parts.count == 2,
+                Decimal(
+                    string: String(parts[0]),
+                    locale: Locale(identifier: "en_US_POSIX")
+                ) == .zero
+            else { return false }
+
+            let exponent = parts[1]
+            let digits = exponent.first == "+" || exponent.first == "-"
+                ? exponent.dropFirst()
+                : exponent[...]
+            return !digits.isEmpty && digits.allSatisfy { $0.isNumber }
         }
     }
 

@@ -54,6 +54,19 @@ final class OpenAIProviderTests: XCTestCase {
         XCTAssertTrue(snapshot.buckets.isEmpty)
     }
 
+    func testScientificNotationZeroCostIsDecodedExactly() async throws {
+        let client = HTTPClientQueue(responses: [
+            .success(response(fixture: "costs-scientific-zero")),
+            .success(response(fixture: "empty-page"))
+        ])
+        let provider = OpenAIProvider(httpClient: client, now: { Self.interval.end })
+
+        let snapshot = try await provider.fetch(Self.fullRequest, credential: "admin-test-token")
+
+        XCTAssertEqual(snapshot.issue, nil)
+        XCTAssertEqual(snapshot.buckets.first?.cost?.value.amount, .zero)
+    }
+
     func testCostFailureNeverPublishesUsageOnlySnapshot() async throws {
         let failure = HTTPResponse(
             statusCode: 500,
