@@ -96,6 +96,7 @@ final class DashboardViewModel: ObservableObject {
     private let balanceNotifier: any BalanceNotificationHandling
     private let now: @Sendable () -> Date
     private var hasStarted = false
+    private var pendingCredentialValidations: Set<ProviderID> = []
 
     init(
         dataSource: any DashboardDataRefreshing = RefreshCoordinator(),
@@ -310,7 +311,12 @@ final class DashboardViewModel: ObservableObject {
         providerID: ProviderID? = nil,
         publishesBalanceAlerts: Bool = true
     ) async {
-        guard !isRefreshing else { return }
+        guard !isRefreshing else {
+            if trigger == .credentialValidation, let providerID {
+                pendingCredentialValidations.insert(providerID)
+            }
+            return
+        }
         isRefreshing = true
         let targets = fixedTargets ?? targetFactory.makeTargets()
         let selectedTargets = providerID.map { requestedProviderID in
@@ -325,6 +331,7 @@ final class DashboardViewModel: ObservableObject {
             await publishBalancesForNotifications()
         }
         isRefreshing = false
+        await runPendingCredentialValidations()
     }
 
     func credentialDidChange(_ providerID: ProviderID) async {
@@ -335,6 +342,14 @@ final class DashboardViewModel: ObservableObject {
         await dataSource.purge(providerID)
         await publishBalancesForNotifications()
         await refresh(trigger: .credentialValidation, providerID: providerID)
+    }
+
+    private func runPendingCredentialValidations() async {
+        let providers = pendingCredentialValidations.sorted { $0.rawValue < $1.rawValue }
+        pendingCredentialValidations.removeAll()
+        for providerID in providers {
+            await refresh(trigger: .credentialValidation, providerID: providerID)
+        }
     }
 
     private func completeOfficialCostSnapshot(for providerID: ProviderID) -> ProviderSnapshot? {

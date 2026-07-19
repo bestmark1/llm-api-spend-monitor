@@ -187,6 +187,28 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(requests, [[.openAI]])
     }
 
+    func testCredentialValidationWaitsForActiveRefreshInsteadOfBeingDropped() async {
+        let dataSource = DashboardDataSourceStub(
+            cached: [:],
+            refreshed: [:],
+            suspendsFirstRefresh: true
+        )
+        let model = DashboardViewModel(
+            dataSource: dataSource,
+            targets: [makeTarget(.openAI), makeTarget(.gemini)]
+        )
+
+        let activeRefresh = Task { await model.refresh(trigger: .manual) }
+        await dataSource.waitUntilFirstRefreshStarts()
+
+        await model.credentialDidChange(.gemini)
+        await dataSource.resumeFirstRefresh()
+        await activeRefresh.value
+
+        let requests = await dataSource.refreshTargetIDs
+        XCTAssertEqual(requests, [[.openAI, .gemini], [.gemini]])
+    }
+
     func testMenuBarTotalUsesTodayRegardlessOfSelectedDashboardPeriod() async throws {
         let snapshot = try makeDailyCostSnapshot(amounts: ["2.00", "3.00"])
         let dataSource = DashboardDataSourceStub(
@@ -335,13 +357,19 @@ private actor DashboardDataSourceStub: DashboardDataRefreshing {
     let refreshed: [ProviderID: ProviderSnapshot]
     private(set) var purgedProviders: [ProviderID] = []
     private(set) var refreshTargetIDs: [[ProviderID]] = []
+    private var suspendsFirstRefresh: Bool
+    private var firstRefreshStarted = false
+    private var firstRefreshStartWaiters: [CheckedContinuation<Void, Never>] = []
+    private var firstRefreshContinuation: CheckedContinuation<Void, Never>?
 
     init(
         cached: [ProviderID: ProviderSnapshot],
-        refreshed: [ProviderID: ProviderSnapshot]
+        refreshed: [ProviderID: ProviderSnapshot],
+        suspendsFirstRefresh: Bool = false
     ) {
         self.cached = cached
         self.refreshed = refreshed
+        self.suspendsFirstRefresh = suspendsFirstRefresh
     }
 
     func loadCachedSnapshots() -> [ProviderID: ProviderSnapshot] {
@@ -351,9 +379,26 @@ private actor DashboardDataSourceStub: DashboardDataRefreshing {
     func refresh(
         trigger: RefreshTrigger,
         targets: [ProviderRefreshTarget]
-    ) -> [ProviderID: ProviderSnapshot] {
+    ) async -> [ProviderID: ProviderSnapshot] {
         refreshTargetIDs.append(targets.map(\.providerID))
+        if suspendsFirstRefresh {
+            suspendsFirstRefresh = false
+            firstRefreshStarted = true
+            firstRefreshStartWaiters.forEach { $0.resume() }
+            firstRefreshStartWaiters.removeAll()
+            await withCheckedContinuation { firstRefreshContinuation = $0 }
+        }
         return refreshed
+    }
+
+    func waitUntilFirstRefreshStarts() async {
+        guard !firstRefreshStarted else { return }
+        await withCheckedContinuation { firstRefreshStartWaiters.append($0) }
+    }
+
+    func resumeFirstRefresh() {
+        firstRefreshContinuation?.resume()
+        firstRefreshContinuation = nil
     }
 
     func purge(_ providerID: ProviderID) {
