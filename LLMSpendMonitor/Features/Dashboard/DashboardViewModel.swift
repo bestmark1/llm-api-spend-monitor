@@ -52,6 +52,7 @@ struct DailySpendPoint: Identifiable, Equatable, Sendable {
 }
 
 struct PlatformBalanceStatus: Equatable, Sendable {
+    let calibratedBalance: Money
     let remaining: Money
     let deductedSpend: Money
     let synchronizedAt: Date
@@ -271,6 +272,7 @@ final class DashboardViewModel: ObservableObject {
             checkpoint.enteredBalance.amount - checkpoint.deductedSpend.amount
         )
         return PlatformBalanceStatus(
+            calibratedBalance: checkpoint.enteredBalance,
             remaining: try! Money(
                 amount: remainingAmount,
                 currencyCode: checkpoint.enteredBalance.currencyCode
