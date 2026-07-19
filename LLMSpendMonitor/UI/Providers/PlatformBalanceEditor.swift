@@ -35,6 +35,11 @@ enum PlatformBalanceInput {
 
         return try Money(amount: amount, currencyCode: currencyCode)
     }
+
+    static func prefill(for balance: PlatformBalanceStatus) -> String {
+        var amount = balance.remaining.amount
+        return NSDecimalString(&amount, Locale(identifier: "en_US_POSIX"))
+    }
 }
 
 struct PlatformBalanceEditor: View {
@@ -56,10 +61,7 @@ struct PlatformBalanceEditor: View {
         self.metadata = metadata
         self.currentBalance = currentBalance
         self.save = save
-        _amountText = State(initialValue: currentBalance.map {
-            var amount = $0.remaining.amount
-            return NSDecimalString(&amount, Locale(identifier: "en_US_POSIX"))
-        } ?? "")
+        _amountText = State(initialValue: currentBalance.map(PlatformBalanceInput.prefill(for:)) ?? "")
     }
 
     var body: some View {
@@ -76,7 +78,7 @@ struct PlatformBalanceEditor: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(currentBalance == nil ? "Add platform balance" : "Update platform balance")
+                    Text(currentBalance == nil ? "Add platform balance" : "Recalibrate platform balance")
                         .font(.headline)
                     Text(metadata.displayName)
                         .font(.caption)
@@ -88,6 +90,25 @@ struct PlatformBalanceEditor: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let currentBalance {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Calculated balance")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(MetricFormatting.money(currentBalance.remaining))
+                            .font(.headline)
+                            .monospacedDigit()
+                    }
+                    Spacer()
+                    billingLink
+                }
+                .padding(12)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+            } else {
+                billingLink
+            }
 
             HStack(spacing: 8) {
                 Text("$")
@@ -104,7 +125,7 @@ struct PlatformBalanceEditor: View {
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(currentBalance == nil ? "Add Balance" : "Update Balance") {
+                Button(currentBalance == nil ? "Add Balance" : "Save Calibration") {
                     guard let money = parsedMoney else { return }
                     Task {
                         isSaving = true
@@ -144,8 +165,23 @@ struct PlatformBalanceEditor: View {
 
     private var instructionText: String {
         if metadata.capabilities.contains(.officialCostHistory) {
-            return "Enter the balance currently shown in Billing. New official API costs will be deducted from this amount after every refresh."
+            if currentBalance != nil {
+                return "The calculated balance is prefilled. Open Billing, replace it with the exact platform balance, then save the new calibration."
+            }
+            return "Enter the exact balance currently shown in Billing. New official API costs will be deducted after every refresh."
         }
         return "Enter the balance currently shown in Billing. Update it again after using the platform."
+    }
+
+    @ViewBuilder
+    private var billingLink: some View {
+        if let url = metadata.externalLinks.first(where: { $0.kind == .billing })?.url {
+            Link(destination: url) {
+                Label("Open Billing", systemImage: "arrow.up.right")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityIdentifier("balance.openBilling")
+        }
     }
 }

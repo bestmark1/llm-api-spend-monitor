@@ -26,6 +26,18 @@ final class PlatformBalanceTests: XCTestCase {
         }
     }
 
+    func testRecalibrationPrefillsCurrentCalculatedBalance() throws {
+        let status = PlatformBalanceStatus(
+            calibratedBalance: try Money(amount: 100, currencyCode: "USD"),
+            remaining: try Money(amount: Decimal(string: "19.25")!, currencyCode: "USD"),
+            deductedSpend: try Money(amount: Decimal(string: "80.75")!, currencyCode: "USD"),
+            synchronizedAt: platformBalanceSyncDate,
+            automaticallyDeductsSpend: true
+        )
+
+        XCTAssertEqual(PlatformBalanceInput.prefill(for: status), "19.25")
+    }
+
     func testSynchronizingStartsFromEnteredBalanceWithoutSubtractingEarlierSpend() async throws {
         let store = InMemoryPlatformBalanceStore()
         let snapshot = try makeSnapshot(firstDay: "15.00")

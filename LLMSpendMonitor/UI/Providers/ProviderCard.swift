@@ -145,7 +145,7 @@ struct ProviderCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                balanceButton(title: "Update")
+                balanceButton(title: "Recalibrate")
             }
 
             Text(MetricFormatting.money(balance.remaining))
@@ -154,12 +154,12 @@ struct ProviderCard: View {
 
             if balance.automaticallyDeductsSpend {
                 MetricRow(
-                    label: "Spent since sync",
+                    label: "Spent since calibration",
                     value: MetricFormatting.money(balance.deductedSpend)
                 )
             }
 
-            Text("Synced \(balance.synchronizedAt.formatted(date: .abbreviated, time: .shortened))")
+            Text("Calibrated \(balance.synchronizedAt.formatted(date: .abbreviated, time: .shortened))")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
