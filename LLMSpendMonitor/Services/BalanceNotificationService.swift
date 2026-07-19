@@ -33,6 +33,11 @@ protocol BalanceNotificationHandling: Sendable {
     func evaluate(_ balances: [ProviderID: PlatformBalanceStatus]) async
 }
 
+protocol BalanceNotificationSettingsHandling: Sendable {
+    func isEnabled() async -> Bool
+    func setEnabled(_ enabled: Bool) async -> Bool
+}
+
 actor BalanceNotificationService {
     static let shared: BalanceNotificationService = {
         let store = UserDefaultsBalanceNotificationStore()
@@ -166,7 +171,9 @@ actor BalanceNotificationService {
     }
 }
 
-extension BalanceNotificationService: BalanceNotificationHandling {}
+extension BalanceNotificationService:
+    BalanceNotificationHandling,
+    BalanceNotificationSettingsHandling {}
 
 private actor UserDefaultsBalanceNotificationStore:
     BalanceNotificationPreferenceStoring,

@@ -73,6 +73,21 @@ final class MenuBarShellTests: XCTestCase {
         let triggers = await recorder.currentValues()
         XCTAssertEqual(triggers, [.panelOpen, .wake, .unlock])
     }
+
+    func testNotificationSettingsReflectStoredAndDeniedPermissionState() async {
+        let service = NotificationSettingsServiceStub(enabled: true, grantOnEnable: false)
+        let model = NotificationSettingsViewModel(service: service)
+
+        await model.load()
+        XCTAssertTrue(model.isEnabled)
+
+        await model.setEnabled(true)
+        XCTAssertFalse(model.isEnabled)
+        XCTAssertTrue(model.permissionDenied)
+
+        await model.setEnabled(false)
+        XCTAssertFalse(model.permissionDenied)
+    }
 }
 
 private actor OneShotSleeper {
@@ -99,5 +114,24 @@ private actor RefreshTriggerRecorder {
 
     func currentValues() -> [RefreshTrigger] {
         values
+    }
+}
+
+private actor NotificationSettingsServiceStub: BalanceNotificationSettingsHandling {
+    private var enabled: Bool
+    private let grantOnEnable: Bool
+
+    init(enabled: Bool, grantOnEnable: Bool) {
+        self.enabled = enabled
+        self.grantOnEnable = grantOnEnable
+    }
+
+    func isEnabled() -> Bool {
+        enabled
+    }
+
+    func setEnabled(_ requested: Bool) -> Bool {
+        enabled = requested && grantOnEnable
+        return enabled
     }
 }
