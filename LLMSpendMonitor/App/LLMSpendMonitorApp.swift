@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 import UserNotifications
 
@@ -60,14 +61,133 @@ final class NotificationSettingsViewModel: ObservableObject {
     }
 }
 
+enum LaunchAtLoginStatus: Equatable {
+    case notRegistered
+    case enabled
+    case requiresApproval
+    case notFound
+}
+
+@MainActor
+protocol LaunchAtLoginHandling {
+    var status: LaunchAtLoginStatus { get }
+
+    func setEnabled(_ enabled: Bool) throws
+    func openSystemSettings()
+}
+
+@MainActor
+struct LaunchAtLoginService: LaunchAtLoginHandling {
+    var status: LaunchAtLoginStatus {
+        switch SMAppService.mainApp.status {
+        case .notRegistered:
+            .notRegistered
+        case .enabled:
+            .enabled
+        case .requiresApproval:
+            .requiresApproval
+        case .notFound:
+            .notFound
+        @unknown default:
+            .notFound
+        }
+    }
+
+    func setEnabled(_ enabled: Bool) throws {
+        if enabled {
+            guard status == .notRegistered else { return }
+            try SMAppService.mainApp.register()
+        } else {
+            guard status != .notRegistered else { return }
+            try SMAppService.mainApp.unregister()
+        }
+    }
+
+    func openSystemSettings() {
+        SMAppService.openSystemSettingsLoginItems()
+    }
+}
+
+@MainActor
+final class LaunchAtLoginSettingsViewModel: ObservableObject {
+    @Published private(set) var isEnabled = false
+    @Published private(set) var requiresApproval = false
+    @Published private(set) var errorMessage: String?
+
+    private let service: any LaunchAtLoginHandling
+
+    init(service: any LaunchAtLoginHandling = LaunchAtLoginService()) {
+        self.service = service
+        load()
+    }
+
+    func load() {
+        apply(service.status)
+    }
+
+    func setEnabled(_ requested: Bool) {
+        errorMessage = nil
+
+        do {
+            try service.setEnabled(requested)
+            apply(service.status)
+        } catch {
+            apply(service.status)
+            errorMessage = "Couldn’t update Launch at Login. \(error.localizedDescription)"
+        }
+    }
+
+    func openSystemSettings() {
+        service.openSystemSettings()
+    }
+
+    private func apply(_ status: LaunchAtLoginStatus) {
+        isEnabled = status == .enabled || status == .requiresApproval
+        requiresApproval = status == .requiresApproval
+    }
+}
+
 private struct SettingsRootView: View {
     @StateObject private var notifications = NotificationSettingsViewModel()
+    @StateObject private var launchAtLogin = LaunchAtLoginSettingsViewModel()
 
     var body: some View {
         Form {
             Section("General") {
                 LabeledContent("Menu bar metric") {
                     Text("Today’s spend")
+                }
+
+                Toggle(
+                    "Launch at Login",
+                    isOn: Binding(
+                        get: { launchAtLogin.isEnabled },
+                        set: { launchAtLogin.setEnabled($0) }
+                    )
+                )
+                .accessibilityIdentifier("settings.launchAtLogin")
+
+                Text("Keep LLM Spend Monitor available in the menu bar after you sign in.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if launchAtLogin.requiresApproval {
+                    LabeledContent {
+                        Button("Open Login Items") {
+                            launchAtLogin.openSystemSettings()
+                        }
+                    } label: {
+                        Text("Approval required")
+                            .foregroundStyle(.orange)
+                    }
+                    .accessibilityIdentifier("settings.launchAtLoginApproval")
+                }
+
+                if let errorMessage = launchAtLogin.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("settings.launchAtLoginError")
                 }
             }
 
@@ -97,9 +217,12 @@ private struct SettingsRootView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440, height: 300)
+        .frame(width: 440, height: 410)
         .navigationTitle("Settings")
         .accessibilityIdentifier("settings.root")
-        .task { await notifications.load() }
+        .task {
+            launchAtLogin.load()
+            await notifications.load()
+        }
     }
 }

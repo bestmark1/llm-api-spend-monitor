@@ -17,7 +17,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         )
     }
 
-    func testSettingsExposeLowBalanceAlerts() {
+    func testSettingsExposeStartupAndLowBalanceControls() {
         let app = XCUIApplication()
         app.launchArguments.append("--dashboard-preview")
         app.launch()
@@ -25,12 +25,14 @@ final class MenuBarLifecycleUITests: XCTestCase {
         app.menuButtons["Options"].click()
         app.menuItems["Settings"].click()
 
-        let toggle = app.descendants(matching: .any)["settings.balanceNotifications"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+        let launchAtLoginToggle = app.descendants(matching: .any)["settings.launchAtLogin"]
+        let notificationsToggle = app.descendants(matching: .any)["settings.balanceNotifications"]
+        XCTAssertTrue(launchAtLoginToggle.waitForExistence(timeout: 3))
+        XCTAssertTrue(notificationsToggle.waitForExistence(timeout: 3))
         app.buttons["Close"].click()
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "Low balance notification settings"
+        screenshot.name = "Startup and notification settings"
         screenshot.lifetime = .keepAlways
         add(screenshot)
     }

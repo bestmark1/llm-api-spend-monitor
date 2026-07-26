@@ -88,6 +88,23 @@ final class MenuBarShellTests: XCTestCase {
         await model.setEnabled(false)
         XCTAssertFalse(model.permissionDenied)
     }
+
+    func testLaunchAtLoginSettingsReflectRegistrationAndApprovalState() {
+        let service = LaunchAtLoginServiceStub(status: .requiresApproval)
+        let model = LaunchAtLoginSettingsViewModel(service: service)
+
+        XCTAssertTrue(model.isEnabled)
+        XCTAssertTrue(model.requiresApproval)
+
+        model.setEnabled(false)
+        XCTAssertFalse(model.isEnabled)
+        XCTAssertFalse(model.requiresApproval)
+
+        model.setEnabled(true)
+        XCTAssertTrue(model.isEnabled)
+        XCTAssertFalse(model.requiresApproval)
+        XCTAssertEqual(service.requestedStates, [false, true])
+    }
 }
 
 private actor OneShotSleeper {
@@ -134,4 +151,21 @@ private actor NotificationSettingsServiceStub: BalanceNotificationSettingsHandli
         enabled = requested && grantOnEnable
         return enabled
     }
+}
+
+@MainActor
+private final class LaunchAtLoginServiceStub: LaunchAtLoginHandling {
+    private(set) var status: LaunchAtLoginStatus
+    private(set) var requestedStates: [Bool] = []
+
+    init(status: LaunchAtLoginStatus) {
+        self.status = status
+    }
+
+    func setEnabled(_ enabled: Bool) {
+        requestedStates.append(enabled)
+        status = enabled ? .enabled : .notRegistered
+    }
+
+    func openSystemSettings() {}
 }
