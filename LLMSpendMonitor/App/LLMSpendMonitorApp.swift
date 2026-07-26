@@ -66,6 +66,14 @@ enum LaunchAtLoginStatus: Equatable {
     case enabled
     case requiresApproval
     case notFound
+
+    var shouldAttemptRegistration: Bool {
+        self == .notRegistered || self == .notFound
+    }
+
+    var isRegistered: Bool {
+        self == .enabled || self == .requiresApproval
+    }
 }
 
 @MainActor
@@ -95,10 +103,10 @@ struct LaunchAtLoginService: LaunchAtLoginHandling {
 
     func setEnabled(_ enabled: Bool) throws {
         if enabled {
-            guard status == .notRegistered else { return }
+            guard status.shouldAttemptRegistration else { return }
             try SMAppService.mainApp.register()
         } else {
-            guard status != .notRegistered else { return }
+            guard status.isRegistered else { return }
             try SMAppService.mainApp.unregister()
         }
     }
@@ -142,7 +150,7 @@ final class LaunchAtLoginSettingsViewModel: ObservableObject {
     }
 
     private func apply(_ status: LaunchAtLoginStatus) {
-        isEnabled = status == .enabled || status == .requiresApproval
+        isEnabled = status.isRegistered
         requiresApproval = status == .requiresApproval
     }
 }

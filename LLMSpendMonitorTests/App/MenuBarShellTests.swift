@@ -105,6 +105,13 @@ final class MenuBarShellTests: XCTestCase {
         XCTAssertFalse(model.requiresApproval)
         XCTAssertEqual(service.requestedStates, [false, true])
     }
+
+    func testMissingLaunchAtLoginServiceStillAttemptsRegistration() {
+        XCTAssertTrue(LaunchAtLoginStatus.notRegistered.shouldAttemptRegistration)
+        XCTAssertTrue(LaunchAtLoginStatus.notFound.shouldAttemptRegistration)
+        XCTAssertFalse(LaunchAtLoginStatus.enabled.shouldAttemptRegistration)
+        XCTAssertFalse(LaunchAtLoginStatus.requiresApproval.shouldAttemptRegistration)
+    }
 }
 
 private actor OneShotSleeper {
