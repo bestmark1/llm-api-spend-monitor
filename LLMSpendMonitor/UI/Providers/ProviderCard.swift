@@ -7,6 +7,8 @@ struct ProviderCard: View {
     let platformBalance: PlatformBalanceStatus?
     let synchronizeBalance: ((Money) async -> Bool)?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage private var isExpanded: Bool
     @State private var isBalanceEditorPresented = false
 
     init(
@@ -21,19 +23,29 @@ struct ProviderCard: View {
         self.freshness = freshness
         self.platformBalance = platformBalance
         self.synchronizeBalance = synchronizeBalance
+        _isExpanded = AppStorage(
+            wrappedValue: false,
+            "provider.card.\(metadata.id.rawValue).expanded"
+        )
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
+        VStack(alignment: .leading, spacing: 11) {
             header
 
-            if snapshot != nil || platformBalance != nil {
-                metricContent(snapshot)
-            } else {
-                emptyState
-            }
+            if isExpanded {
+                if snapshot != nil || platformBalance != nil {
+                    metricContent(snapshot)
+                } else {
+                    emptyState
+                }
 
-            footer
+                footer
+                    .transition(.opacity)
+            } else {
+                compactOverview
+                    .transition(.opacity)
+            }
         }
         .padding(15)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -72,7 +84,126 @@ struct ProviderCard: View {
 
             Spacer(minLength: 8)
             statusBadge
+
+            Button {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(isExpanded ? "Collapse \(metadata.displayName)" : "Expand \(metadata.displayName)")
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).disclosure")
         }
+    }
+
+    @ViewBuilder
+    private var compactOverview: some View {
+        if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
+            compactMoneyRow(
+                label: "Available balance",
+                money: balance.total.value,
+                detail: officialBalanceDetail(balance)
+            )
+        } else if let platformBalance {
+            compactMoneyRow(
+                label: "Remaining balance",
+                money: platformBalance.remaining,
+                detail: compactTrackedDetail(snapshot)
+            )
+        } else if let snapshot,
+                  let issue = snapshot.issue,
+                  snapshot.buckets.isEmpty,
+                  snapshot.balances.isEmpty {
+            Label(issueEmptyStateText(issue), systemImage: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if let snapshot, let cost = costTotals(snapshot).first {
+            compactMoneyRow(
+                label: "Period spend",
+                money: cost,
+                detail: tokenSummary(snapshot)
+            )
+        } else if let snapshot, let tokens = tokenSummary(snapshot) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("Period usage")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text(tokens)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
+        } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil, snapshot != nil {
+            Label("API key verified", systemImage: "checkmark.seal.fill")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
+        } else if snapshot != nil {
+            Text("Connected · financial metrics unavailable")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            emptyState
+        }
+    }
+
+    private func compactMoneyRow(label: String, money: Money, detail: String?) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(MetricFormatting.money(money))
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+
+            Spacer(minLength: 8)
+
+            if let detail {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
+    }
+
+    private func compactTrackedDetail(_ snapshot: ProviderSnapshot?) -> String? {
+        guard let snapshot else { return nil }
+        var parts: [String] = []
+        if let cost = costTotals(snapshot).first {
+            parts.append("\(MetricFormatting.money(cost)) spent")
+        }
+        if let tokens = tokenSummary(snapshot) {
+            parts.append(tokens)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private func officialBalanceDetail(_ balance: ProviderBalance) -> String? {
+        var parts: [String] = []
+        if let granted = balance.granted {
+            parts.append("\(MetricFormatting.money(granted.value)) granted")
+        }
+        if let toppedUp = balance.toppedUp {
+            parts.append("\(MetricFormatting.money(toppedUp.value)) topped up")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     @ViewBuilder
@@ -126,6 +257,12 @@ struct ProviderCard: View {
                 Divider()
             }
             primaryMetric(label: "Period spend", money: cost)
+            tokenRows(snapshot)
+            modelRows(snapshot)
+        } else if let snapshot, tokenTotal(snapshot) != nil {
+            if platformBalance != nil {
+                Divider()
+            }
             tokenRows(snapshot)
             modelRows(snapshot)
         } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil {
@@ -197,8 +334,14 @@ struct ProviderCard: View {
     @ViewBuilder
     private func tokenRows(_ snapshot: ProviderSnapshot) -> some View {
         if let tokens = tokenTotal(snapshot) {
-            HStack(spacing: 20) {
+            HStack(spacing: 18) {
                 compactMetric("Input", value: MetricFormatting.tokens(tokens.input))
+                    .help("Input includes cached tokens where the provider reports them.")
+                if tokens.cachedInput > 0 {
+                    compactMetric("Cached", value: MetricFormatting.tokens(tokens.cachedInput))
+                        .help("Cached input is included in the Input total.")
+                        .accessibilityHint("Included in the Input total")
+                }
                 compactMetric("Output", value: MetricFormatting.tokens(tokens.output))
                 Spacer(minLength: 0)
             }
@@ -387,13 +530,21 @@ struct ProviderCard: View {
         }
     }
 
-    private func tokenTotal(_ snapshot: ProviderSnapshot) -> (input: Int64, output: Int64)? {
+    private func tokenTotal(
+        _ snapshot: ProviderSnapshot
+    ) -> (input: Int64, cachedInput: Int64, output: Int64)? {
         let values = snapshot.buckets.compactMap(\.tokenUsage)
         guard !values.isEmpty else { return nil }
         return (
             values.reduce(0) { $0 + $1.inputTokens },
+            values.reduce(0) { $0 + $1.cachedInputTokens },
             values.reduce(0) { $0 + $1.outputTokens }
         )
+    }
+
+    private func tokenSummary(_ snapshot: ProviderSnapshot) -> String? {
+        guard let tokens = tokenTotal(snapshot) else { return nil }
+        return "\(MetricFormatting.tokens(tokens.input)) in · \(MetricFormatting.tokens(tokens.output)) out"
     }
 
     private func modelSummaries(_ snapshot: ProviderSnapshot) -> [ModelSummary] {

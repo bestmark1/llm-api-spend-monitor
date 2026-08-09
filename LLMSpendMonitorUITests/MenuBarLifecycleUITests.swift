@@ -53,4 +53,40 @@ final class MenuBarLifecycleUITests: XCTestCase {
         )
     }
 
+    func testProviderCardCanExpandFromCompactSummary() {
+        let app = XCUIApplication()
+        app.launchArguments.append(contentsOf: [
+            "--dashboard-preview",
+            "--reset-provider-card-expansion"
+        ])
+        app.launch()
+
+        let disclosure = app.buttons["provider.openai.disclosure"]
+        let compactSummary = app.descendants(matching: .any)["provider.openai.summary"]
+        XCTAssertTrue(disclosure.waitForExistence(timeout: 5))
+        XCTAssertEqual(disclosure.value as? String, "Collapsed")
+        XCTAssertTrue(compactSummary.waitForExistence(timeout: 2))
+
+        disclosure.click()
+
+        XCTAssertEqual(disclosure.value as? String, "Expanded")
+        XCTAssertTrue(compactSummary.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["provider.openai.updated"]
+                .waitForExistence(timeout: 2)
+        )
+
+        app.terminate()
+        app.launchArguments = ["--dashboard-preview"]
+        app.launch()
+
+        let restoredDisclosure = app.buttons["provider.openai.disclosure"]
+        XCTAssertTrue(restoredDisclosure.waitForExistence(timeout: 5))
+        XCTAssertEqual(restoredDisclosure.value as? String, "Expanded")
+
+        let untouchedDisclosure = app.buttons["provider.anthropic.disclosure"]
+        XCTAssertTrue(untouchedDisclosure.waitForExistence(timeout: 2))
+        XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
+    }
+
 }

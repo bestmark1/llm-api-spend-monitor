@@ -125,6 +125,15 @@ final class StatusBarController: NSObject {
         dashboardViewModel: DashboardViewModel = DashboardViewModel(),
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     ) {
+#if DEBUG
+        if DebugLaunchOptions.resetProviderCardExpansion {
+            for providerID in ProviderID.allCases {
+                UserDefaults.standard.removeObject(
+                    forKey: "provider.card.\(providerID.rawValue).expanded"
+                )
+            }
+        }
+#endif
         self.appState = appState
         self.dashboardViewModel = dashboardViewModel
         self.statusItem = statusItem
@@ -313,6 +322,9 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
 #if DEBUG
 private enum DebugLaunchOptions {
     static let dashboardPreview = ProcessInfo.processInfo.arguments.contains("--dashboard-preview")
+    static let resetProviderCardExpansion = ProcessInfo.processInfo.arguments.contains(
+        "--reset-provider-card-expansion"
+    )
 }
 #endif
 
