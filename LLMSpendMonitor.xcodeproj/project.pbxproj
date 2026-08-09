@@ -69,6 +69,7 @@
 		A0000000000000000000013D /* PlatformBalanceEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000248 /* PlatformBalanceEditor.swift */; };
 		A0000000000000000000013E /* BalanceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000249 /* BalanceNotificationService.swift */; };
 		A0000000000000000000013F /* BalanceNotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024A /* BalanceNotificationServiceTests.swift */; };
+		A00000000000000000000140 /* Spender.icns in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024B /* Spender.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -157,6 +158,7 @@
 		A00000000000000000000248 /* PlatformBalanceEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformBalanceEditor.swift; sourceTree = "<group>"; };
 		A00000000000000000000249 /* BalanceNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceNotificationService.swift; sourceTree = "<group>"; };
 		A0000000000000000000024A /* BalanceNotificationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceNotificationServiceTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000024B /* Spender.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Spender.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +188,7 @@
 				A00000000000000000000713 /* Features */,
 				A00000000000000000000719 /* Services */,
 				A00000000000000000000704 /* UI */,
+				A00000000000000000000729 /* Resources */,
 				A00000000000000000000208 /* Info.plist */,
 				A00000000000000000000209 /* LLMSpendMonitor.entitlements */,
 			);
@@ -284,6 +287,7 @@
 		A00000000000000000000726 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023C /* CustomizeViewModelTests.swift */); path = Customize; sourceTree = "<group>"; };
 		A00000000000000000000727 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023D /* CustomizeViewModel.swift */); path = Customize; sourceTree = "<group>"; };
 		A00000000000000000000728 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023F /* CustomizeProvidersView.swift */, A00000000000000000000240 /* ProviderOrderRow.swift */); path = Customize; sourceTree = "<group>"; };
+		A00000000000000000000729 /* Resources */ = {isa = PBXGroup; children = (A0000000000000000000024B /* Spender.icns */); path = Resources; sourceTree = "<group>"; };
 		A00000000000000000000709 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -359,7 +363,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A00000000000000000000621 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000621 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000140 /* Spender.icns in Resources */); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000622 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000623 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */

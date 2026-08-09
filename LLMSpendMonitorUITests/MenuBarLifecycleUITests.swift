@@ -42,7 +42,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         app.launchArguments.append("--dashboard-preview")
         app.launch()
 
-        let heading = app.staticTexts["LLM Spend"]
+        let heading = app.staticTexts["Spender"]
         XCTAssertTrue(heading.waitForExistence(timeout: 5))
 
         XCUIApplication(bundleIdentifier: "com.apple.finder").activate()

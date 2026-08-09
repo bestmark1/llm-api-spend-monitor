@@ -107,7 +107,7 @@ private struct DashboardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("LLM Spend")
+                Text("Spender")
                     .font(.title2.bold())
                 Spacer()
                 Button("Refresh", systemImage: "arrow.clockwise") {
@@ -174,7 +174,7 @@ private struct DashboardView: View {
                     Text("Settings")
                 }
                 Divider()
-                Button("Quit LLM Spend Monitor", action: quitApplication)
+                Button("Quit Spender", action: quitApplication)
                     .keyboardShortcut("q")
                     .accessibilityIdentifier("options.quit")
             }

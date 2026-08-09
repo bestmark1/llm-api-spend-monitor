@@ -175,7 +175,7 @@ private struct SettingsRootView: View {
                 )
                 .accessibilityIdentifier("settings.launchAtLogin")
 
-                Text("Keep LLM Spend Monitor available in the menu bar after you sign in.")
+                Text("Keep Spender available in the menu bar after you sign in.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

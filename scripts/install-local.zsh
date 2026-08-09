@@ -4,12 +4,14 @@ set -euo pipefail
 
 repo_root="${0:A:h:h}"
 derived_data_path="${DERIVED_DATA_PATH:-${repo_root}/.build/DerivedData-Release}"
-destination="${INSTALL_DESTINATION:-/Applications/LLMSpendMonitor.app}"
+destination="${INSTALL_DESTINATION:-/Applications/Spender.app}"
 launch_after_install="${LAUNCH_AFTER_INSTALL:-1}"
 source_app="${derived_data_path}/Build/Products/Release/LLMSpendMonitor.app"
 staging_app="${destination}.installing.$$"
+legacy_destination="/Applications/LLMSpendMonitor.app"
+legacy_backup="/Applications/LLMSpendMonitor.pre-Spender-backup"
 
-if [[ "${destination:t}" != "LLMSpendMonitor.app" ]]; then
+if [[ "${destination:t}" != "Spender.app" ]]; then
     print -u2 "Refusing to replace an unexpected app path: ${destination}"
     exit 1
 fi
@@ -42,6 +44,11 @@ print "Installing ${destination}…"
 /usr/bin/codesign --verify --deep --strict "${staging_app}"
 /bin/rm -rf "${destination}"
 /bin/mv "${staging_app}" "${destination}"
+
+if [[ -d "${legacy_destination}" && ! -e "${legacy_backup}" ]]; then
+    print "Preserving the previous app as ${legacy_backup}…"
+    /bin/mv "${legacy_destination}" "${legacy_backup}"
+fi
 
 if [[ "${launch_after_install}" == "1" ]]; then
     /usr/bin/open -n "${destination}"

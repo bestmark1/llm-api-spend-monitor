@@ -2,6 +2,52 @@ import AppKit
 import Combine
 import SwiftUI
 
+enum SpenderMenuBarIcon {
+    static let size = NSSize(width: 18, height: 18)
+
+    static func make() -> NSImage {
+        let image = NSImage(size: size, flipped: true) { _ in
+            NSColor.black.setFill()
+
+            NSBezierPath(
+                roundedRect: NSRect(x: 6.2, y: 2, width: 5.6, height: 5.2),
+                xRadius: 1.2,
+                yRadius: 1.2
+            ).fill()
+
+            let pocket = NSBezierPath()
+            pocket.move(to: NSPoint(x: 2.5, y: 6.4))
+            pocket.curve(
+                to: NSPoint(x: 9, y: 8.4),
+                controlPoint1: NSPoint(x: 4.1, y: 6.4),
+                controlPoint2: NSPoint(x: 5.5, y: 8.4)
+            )
+            pocket.curve(
+                to: NSPoint(x: 15.5, y: 6.4),
+                controlPoint1: NSPoint(x: 12.5, y: 8.4),
+                controlPoint2: NSPoint(x: 13.9, y: 6.4)
+            )
+            pocket.line(to: NSPoint(x: 15.5, y: 14.4))
+            pocket.curve(
+                to: NSPoint(x: 14.1, y: 15.8),
+                controlPoint1: NSPoint(x: 15.5, y: 15.2),
+                controlPoint2: NSPoint(x: 14.9, y: 15.8)
+            )
+            pocket.line(to: NSPoint(x: 3.9, y: 15.8))
+            pocket.curve(
+                to: NSPoint(x: 2.5, y: 14.4),
+                controlPoint1: NSPoint(x: 3.1, y: 15.8),
+                controlPoint2: NSPoint(x: 2.5, y: 15.2)
+            )
+            pocket.close()
+            pocket.fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+}
+
 @MainActor
 final class RefreshScheduler {
     typealias Sleep = @Sendable (TimeInterval) async throws -> Void
@@ -154,7 +200,7 @@ final class StatusBarController: NSObject {
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
 
-        button.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: nil)
+        button.image = SpenderMenuBarIcon.make()
         button.imagePosition = .imageLeading
         button.target = self
         button.action = #selector(togglePanel)

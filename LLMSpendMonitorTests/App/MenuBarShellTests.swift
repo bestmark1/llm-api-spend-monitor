@@ -7,6 +7,16 @@ final class MenuBarShellTests: XCTestCase {
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "LSUIElement") as? Bool, true)
     }
 
+    func testApplicationUsesSpenderBrandAssets() {
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "Spender")
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleIconFile") as? String, "Spender.icns")
+        XCTAssertNotNil(Bundle.main.url(forResource: "Spender", withExtension: "icns"))
+
+        let menuBarIcon = SpenderMenuBarIcon.make()
+        XCTAssertTrue(menuBarIcon.isTemplate)
+        XCTAssertEqual(menuBarIcon.size, NSSize(width: 18, height: 18))
+    }
+
     func testSkippingOnboardingShowsDashboardAndConnectionsRemainReachable() {
         let state = AppState()
 
