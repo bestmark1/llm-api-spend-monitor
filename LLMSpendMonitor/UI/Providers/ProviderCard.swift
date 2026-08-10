@@ -337,6 +337,7 @@ struct ProviderCard: View {
             HStack(spacing: 18) {
                 compactMetric("Input", value: MetricFormatting.tokens(tokens.input))
                     .help("Input includes cached tokens where the provider reports them.")
+                    .accessibilityHint("Includes cached tokens where reported")
                 if tokens.cachedInput > 0 {
                     compactMetric("Cached", value: MetricFormatting.tokens(tokens.cachedInput))
                         .help("Cached input is included in the Input total.")
