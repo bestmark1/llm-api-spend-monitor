@@ -94,7 +94,7 @@ struct PlatformBalanceEditor: View {
             if let currentBalance {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Calculated balance")
+                        Text("Remaining balance")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(MetricFormatting.money(currentBalance.remaining))

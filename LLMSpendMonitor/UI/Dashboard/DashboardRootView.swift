@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct DashboardRootView: View {
@@ -67,9 +68,11 @@ private struct OnboardingView: View {
 
             Spacer()
 
-            Image(systemName: "chart.bar.xaxis")
-                .font(.system(size: 44))
-                .foregroundStyle(.tint)
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 76, height: 76)
+                .accessibilityHidden(true)
 
             Text("Monitor your LLM API spend")
                 .font(.title.bold())

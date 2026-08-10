@@ -6,7 +6,7 @@ repo_root="${0:A:h:h}"
 derived_data_path="${DERIVED_DATA_PATH:-${repo_root}/.build/DerivedData-Release}"
 destination="${INSTALL_DESTINATION:-/Applications/Spender.app}"
 launch_after_install="${LAUNCH_AFTER_INSTALL:-1}"
-source_app="${derived_data_path}/Build/Products/Release/LLMSpendMonitor.app"
+source_app="${derived_data_path}/Build/Products/Release/Spender.app"
 staging_app="${destination}.installing.$$"
 legacy_destination="/Applications/LLMSpendMonitor.app"
 legacy_backup="/Applications/LLMSpendMonitor.pre-Spender-backup"
@@ -37,6 +37,7 @@ if [[ ! -d "${source_app}" ]]; then
 fi
 
 print "Installing ${destination}…"
+/usr/bin/pkill -x Spender 2>/dev/null || true
 /usr/bin/pkill -x LLMSpendMonitor 2>/dev/null || true
 /bin/mkdir -p "${destination:h}"
 /bin/rm -rf "${staging_app}"

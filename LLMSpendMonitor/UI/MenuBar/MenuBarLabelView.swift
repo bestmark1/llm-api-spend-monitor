@@ -15,7 +15,10 @@ struct MenuBarLabelView: View {
     }
 
     var body: some View {
-        Label(Self.metricText, systemImage: "chart.bar.fill")
+        HStack(spacing: 4) {
+            Image(nsImage: SpenderMenuBarIcon.make())
+            Text(Self.metricText)
+        }
             .accessibilityLabel(Self.accessibilityLabel)
     }
 }

@@ -9,6 +9,7 @@ final class MenuBarShellTests: XCTestCase {
 
     func testApplicationUsesSpenderBrandAssets() {
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "Spender")
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleExecutable") as? String, "Spender")
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleIconFile") as? String, "Spender.icns")
         XCTAssertNotNil(Bundle.main.url(forResource: "Spender", withExtension: "icns"))
 

@@ -107,7 +107,7 @@ struct ProviderCard: View {
     private var compactOverview: some View {
         if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
             compactMoneyRow(
-                label: "Available balance",
+                label: "Remaining balance",
                 money: balance.total.value,
                 detail: officialBalanceDetail(balance)
             )
@@ -125,6 +125,8 @@ struct ProviderCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        } else if synchronizeBalance != nil {
+            compactBalanceSetup(snapshot)
         } else if let snapshot, let cost = costTotals(snapshot).first {
             compactMoneyRow(
                 label: "Period spend",
@@ -183,6 +185,29 @@ struct ProviderCard: View {
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
     }
 
+    private func compactBalanceSetup(_ snapshot: ProviderSnapshot?) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Remaining balance")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Not set")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                if let detail = compactTrackedDetail(snapshot) {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 8)
+            balanceButton(title: "Add Balance")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
+    }
+
     private func compactTrackedDetail(_ snapshot: ProviderSnapshot?) -> String? {
         guard let snapshot else { return nil }
         var parts: [String] = []
@@ -224,7 +249,7 @@ struct ProviderCard: View {
 
     @ViewBuilder
     private func officialBalanceContent(_ balance: ProviderBalance) -> some View {
-        primaryMetric(label: "Available balance", money: balance.total.value)
+        primaryMetric(label: "Remaining balance", money: balance.total.value)
 
         if balance.granted != nil || balance.toppedUp != nil {
             VStack(spacing: 7) {
@@ -242,6 +267,8 @@ struct ProviderCard: View {
     private func trackedProviderContent(_ snapshot: ProviderSnapshot?) -> some View {
         if let platformBalance {
             platformBalanceContent(platformBalance)
+        } else if synchronizeBalance != nil {
+            balanceSetupContent
         }
 
         if let snapshot,
@@ -253,14 +280,14 @@ struct ProviderCard: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         } else if let snapshot, let cost = costTotals(snapshot).first {
-            if platformBalance != nil {
+            if platformBalance != nil || synchronizeBalance != nil {
                 Divider()
             }
             primaryMetric(label: "Period spend", money: cost)
             tokenRows(snapshot)
             modelRows(snapshot)
         } else if let snapshot, tokenTotal(snapshot) != nil {
-            if platformBalance != nil {
+            if platformBalance != nil || synchronizeBalance != nil {
                 Divider()
             }
             tokenRows(snapshot)
@@ -272,15 +299,34 @@ struct ProviderCard: View {
             Label("API key verified", systemImage: "checkmark.seal.fill")
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.secondary)
-        } else if platformBalance == nil {
+        } else if platformBalance == nil, synchronizeBalance == nil {
             Text("Connected · financial metrics unavailable")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
+    }
 
-        if synchronizeBalance != nil, platformBalance == nil {
-            balanceButton(title: "Add Balance")
+    private var balanceSetupContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Remaining balance")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Not set")
+                        .font(.system(size: 25, weight: .semibold, design: .rounded))
+                }
+                Spacer()
+                balanceButton(title: "Add Balance")
+            }
+
+            Text("Enter the current amount from Billing to track what remains automatically.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("provider.\(metadata.id.rawValue).balanceSetup")
     }
 
     private func platformBalanceContent(_ balance: PlatformBalanceStatus) -> some View {
