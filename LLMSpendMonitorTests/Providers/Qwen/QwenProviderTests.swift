@@ -214,6 +214,46 @@ final class QwenProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.issue, .partialData)
     }
 
+    func testBillingNoPermissionResponseIsNotReportedAsInvalidCredential() async throws {
+        let credentialStore = QwenCredentialStoreStub(values: [
+            QwenBillingCredentialIdentities.accessKeyID: "billing-id",
+            QwenBillingCredentialIdentities.accessKeySecret: "billing-secret",
+            QwenBillingCredentialIdentities.productCode: "model-studio-code"
+        ])
+        let noPermission = HTTPResponse(
+            statusCode: 400,
+            headers: [:],
+            body: Data(#"{"Code":"NoPermission","Message":"not authorized"}"#.utf8)
+        )
+        let client = QwenHTTPClientQueue(responsesByAction: [
+            "QueryAccountBalance": [.failure(HTTPClientError.httpStatus(noPermission))],
+            "QueryAccountBill": [.failure(HTTPClientError.httpStatus(noPermission))]
+        ])
+        let provider = QwenProvider(
+            httpClient: client,
+            endpointStore: QwenEndpointStoreStub(endpoint: QwenAPIEndpoint.defaultValue),
+            credentialStore: credentialStore,
+            now: { Self.now },
+            nonce: { "fixed-nonce" }
+        )
+
+        do {
+            _ = try await provider.fetch(
+                ProviderFetchRequest(
+                    purpose: .full,
+                    reportingInterval: DateInterval(
+                        start: Self.now.addingTimeInterval(-86_400),
+                        end: Self.now
+                    )
+                ),
+                credential: "qwen-test-key"
+            )
+            XCTFail("Expected insufficient permissions")
+        } catch let error as ProviderClientError {
+            XCTAssertEqual(error, .insufficientPermissions)
+        }
+    }
+
     func testAlibabaV3SignerMatchesOfficialFixedVector() throws {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]

@@ -442,7 +442,7 @@ struct QwenProvider: ProviderClient, Sendable {
         } catch let error as ProviderClientError {
             throw error
         } catch let error as HTTPClientError {
-            throw Self.map(error)
+            throw Self.mapBilling(error)
         } catch is DecodingError {
             throw ProviderClientError.malformedResponse
         } catch is Money.ValidationError {
@@ -503,7 +503,7 @@ struct QwenProvider: ProviderClient, Sendable {
         } catch let error as ProviderClientError {
             throw error
         } catch let error as HTTPClientError {
-            throw Self.map(error)
+            throw Self.mapBilling(error)
         } catch is DecodingError {
             throw ProviderClientError.malformedResponse
         } catch is Money.ValidationError {
@@ -603,6 +603,20 @@ struct QwenProvider: ProviderClient, Sendable {
             .unavailable
         }
     }
+
+    private static func mapBilling(_ error: HTTPClientError) -> ProviderClientError {
+        guard case let .httpStatus(response) = error else {
+            return map(error)
+        }
+
+        if let payload = try? JSONDecoder().decode(AlibabaCloudErrorResponse.self, from: response.body) {
+            let code = payload.code.lowercased()
+            if code.contains("permission") || code.contains("authorized") {
+                return .insufficientPermissions
+            }
+        }
+        return map(error)
+    }
 }
 
 private extension CharacterSet {
@@ -634,6 +648,14 @@ private extension QwenProvider {
             case code = "Code"
             case success = "Success"
             case data = "Data"
+        }
+    }
+
+    struct AlibabaCloudErrorResponse: Decodable {
+        let code: String
+
+        enum CodingKeys: String, CodingKey {
+            case code = "Code"
         }
     }
 
