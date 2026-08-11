@@ -43,17 +43,25 @@ struct ProviderConnectionView: View {
                 }
             }
 
-            SecureField("API key", text: $viewModel.draftSecret)
+            SecureField(viewModel.apiKeyPlaceholder, text: $viewModel.draftSecret)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityLabel("\(viewModel.metadata.displayName) API key")
                 .accessibilityIdentifier("connection.\(viewModel.id.rawValue).secret")
+
+            if let apiKeyError = viewModel.apiKeyError {
+                Text(apiKeyError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("connection.\(viewModel.id.rawValue).secretError")
+            }
 
             HStack {
                 Button(viewModel.saveButtonTitle, action: viewModel.saveOrReplace)
                     .disabled(!viewModel.canSave)
                     .accessibilityIdentifier("connection.\(viewModel.id.rawValue).save")
 
-                if viewModel.connectionStatus == .connected {
+                if viewModel.canDeleteCredential {
                     Button("Delete", role: .destructive) {
                         isConfirmingDelete = true
                     }
@@ -63,7 +71,8 @@ struct ProviderConnectionView: View {
                 Spacer()
             }
 
-            if let resultMessage = viewModel.resultMessage {
+            if let resultMessage = viewModel.resultMessage,
+               resultMessage != viewModel.apiKeyError {
                 Text(resultMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -83,7 +92,7 @@ struct ProviderConnectionView: View {
                         .foregroundStyle(billingStatusColor)
                 }
 
-                Text("Use a RAM AccessKey limited to read-only BSS billing. Product Code must match Alibaba Cloud Model Studio in Billing Details.")
+                Text("Use a RAM AccessKey limited to read-only BSS billing. Product Code must match Alibaba Cloud Model Studio. Only pay-as-you-go charges are counted; subscriptions are excluded.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

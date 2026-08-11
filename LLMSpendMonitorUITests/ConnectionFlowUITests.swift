@@ -12,8 +12,19 @@ final class ConnectionFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["connection.openai.save"].exists)
 
         app.scrollViews.firstMatch.swipeUp()
-        XCTAssertTrue(app.secureTextFields["connection.qwen.secret"].waitForExistence(timeout: 3))
+        let qwenSecret = app.secureTextFields["connection.qwen.secret"]
+        XCTAssertTrue(qwenSecret.waitForExistence(timeout: 3))
         XCTAssertTrue(app.textFields["connection.qwen.endpoint"].exists)
+        qwenSecret.click()
+        qwenSecret.typeText("sk-sp-ui-test-plan-key")
+        XCTAssertTrue(app.staticTexts["connection.qwen.secretError"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["connection.qwen.save"].isEnabled)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Qwen Token Plan rejection"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+
         app.scrollViews.firstMatch.swipeUp()
         XCTAssertTrue(app.textFields["connection.qwen.billingAccessKeyID"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.secureTextFields["connection.qwen.billingAccessKeySecret"].exists)

@@ -2,6 +2,8 @@ import Foundation
 
 @MainActor
 final class ConnectionViewModel: ObservableObject, Identifiable {
+    private static let qwenTokenPlanMessage = "Token Plan keys aren't supported. Use a pay-as-you-go Model Studio API key (sk-… or sk-ws-…)."
+
     enum ConnectionStatus: Equatable, CustomStringConvertible {
         case notConnected
         case connected
@@ -42,11 +44,19 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
 
     var canSave: Bool {
         !draftSecret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && apiKeyError == nil
             && (!requiresAPIEndpoint || (try? QwenAPIEndpoint(draftEndpoint)) != nil)
     }
 
     var requiresAPIEndpoint: Bool { id == .qwen }
     var supportsBillingCredentials: Bool { id == .qwen }
+    var canDeleteCredential: Bool { connectionStatus != .notConnected }
+    var apiKeyPlaceholder: String { id == .qwen ? "Pay-as-you-go API key" : "API key" }
+
+    var apiKeyError: String? {
+        guard id == .qwen, QwenAPIKey.isTokenPlan(draftSecret) else { return nil }
+        return Self.qwenTokenPlanMessage
+    }
 
     var canSaveBilling: Bool {
         guard supportsBillingCredentials else { return false }
@@ -57,12 +67,15 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
 
     var apiEndpointHelp: String? {
         guard requiresAPIEndpoint else { return nil }
-        return "Paste the Base URL shown next to your key. Only official aliyuncs.com Model Studio endpoints are accepted."
+        return "Paste the API Host for your pay-as-you-go key. Token Plan endpoints are not supported."
     }
 
     var apiEndpointError: String? {
         guard requiresAPIEndpoint, !draftEndpoint.isEmpty else { return nil }
         guard (try? QwenAPIEndpoint(draftEndpoint)) == nil else { return nil }
+        if URLComponents(string: draftEndpoint)?.host?.lowercased().hasPrefix("token-plan.") == true {
+            return "Token Plan endpoints aren't supported. Use the API Host for a pay-as-you-go key."
+        }
         return "Enter an official Qwen OpenAI-compatible Base URL ending in /compatible-mode/v1."
     }
 
@@ -92,23 +105,30 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
             )
         }
         connectionStatus = Self.loadStatus(for: identity, from: credentialStore)
+        if metadata.id == .qwen,
+           let storedCredential = try? credentialStore.read(for: identity),
+           QwenAPIKey.isTokenPlan(storedCredential) {
+            connectionStatus = .error
+            resultMessage = Self.qwenTokenPlanMessage
+        }
     }
 
     func saveOrReplace() {
         guard canSave else { return }
 
         do {
+            let normalizedSecret = draftSecret.trimmingCharacters(in: .whitespacesAndNewlines)
             if requiresAPIEndpoint {
                 let endpoint = try QwenAPIEndpoint(draftEndpoint)
                 endpointStore.saveEndpoint(endpoint.baseURL.absoluteString, for: id)
                 draftEndpoint = endpoint.baseURL.absoluteString
             }
-            try credentialStore.save(draftSecret, for: identity)
+            try credentialStore.save(normalizedSecret, for: identity)
             draftSecret = ""
             connectionStatus = .connected
             generation &+= 1
             resultMessage = requiresAPIEndpoint
-                ? "Credential saved. Qwen access will now be verified."
+                ? "Pay-as-you-go credential saved. Qwen access and billing will now be verified."
                 : "Credential saved."
             credentialDidChange(id)
         } catch {

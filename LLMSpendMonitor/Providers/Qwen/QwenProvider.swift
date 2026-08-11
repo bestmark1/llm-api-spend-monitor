@@ -7,6 +7,12 @@ enum QwenAPIEndpointError: Error, Equatable {
     case unsupportedPath
 }
 
+enum QwenAPIKey {
+    static func isTokenPlan(_ value: String) -> Bool {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("sk-sp-")
+    }
+}
+
 struct QwenAPIEndpoint: Equatable, Sendable {
     static let defaultValue = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 
@@ -28,7 +34,7 @@ struct QwenAPIEndpoint: Equatable, Sendable {
             throw QwenAPIEndpointError.invalidURL
         }
 
-        guard Self.allowedHosts.contains(host) || host.hasSuffix(".maas.aliyuncs.com") else {
+        guard Self.isAllowedHost(host) else {
             throw QwenAPIEndpointError.unsupportedHost
         }
 
@@ -52,9 +58,13 @@ struct QwenAPIEndpoint: Equatable, Sendable {
     private static let allowedHosts: Set<String> = [
         "dashscope.aliyuncs.com",
         "dashscope-intl.aliyuncs.com",
-        "dashscope-us.aliyuncs.com",
-        "token-plan.cn-beijing.maas.aliyuncs.com"
+        "dashscope-us.aliyuncs.com"
     ]
+
+    private static func isAllowedHost(_ host: String) -> Bool {
+        allowedHosts.contains(host)
+            || (host.hasSuffix(".maas.aliyuncs.com") && !host.hasPrefix("token-plan."))
+    }
 }
 
 enum QwenBillingCredentialIdentities {
@@ -262,7 +272,8 @@ struct QwenProvider: ProviderClient, Sendable {
         _ request: ProviderFetchRequest,
         credential: String
     ) async throws -> ProviderSnapshot {
-        guard !credential.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let normalizedCredential = credential.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedCredential.isEmpty, !QwenAPIKey.isTokenPlan(normalizedCredential) else {
             throw ProviderClientError.invalidCredential
         }
 
@@ -270,7 +281,7 @@ struct QwenProvider: ProviderClient, Sendable {
             let endpoint = try QwenAPIEndpoint(
                 endpointStore.loadEndpoint(for: providerID) ?? QwenAPIEndpoint.defaultValue
             )
-            _ = try await listModels(endpoint: endpoint, credential: credential)
+            _ = try await listModels(endpoint: endpoint, credential: normalizedCredential)
 
             guard let billingCredentials = try QwenBillingCredentials(store: credentialStore) else {
                 return try validationSnapshot()
@@ -377,7 +388,10 @@ struct QwenProvider: ProviderClient, Sendable {
                 throw ProviderClientError.unavailable
             }
 
-            let items = payload.data.items.item
+            let allItems = payload.data.items.item
+            let items = allItems.filter {
+                $0.subscriptionType.caseInsensitiveCompare("PayAsYouGo") == .orderedSame
+            }
             let currencies = Set(items.map { $0.currency.uppercased() })
             guard currencies.count <= 1 else {
                 throw ProviderClientError.malformedResponse
@@ -386,7 +400,7 @@ struct QwenProvider: ProviderClient, Sendable {
             let money = try currencies.first.map { try Money(amount: amount, currencyCode: $0) }
             return DailyBillResult(
                 money: money,
-                isComplete: payload.data.totalCount <= items.count
+                isComplete: payload.data.totalCount <= allItems.count
             )
         } catch let error as ProviderClientError {
             throw error
@@ -562,10 +576,12 @@ private extension QwenProvider {
     struct AccountBillItem: Decodable {
         let currency: String
         let pretaxAmount: Decimal
+        let subscriptionType: String
 
         enum CodingKeys: String, CodingKey {
             case currency = "Currency"
             case pretaxAmount = "PretaxAmount"
+            case subscriptionType = "SubscriptionType"
         }
     }
 }

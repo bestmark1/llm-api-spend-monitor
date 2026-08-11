@@ -39,7 +39,7 @@ final class QwenProviderTests: XCTestCase {
         ])
         let client = QwenHTTPClientQueue(responses: [
             .success(Self.modelsResponse),
-            .success(Self.billResponse(date: "2026-07-15", amount: "1.25")),
+            .success(Self.mixedBillResponse(date: "2026-07-15")),
             .success(Self.billResponse(date: "2026-07-16", amount: "2.50"))
         ])
         let provider = QwenProvider(
@@ -120,6 +120,30 @@ final class QwenProviderTests: XCTestCase {
         ) {
             XCTAssertEqual($0 as? QwenAPIEndpointError, .invalidURL)
         }
+        XCTAssertThrowsError(
+            try QwenAPIEndpoint("https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1")
+        ) {
+            XCTAssertEqual($0 as? QwenAPIEndpointError, .unsupportedHost)
+        }
+    }
+
+    func testTokenPlanKeyIsRejectedBeforeNetworkRequest() async throws {
+        let client = QwenHTTPClientQueue(responses: [.success(Self.modelsResponse)])
+        let provider = QwenProvider(
+            httpClient: client,
+            endpointStore: QwenEndpointStoreStub(endpoint: QwenAPIEndpoint.defaultValue),
+            credentialStore: QwenCredentialStoreStub()
+        )
+
+        do {
+            _ = try await provider.fetch(Self.request, credential: "sk-sp-token-plan-key")
+            XCTFail("Expected Token Plan key to fail")
+        } catch {
+            XCTAssertEqual(error as? ProviderClientError, .invalidCredential)
+        }
+
+        let requests = await client.requests
+        XCTAssertTrue(requests.isEmpty)
     }
 
     func testMapsAuthenticationRateLimitOfflineAndMalformedResponse() async throws {
@@ -211,8 +235,45 @@ final class QwenProviderTests: XCTestCase {
                         "BillingDate": "\(date)",
                         "Currency": "USD",
                         "PretaxAmount": \(amount),
-                        "ProductCode": "model-studio-code"
+                        "ProductCode": "model-studio-code",
+                        "SubscriptionType": "PayAsYouGo"
                       }]
+                    }
+                  }
+                }
+                """.utf8
+            )
+        )
+    }
+
+    private static func mixedBillResponse(date: String) -> HTTPResponse {
+        HTTPResponse(
+            statusCode: 200,
+            headers: [:],
+            body: Data(
+                """
+                {
+                  "Code": "Success",
+                  "Success": true,
+                  "Data": {
+                    "TotalCount": 2,
+                    "Items": {
+                      "Item": [
+                        {
+                          "BillingDate": "\(date)",
+                          "Currency": "USD",
+                          "PretaxAmount": 1.25,
+                          "ProductCode": "model-studio-code",
+                          "SubscriptionType": "PayAsYouGo"
+                        },
+                        {
+                          "BillingDate": "\(date)",
+                          "Currency": "USD",
+                          "PretaxAmount": 99.00,
+                          "ProductCode": "model-studio-code",
+                          "SubscriptionType": "Subscription"
+                        }
+                      ]
                     }
                   }
                 }

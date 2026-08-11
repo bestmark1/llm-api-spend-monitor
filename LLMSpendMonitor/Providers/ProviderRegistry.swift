@@ -88,7 +88,7 @@ enum ProviderRegistry {
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
-            credentialHelp: "Model Studio API access is verified separately. Official spend requires a read-only Alibaba Cloud RAM AccessKey and the Model Studio Product Code from Billing Details.",
+            credentialHelp: "Use a pay-as-you-go Model Studio API key and its API Host. Token Plan keys are not supported. Official spend also requires read-only billing access below.",
             capabilities: [.credentialValidation, .officialCostHistory],
             externalLinks: [
                 link(.usage, "https://modelstudio.console.alibabacloud.com/?tab=dashboard#/model-usage"),

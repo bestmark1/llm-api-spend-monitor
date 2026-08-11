@@ -521,7 +521,14 @@ struct ProviderCard: View {
             return "Integration planned"
         }
         if metadata.capabilities.contains(.officialCostHistory) {
-            return "Cost · tokens · models"
+            var parts = ["Cost"]
+            if metadata.capabilities.contains(.tokenUsage) {
+                parts.append("tokens")
+            }
+            if metadata.capabilities.contains(.modelBreakdown) {
+                parts.append("models")
+            }
+            return parts.joined(separator: " · ")
         }
         if metadata.capabilities.contains(.balance) {
             return "Official balance"

@@ -59,6 +59,44 @@ final class ConnectionViewModelTests: XCTestCase {
         )
     }
 
+    func testQwenRejectsTokenPlanKeyAndAllowsReplacingStoredPlanKey() throws {
+        let credentialStore = InMemoryCredentialStore()
+        let identity = CredentialIdentity(providerID: .qwen)
+        try credentialStore.save("sk-sp-existing-plan-key", for: identity)
+        let endpointStore = InMemoryEndpointStore()
+        endpointStore.saveEndpoint(
+            "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            for: .qwen
+        )
+        let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
+        let model = ConnectionViewModel(
+            metadata: metadata,
+            credentialStore: credentialStore,
+            endpointStore: endpointStore
+        )
+
+        XCTAssertEqual(model.connectionStatus, .error)
+        XCTAssertTrue(model.canDeleteCredential)
+        XCTAssertTrue(model.resultMessage?.contains("Token Plan") == true)
+        XCTAssertTrue(model.apiEndpointError?.contains("Token Plan") == true)
+
+        model.draftSecret = " sk-sp-replacement-plan-key "
+        XCTAssertFalse(model.canSave)
+        XCTAssertTrue(model.apiKeyError?.contains("pay-as-you-go") == true)
+        model.saveOrReplace()
+        XCTAssertEqual(try credentialStore.read(for: identity), "sk-sp-existing-plan-key")
+
+        model.draftSecret = " sk-ws-pay-as-you-go-key "
+        XCTAssertFalse(model.canSave)
+        model.draftEndpoint = QwenAPIEndpoint.defaultValue
+        XCTAssertTrue(model.canSave)
+        model.saveOrReplace()
+
+        XCTAssertEqual(model.connectionStatus, .connected)
+        XCTAssertEqual(model.apiKeyError, nil)
+        XCTAssertEqual(try credentialStore.read(for: identity), "sk-ws-pay-as-you-go-key")
+    }
+
     func testQwenBillingCredentialsAreStoredSeparatelyAndCanBeDeleted() throws {
         let credentialStore = InMemoryCredentialStore()
         let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
