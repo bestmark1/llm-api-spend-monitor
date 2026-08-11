@@ -58,6 +58,40 @@ final class ConnectionViewModelTests: XCTestCase {
             "qwen-secret"
         )
     }
+
+    func testQwenBillingCredentialsAreStoredSeparatelyAndCanBeDeleted() throws {
+        let credentialStore = InMemoryCredentialStore()
+        let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
+        var changedProviders: [ProviderID] = []
+        let model = ConnectionViewModel(
+            metadata: metadata,
+            credentialStore: credentialStore,
+            endpointStore: InMemoryEndpointStore(),
+            credentialDidChange: { changedProviders.append($0) }
+        )
+
+        XCTAssertEqual(model.billingConnectionStatus, .notConnected)
+        model.draftBillingAccessKeyID = " billing-id "
+        model.draftBillingAccessKeySecret = " billing-secret "
+        model.draftBillingProductCode = " model-studio-code "
+        XCTAssertTrue(model.canSaveBilling)
+
+        model.saveOrReplaceBillingCredentials()
+
+        XCTAssertEqual(model.billingConnectionStatus, .connected)
+        XCTAssertEqual(try credentialStore.read(for: QwenBillingCredentialIdentities.accessKeyID), "billing-id")
+        XCTAssertEqual(try credentialStore.read(for: QwenBillingCredentialIdentities.accessKeySecret), "billing-secret")
+        XCTAssertEqual(try credentialStore.read(for: QwenBillingCredentialIdentities.productCode), "model-studio-code")
+        XCTAssertEqual(model.draftBillingAccessKeyID, "")
+        XCTAssertEqual(model.draftBillingAccessKeySecret, "")
+        XCTAssertEqual(model.draftBillingProductCode, "")
+
+        model.deleteBillingCredentials()
+
+        XCTAssertEqual(model.billingConnectionStatus, .notConnected)
+        XCTAssertThrowsError(try credentialStore.read(for: QwenBillingCredentialIdentities.accessKeySecret))
+        XCTAssertEqual(changedProviders, [.qwen, .qwen])
+    }
 }
 
 private final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendable {

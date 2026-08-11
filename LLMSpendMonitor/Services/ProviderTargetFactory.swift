@@ -46,10 +46,11 @@ final class ProviderTargetFactory: Sendable {
             ),
             ProviderConfiguration(
                 provider: qwenProvider,
-                minimumInterval: 0,
-                automaticRefreshEnabled: false,
-                purpose: .credentialValidation,
-                usesReportingWindow: false
+                minimumInterval: 6 * 60 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: true,
+                additionalCredentialIdentities: QwenBillingCredentialIdentities.all
             )
         ]
         self.now = now
@@ -61,6 +62,9 @@ final class ProviderTargetFactory: Sendable {
             let identity = CredentialIdentity(providerID: provider.providerID)
             guard let credential = try? credentialStore.read(for: identity) else {
                 return nil
+            }
+            let additionalCredentials = configuration.additionalCredentialIdentities.map { identity in
+                (identity, try? credentialStore.read(for: identity))
             }
 
             return ProviderRefreshTarget(
@@ -85,7 +89,12 @@ final class ProviderTargetFactory: Sendable {
                     )
                 },
                 generationIsCurrent: { [credentialStore] _ in
-                    (try? credentialStore.read(for: identity)) == credential
+                    guard (try? credentialStore.read(for: identity)) == credential else {
+                        return false
+                    }
+                    return additionalCredentials.allSatisfy { identity, value in
+                        (try? credentialStore.read(for: identity)) == value
+                    }
                 }
             )
         }
@@ -108,5 +117,22 @@ private extension ProviderTargetFactory {
         let automaticRefreshEnabled: Bool
         let purpose: ProviderFetchRequest.Purpose
         let usesReportingWindow: Bool
+        let additionalCredentialIdentities: [CredentialIdentity]
+
+        init(
+            provider: any ProviderClient,
+            minimumInterval: TimeInterval,
+            automaticRefreshEnabled: Bool,
+            purpose: ProviderFetchRequest.Purpose,
+            usesReportingWindow: Bool,
+            additionalCredentialIdentities: [CredentialIdentity] = []
+        ) {
+            self.provider = provider
+            self.minimumInterval = minimumInterval
+            self.automaticRefreshEnabled = automaticRefreshEnabled
+            self.purpose = purpose
+            self.usesReportingWindow = usesReportingWindow
+            self.additionalCredentialIdentities = additionalCredentialIdentities
+        }
     }
 }

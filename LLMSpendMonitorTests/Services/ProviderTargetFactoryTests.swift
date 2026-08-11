@@ -157,7 +157,7 @@ final class ProviderTargetFactoryTests: XCTestCase {
         )
     }
 
-    func testQwenTargetValidatesOnlyOnCredentialChanges() async throws {
+    func testQwenTargetRefreshesThirtyDayBillingWindow() async throws {
         let store = TargetCredentialStore()
         try store.save("qwen-token", for: Self.qwenIdentity)
         let provider = ProviderClientRecorder(providerID: .qwen)
@@ -175,11 +175,35 @@ final class ProviderTargetFactoryTests: XCTestCase {
 
         let call = await provider.lastCall
         XCTAssertEqual(target.providerID, .qwen)
-        XCTAssertEqual(target.minimumInterval, 0)
-        XCTAssertFalse(target.automaticRefreshEnabled)
+        XCTAssertEqual(target.minimumInterval, 6 * 60 * 60)
+        XCTAssertTrue(target.automaticRefreshEnabled)
         XCTAssertEqual(call?.credential, "qwen-token")
-        XCTAssertEqual(call?.request.purpose, .credentialValidation)
-        XCTAssertNil(call?.request.reportingInterval)
+        XCTAssertEqual(call?.request.purpose, .full)
+        XCTAssertNotNil(call?.request.reportingInterval)
+    }
+
+    func testQwenTargetBecomesStaleWhenBillingCredentialsChange() async throws {
+        let store = TargetCredentialStore()
+        try store.save("qwen-token", for: Self.qwenIdentity)
+        try store.save("billing-id", for: QwenBillingCredentialIdentities.accessKeyID)
+        try store.save("billing-secret", for: QwenBillingCredentialIdentities.accessKeySecret)
+        try store.save("model-studio-code", for: QwenBillingCredentialIdentities.productCode)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            geminiProvider: ProviderClientRecorder(providerID: .gemini),
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+            qwenProvider: ProviderClientRecorder(providerID: .qwen)
+        )
+        let target = try XCTUnwrap(factory.makeTargets().first)
+
+        let initiallyCurrent = await target.generationIsCurrent(target.generation)
+        XCTAssertTrue(initiallyCurrent)
+
+        try store.save("replacement-secret", for: QwenBillingCredentialIdentities.accessKeySecret)
+        let currentAfterReplacement = await target.generationIsCurrent(target.generation)
+        XCTAssertFalse(currentAfterReplacement)
     }
 
     private static let openAIIdentity = CredentialIdentity(providerID: .openAI)
@@ -222,8 +246,10 @@ private actor ProviderClientRecorder: ProviderClient {
     init(providerID: ProviderID = .openAI) {
         self.providerID = providerID
         switch providerID {
-        case .gemini, .qwen:
+        case .gemini:
             capabilities = [.credentialValidation]
+        case .qwen:
+            capabilities = [.credentialValidation, .officialCostHistory]
         case .deepSeek:
             capabilities = [.balance]
         case .openAI, .anthropic:

@@ -88,8 +88,8 @@ enum ProviderRegistry {
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
-            credentialHelp: "Add a Model Studio API key and its official OpenAI-compatible Base URL. The key can be verified, but account-wide spend requires separate Alibaba Cloud billing credentials.",
-            capabilities: [.credentialValidation],
+            credentialHelp: "Model Studio API access is verified separately. Official spend requires a read-only Alibaba Cloud RAM AccessKey and the Model Studio Product Code from Billing Details.",
+            capabilities: [.credentialValidation, .officialCostHistory],
             externalLinks: [
                 link(.usage, "https://modelstudio.console.alibabacloud.com/?tab=dashboard#/model-usage"),
                 link(.billing, "https://usercenter2-intl.aliyun.com/billing/#/account/overview"),
