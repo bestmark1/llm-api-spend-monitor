@@ -96,6 +96,9 @@ struct ProviderOrderRow: View {
     }
 
     private var capabilitySummary: String {
+        if item.metadata.integrationAvailability == .planned {
+            return "Integration planned"
+        }
         if item.metadata.capabilities.contains(.officialCostHistory) {
             return "Official spend · tokens · models"
         }

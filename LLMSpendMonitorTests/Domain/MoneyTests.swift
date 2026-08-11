@@ -8,6 +8,14 @@ final class MoneyTests: XCTestCase {
         XCTAssertEqual(MetricFormatting.money(money), "$1,234.50")
     }
 
+    func testDashboardFormattingRoundsEveryMoneyValueToCents() throws {
+        let microSpend = try Money(amount: Decimal(string: "0.0008")!, currencyCode: "USD")
+        let roundedSpend = try Money(amount: Decimal(string: "4.0868")!, currencyCode: "USD")
+
+        XCTAssertEqual(MetricFormatting.money(microSpend), "$0.00")
+        XCTAssertEqual(MetricFormatting.money(roundedSpend), "$4.09")
+    }
+
     func testCodableRoundTripPreservesDecimalAsAString() throws {
         let money = try Money(amount: Decimal(string: "1234567890.123456789")!, currencyCode: "usd")
 

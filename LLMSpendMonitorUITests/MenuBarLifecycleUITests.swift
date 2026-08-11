@@ -89,4 +89,59 @@ final class MenuBarLifecycleUITests: XCTestCase {
         XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
     }
 
+    func testCustomizeCanHideGeminiAndShowPlannedKimi() {
+        let app = XCUIApplication()
+        let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
+        UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        addTeardownBlock {
+            app.terminate()
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        app.launchArguments.append(contentsOf: [
+            "--dashboard-preview",
+            "--reset-provider-card-expansion"
+        ])
+        app.launchEnvironment["SPENDER_CUSTOMIZATION_SUITE"] = suiteName
+        app.launch()
+
+        app.menuButtons["Options"].click()
+        app.menuItems["Customize"].click()
+
+        let geminiToggle = app.descendants(matching: .any)["customize.gemini.visible"]
+        let kimiToggle = app.descendants(matching: .any)["customize.kimi.visible"]
+        XCTAssertTrue(geminiToggle.waitForExistence(timeout: 3))
+        XCTAssertTrue(kimiToggle.waitForExistence(timeout: 3))
+
+        geminiToggle.click()
+        kimiToggle.click()
+
+        let customizationScreenshot = XCTAttachment(screenshot: app.screenshot())
+        customizationScreenshot.name = "Provider visibility options"
+        customizationScreenshot.lifetime = .keepAlways
+        add(customizationScreenshot)
+
+        app.buttons["Back"].click()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["provider.gemini.card"]
+                .waitForNonExistence(timeout: 3)
+        )
+        XCTAssertTrue(
+            app.descendants(matching: .any)["provider.kimi.card"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Planned"].exists)
+
+        app.buttons["provider.kimi.disclosure"].click()
+        XCTAssertTrue(
+            app.staticTexts["Spending integration is not available yet."]
+                .waitForExistence(timeout: 3)
+        )
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Gemini hidden and planned Kimi shown"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
 }

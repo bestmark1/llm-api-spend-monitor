@@ -577,7 +577,8 @@ final class DashboardViewModel: ObservableObject {
         switch providerID {
         case .openAI, .anthropic: 30 * 60
         case .deepSeek: 15 * 60
-        case .gemini: 24 * 60 * 60
+        case .gemini, .kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity:
+            24 * 60 * 60
         }
     }
 }

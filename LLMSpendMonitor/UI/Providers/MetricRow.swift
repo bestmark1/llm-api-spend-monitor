@@ -26,7 +26,7 @@ enum MetricFormatting {
         formatter.numberStyle = .currency
         formatter.currencyCode = money.currencyCode
         formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 4
+        formatter.maximumFractionDigits = 2
         return formatter.string(from: NSDecimalNumber(decimal: money.amount))
             ?? "\(money.currencyCode) —"
     }

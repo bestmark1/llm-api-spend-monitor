@@ -200,6 +200,8 @@ private actor ProviderClientRecorder: ProviderClient {
             capabilities = [.balance]
         case .openAI, .anthropic:
             capabilities = [.officialCostHistory, .tokenUsage, .modelBreakdown]
+        case .kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity:
+            capabilities = []
         }
     }
 

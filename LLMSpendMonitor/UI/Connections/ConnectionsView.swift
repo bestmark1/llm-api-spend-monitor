@@ -11,13 +11,15 @@ struct ConnectionsView: View {
         credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
         self.showDashboard = showDashboard
-        connectionModels = ProviderRegistry.all.map {
-            ConnectionViewModel(
-                metadata: $0,
-                credentialStore: credentialStore,
-                credentialDidChange: credentialDidChange
-            )
-        }
+        connectionModels = ProviderRegistry.all
+            .filter { $0.integrationAvailability == .available }
+            .map {
+                ConnectionViewModel(
+                    metadata: $0,
+                    credentialStore: credentialStore,
+                    credentialDidChange: credentialDidChange
+                )
+            }
     }
 
     var body: some View {

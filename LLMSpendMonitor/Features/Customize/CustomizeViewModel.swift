@@ -63,7 +63,7 @@ final class CustomizeViewModel: ObservableObject {
     }
 
     func reset() {
-        items = registry.map { Item(metadata: $0, isVisible: true) }
+        items = Self.makeItems(registry: registry, preferences: nil)
         persist()
     }
 
@@ -82,6 +82,7 @@ final class CustomizeViewModel: ObservableObject {
     ) -> [Item] {
         let metadataByID = Dictionary(uniqueKeysWithValues: registry.map { ($0.id, $0) })
         let hidden = preferences?.hidden ?? []
+        let previouslyKnown = Set(preferences?.order ?? [])
         var seen: Set<ProviderID> = []
         var ordered: [ProviderMetadata] = []
 
@@ -94,7 +95,12 @@ final class CustomizeViewModel: ObservableObject {
         ordered.append(contentsOf: registry.filter { seen.insert($0.id).inserted })
 
         return ordered.map { metadata in
-            Item(metadata: metadata, isVisible: !hidden.contains(metadata.id))
+            let isVisible = if previouslyKnown.contains(metadata.id) {
+                !hidden.contains(metadata.id)
+            } else {
+                metadata.isVisibleByDefault
+            }
+            return Item(metadata: metadata, isVisible: isVisible)
         }
     }
 }

@@ -490,6 +490,9 @@ struct ProviderCard: View {
     }
 
     private var status: (title: String, icon: String, color: Color) {
+        if metadata.integrationAvailability == .planned {
+            return ("Planned", "clock", .secondary)
+        }
         guard let snapshot else {
             return ("Not connected", "circle", .secondary)
         }
@@ -514,6 +517,9 @@ struct ProviderCard: View {
     }
 
     private var capabilityText: String {
+        if metadata.integrationAvailability == .planned {
+            return "Integration planned"
+        }
         if metadata.capabilities.contains(.officialCostHistory) {
             return "Cost · tokens · models"
         }
@@ -524,7 +530,10 @@ struct ProviderCard: View {
     }
 
     private var emptyStateText: String {
-        metadata.capabilities == [.credentialValidation]
+        if metadata.integrationAvailability == .planned {
+            return "Spending integration is not available yet."
+        }
+        return metadata.capabilities == [.credentialValidation]
             ? "Connect a key to verify access. Spend stays in Google AI Studio."
             : "Connect this provider to load official data."
     }

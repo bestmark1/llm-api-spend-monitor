@@ -7,6 +7,12 @@ enum ProviderVisualStyle {
         case .anthropic: .orange
         case .gemini: .blue
         case .deepSeek: .indigo
+        case .kimi: .pink
+        case .qwen: .purple
+        case .xAI: .gray
+        case .mistral: .red
+        case .openRouter: .mint
+        case .perplexity: .cyan
         }
     }
 }

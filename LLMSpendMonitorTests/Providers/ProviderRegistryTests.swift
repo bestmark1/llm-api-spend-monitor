@@ -1,10 +1,25 @@
+import AppKit
 import XCTest
 @testable import LLMSpendMonitor
 
 final class ProviderRegistryTests: XCTestCase {
-    func testRegistryContainsExactlyFourStableProviders() {
-        XCTAssertEqual(ProviderRegistry.all.map(\.id), [.openAI, .anthropic, .gemini, .deepSeek])
-        XCTAssertEqual(Set(ProviderRegistry.all.map(\.id)).count, 4)
+    func testRegistryContainsSupportedAndOptionalProviders() {
+        XCTAssertEqual(
+            ProviderRegistry.all.map(\.id),
+            [
+                .openAI, .anthropic, .gemini, .deepSeek,
+                .kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity
+            ]
+        )
+        XCTAssertEqual(Set(ProviderRegistry.all.map(\.id)).count, 10)
+        XCTAssertEqual(
+            ProviderRegistry.all.filter(\.isVisibleByDefault).map(\.id),
+            [.openAI, .anthropic, .gemini, .deepSeek]
+        )
+        XCTAssertEqual(
+            ProviderRegistry.all.filter { $0.integrationAvailability == .available }.map(\.id),
+            [.openAI, .anthropic, .gemini, .deepSeek]
+        )
     }
 
     func testProviderCapabilitiesReflectOnlyOfficialBasicKeyData() throws {
@@ -19,11 +34,28 @@ final class ProviderRegistryTests: XCTestCase {
         XCTAssertEqual(deepSeek.capabilities, [.balance])
     }
 
+    func testOptionalProvidersDoNotClaimUnavailableCapabilities() {
+        let optionalProviders = ProviderRegistry.all.filter {
+            $0.integrationAvailability == .planned
+        }
+
+        XCTAssertEqual(
+            optionalProviders.map(\.id),
+            [.kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity]
+        )
+        XCTAssertTrue(optionalProviders.allSatisfy { $0.capabilities.isEmpty })
+        XCTAssertTrue(optionalProviders.allSatisfy { !$0.isVisibleByDefault })
+    }
+
     func testExternalLinksAreTypedAndHTTPS() {
         for provider in ProviderRegistry.all {
             XCTAssertFalse(provider.externalLinks.isEmpty)
             XCTAssertEqual(Set(provider.externalLinks.map(\.kind)).count, provider.externalLinks.count)
             XCTAssertTrue(provider.externalLinks.allSatisfy { $0.url.scheme == "https" })
+            XCTAssertNotNil(
+                NSImage(systemSymbolName: provider.systemImageName, accessibilityDescription: nil),
+                "\(provider.systemImageName) must be a valid SF Symbol"
+            )
         }
     }
 }

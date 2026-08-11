@@ -5,6 +5,12 @@ enum ProviderID: String, CaseIterable, Codable, Hashable, Sendable {
     case anthropic
     case gemini
     case deepSeek = "deepseek"
+    case kimi
+    case qwen
+    case xAI = "xai"
+    case mistral
+    case openRouter = "openrouter"
+    case perplexity
 }
 
 struct CredentialIdentity: Hashable, Sendable {
