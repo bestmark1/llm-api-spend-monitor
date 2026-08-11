@@ -28,6 +28,36 @@ final class ConnectionViewModelTests: XCTestCase {
         XCTAssertEqual(model.connectionStatus, .notConnected)
         XCTAssertEqual(changedProviders, [.openAI, .openAI, .openAI])
     }
+
+    func testQwenRequiresAndPersistsOnlyAnOfficialEndpoint() throws {
+        let credentialStore = InMemoryCredentialStore()
+        let endpointStore = InMemoryEndpointStore()
+        let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
+        let model = ConnectionViewModel(
+            metadata: metadata,
+            credentialStore: credentialStore,
+            endpointStore: endpointStore
+        )
+
+        XCTAssertEqual(model.draftEndpoint, QwenAPIEndpoint.defaultValue)
+        model.draftSecret = "qwen-secret"
+        model.draftEndpoint = "https://example.com/compatible-mode/v1"
+        XCTAssertFalse(model.canSave)
+        XCTAssertNotNil(model.apiEndpointError)
+
+        model.draftEndpoint = "https://workspace.eu-central-1.maas.aliyuncs.com/compatible-mode/v1/"
+        XCTAssertTrue(model.canSave)
+        model.saveOrReplace()
+
+        XCTAssertEqual(
+            endpointStore.loadEndpoint(for: .qwen),
+            "https://workspace.eu-central-1.maas.aliyuncs.com/compatible-mode/v1"
+        )
+        XCTAssertEqual(
+            try credentialStore.read(for: CredentialIdentity(providerID: .qwen)),
+            "qwen-secret"
+        )
+    }
 }
 
 private final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendable {
@@ -44,5 +74,17 @@ private final class InMemoryCredentialStore: CredentialStoring, @unchecked Senda
 
     func delete(for identity: CredentialIdentity) throws {
         values.removeValue(forKey: identity)
+    }
+}
+
+private final class InMemoryEndpointStore: ProviderEndpointStoring, @unchecked Sendable {
+    private var values: [ProviderID: String] = [:]
+
+    func loadEndpoint(for providerID: ProviderID) -> String? {
+        values[providerID]
+    }
+
+    func saveEndpoint(_ endpoint: String, for providerID: ProviderID) {
+        values[providerID] = endpoint
     }
 }

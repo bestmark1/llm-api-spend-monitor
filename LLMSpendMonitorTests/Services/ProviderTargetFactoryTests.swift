@@ -141,24 +141,52 @@ final class ProviderTargetFactoryTests: XCTestCase {
         try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
         try store.save("gemini-token", for: Self.geminiIdentity)
         try store.save("deepseek-token", for: Self.deepSeekIdentity)
+        try store.save("qwen-token", for: Self.qwenIdentity)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
             geminiProvider: ProviderClientRecorder(providerID: .gemini),
-            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek)
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+            qwenProvider: ProviderClientRecorder(providerID: .qwen)
         )
 
         XCTAssertEqual(
             factory.makeTargets().map(\.providerID),
-            [.openAI, .anthropic, .gemini, .deepSeek]
+            [.openAI, .anthropic, .gemini, .deepSeek, .qwen]
         )
+    }
+
+    func testQwenTargetValidatesOnlyOnCredentialChanges() async throws {
+        let store = TargetCredentialStore()
+        try store.save("qwen-token", for: Self.qwenIdentity)
+        let provider = ProviderClientRecorder(providerID: .qwen)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            geminiProvider: ProviderClientRecorder(providerID: .gemini),
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+            qwenProvider: provider
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .qwen)
+        XCTAssertEqual(target.minimumInterval, 0)
+        XCTAssertFalse(target.automaticRefreshEnabled)
+        XCTAssertEqual(call?.credential, "qwen-token")
+        XCTAssertEqual(call?.request.purpose, .credentialValidation)
+        XCTAssertNil(call?.request.reportingInterval)
     }
 
     private static let openAIIdentity = CredentialIdentity(providerID: .openAI)
     private static let anthropicIdentity = CredentialIdentity(providerID: .anthropic)
     private static let geminiIdentity = CredentialIdentity(providerID: .gemini)
     private static let deepSeekIdentity = CredentialIdentity(providerID: .deepSeek)
+    private static let qwenIdentity = CredentialIdentity(providerID: .qwen)
 }
 
 private final class TargetCredentialStore: CredentialStoring, @unchecked Sendable {
@@ -194,13 +222,13 @@ private actor ProviderClientRecorder: ProviderClient {
     init(providerID: ProviderID = .openAI) {
         self.providerID = providerID
         switch providerID {
-        case .gemini:
+        case .gemini, .qwen:
             capabilities = [.credentialValidation]
         case .deepSeek:
             capabilities = [.balance]
         case .openAI, .anthropic:
             capabilities = [.officialCostHistory, .tokenUsage, .modelBreakdown]
-        case .kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity:
+        case .kimi, .xAI, .mistral, .openRouter, .perplexity:
             capabilities = []
         }
     }

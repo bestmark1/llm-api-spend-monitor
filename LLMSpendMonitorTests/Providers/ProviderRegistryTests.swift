@@ -18,7 +18,7 @@ final class ProviderRegistryTests: XCTestCase {
         )
         XCTAssertEqual(
             ProviderRegistry.all.filter { $0.integrationAvailability == .available }.map(\.id),
-            [.openAI, .anthropic, .gemini, .deepSeek]
+            [.openAI, .anthropic, .gemini, .deepSeek, .qwen]
         )
     }
 
@@ -27,11 +27,13 @@ final class ProviderRegistryTests: XCTestCase {
         let anthropic = try XCTUnwrap(ProviderRegistry.metadata(for: .anthropic))
         let gemini = try XCTUnwrap(ProviderRegistry.metadata(for: .gemini))
         let deepSeek = try XCTUnwrap(ProviderRegistry.metadata(for: .deepSeek))
+        let qwen = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
 
         XCTAssertEqual(openAI.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(anthropic.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(gemini.capabilities, [.credentialValidation])
         XCTAssertEqual(deepSeek.capabilities, [.balance])
+        XCTAssertEqual(qwen.capabilities, [.credentialValidation])
     }
 
     func testOptionalProvidersDoNotClaimUnavailableCapabilities() {
@@ -41,7 +43,7 @@ final class ProviderRegistryTests: XCTestCase {
 
         XCTAssertEqual(
             optionalProviders.map(\.id),
-            [.kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity]
+            [.kimi, .xAI, .mistral, .openRouter, .perplexity]
         )
         XCTAssertTrue(optionalProviders.allSatisfy { $0.capabilities.isEmpty })
         XCTAssertTrue(optionalProviders.allSatisfy { !$0.isVisibleByDefault })

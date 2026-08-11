@@ -11,6 +11,7 @@ final class ProviderTargetFactory: Sendable {
         anthropicProvider: any ProviderClient = AnthropicProvider(),
         geminiProvider: any ProviderClient = GeminiProvider(),
         deepSeekProvider: any ProviderClient = DeepSeekProvider(),
+        qwenProvider: any ProviderClient = QwenProvider(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.credentialStore = credentialStore
@@ -41,6 +42,13 @@ final class ProviderTargetFactory: Sendable {
                 minimumInterval: 5 * 60,
                 automaticRefreshEnabled: true,
                 purpose: .full,
+                usesReportingWindow: false
+            ),
+            ProviderConfiguration(
+                provider: qwenProvider,
+                minimumInterval: 0,
+                automaticRefreshEnabled: false,
+                purpose: .credentialValidation,
                 usesReportingWindow: false
             )
         ]

@@ -84,11 +84,19 @@ enum ProviderRegistry {
             systemImageName: "moon.stars",
             dashboardURL: "https://platform.moonshot.ai/console"
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
-            dashboardURL: "https://modelstudio.console.alibabacloud.com/"
+            credentialHelp: "Add a Model Studio API key and its official OpenAI-compatible Base URL. The key can be verified, but account-wide spend requires separate Alibaba Cloud billing credentials.",
+            capabilities: [.credentialValidation],
+            externalLinks: [
+                link(.usage, "https://modelstudio.console.alibabacloud.com/?tab=dashboard#/model-usage"),
+                link(.billing, "https://usercenter2-intl.aliyun.com/billing/#/account/overview"),
+                link(.dashboard, "https://modelstudio.console.alibabacloud.com/")
+            ],
+            integrationAvailability: .available,
+            isVisibleByDefault: false
         ),
         plannedProvider(
             id: .xAI,

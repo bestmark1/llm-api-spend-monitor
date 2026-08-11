@@ -20,6 +20,28 @@ struct ProviderConnectionView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if viewModel.requiresAPIEndpoint {
+                TextField("OpenAI-compatible Base URL", text: $viewModel.draftEndpoint)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel("\(viewModel.metadata.displayName) API endpoint")
+                    .accessibilityIdentifier("connection.\(viewModel.id.rawValue).endpoint")
+
+                if let apiEndpointHelp = viewModel.apiEndpointHelp {
+                    Text(apiEndpointHelp)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let apiEndpointError = viewModel.apiEndpointError {
+                    Text(apiEndpointError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("connection.\(viewModel.id.rawValue).endpointError")
+                }
+            }
+
             SecureField("API key", text: $viewModel.draftSecret)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityLabel("\(viewModel.metadata.displayName) API key")

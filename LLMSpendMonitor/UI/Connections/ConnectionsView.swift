@@ -8,6 +8,7 @@ struct ConnectionsView: View {
     init(
         showDashboard: @escaping () -> Void,
         credentialStore: CredentialStoring = KeychainStore(),
+        endpointStore: any ProviderEndpointStoring = UserDefaultsProviderEndpointStore(),
         credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
         self.showDashboard = showDashboard
@@ -17,6 +18,7 @@ struct ConnectionsView: View {
                 ConnectionViewModel(
                     metadata: $0,
                     credentialStore: credentialStore,
+                    endpointStore: endpointStore,
                     credentialDidChange: credentialDidChange
                 )
             }
