@@ -33,7 +33,7 @@ final class ProviderRegistryTests: XCTestCase {
         XCTAssertEqual(anthropic.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(gemini.capabilities, [.credentialValidation])
         XCTAssertEqual(deepSeek.capabilities, [.balance])
-        XCTAssertEqual(qwen.capabilities, [.credentialValidation, .officialCostHistory])
+        XCTAssertEqual(qwen.capabilities, [.balance, .credentialValidation, .officialCostHistory])
     }
 
     func testOptionalProvidersDoNotClaimUnavailableCapabilities() {

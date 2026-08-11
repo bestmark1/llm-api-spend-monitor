@@ -88,8 +88,8 @@ enum ProviderRegistry {
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
-            credentialHelp: "Use a pay-as-you-go Model Studio API key and its API Host. Token Plan keys are not supported. Official spend also requires read-only billing access below.",
-            capabilities: [.credentialValidation, .officialCostHistory],
+            credentialHelp: "Use a pay-as-you-go Model Studio API key and its API Host. Token Plan keys are not supported. Read-only billing access provides account balance and Qwen spend.",
+            capabilities: [.balance, .credentialValidation, .officialCostHistory],
             externalLinks: [
                 link(.usage, "https://modelstudio.console.alibabacloud.com/?tab=dashboard#/model-usage"),
                 link(.billing, "https://usercenter2-intl.aliyun.com/billing/#/account/overview"),

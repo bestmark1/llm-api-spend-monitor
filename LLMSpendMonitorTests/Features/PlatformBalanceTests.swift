@@ -289,14 +289,14 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertEqual(relaunched.platformBalance(for: .anthropic)?.synchronizedAt, platformBalanceSyncDate)
     }
 
-    func testProvidersWithoutOfficialCostHistoryRejectManualBalance() async throws {
+    func testProvidersWithoutManualBalanceSupportRejectManualBalance() async throws {
         let model = DashboardViewModel(
             dataSource: DashboardDataSourceStubForBalance(),
             targets: [],
             platformBalanceStore: InMemoryPlatformBalanceStore()
         )
 
-        for providerID in [ProviderID.deepSeek, .gemini] {
+        for providerID in [ProviderID.deepSeek, .gemini, .qwen] {
             let synchronized = await model.synchronizePlatformBalance(
                 providerID: providerID,
                 balance: try Money(amount: 10, currencyCode: "USD")

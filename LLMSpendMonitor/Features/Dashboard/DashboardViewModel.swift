@@ -126,7 +126,7 @@ final class DashboardViewModel: ObservableObject {
         let interval = DashboardPeriod.today.interval(containing: now())
         let total = snapshots.values.reduce(into: Decimal.zero) { result, snapshot in
             guard
-                snapshot.issue == nil,
+                Self.acceptsOfficialCost(snapshot.issue),
                 snapshot.capabilities.contains(.officialCostHistory),
                 let coverage = snapshot.coverage,
                 coverage.completeness == .complete,
@@ -270,8 +270,10 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func canSynchronizePlatformBalance(for providerID: ProviderID) -> Bool {
-        ProviderRegistry.metadata(for: providerID)?
-            .capabilities.contains(.officialCostHistory) == true
+        guard let capabilities = ProviderRegistry.metadata(for: providerID)?.capabilities else {
+            return false
+        }
+        return capabilities.contains(.officialCostHistory) && !capabilities.contains(.balance)
     }
 
     func platformBalance(for providerID: ProviderID) -> PlatformBalanceStatus? {
@@ -355,11 +357,15 @@ final class DashboardViewModel: ObservableObject {
     private func completeOfficialCostSnapshot(for providerID: ProviderID) -> ProviderSnapshot? {
         guard
             let snapshot = snapshot(for: providerID),
-            snapshot.issue == nil,
+            Self.acceptsOfficialCost(snapshot.issue),
             snapshot.capabilities.contains(.officialCostHistory),
             snapshot.coverage?.completeness == .complete
         else { return nil }
         return snapshot
+    }
+
+    private static func acceptsOfficialCost(_ issue: ProviderIssue?) -> Bool {
+        issue == nil || issue == .balanceUnavailable
     }
 
     private func hasCompleteCurrentCostCoverage(for providerID: ProviderID) -> Bool {

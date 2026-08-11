@@ -170,7 +170,7 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
             draftBillingProductCode = ""
             billingConnectionStatus = .connected
             generation &+= 1
-            billingResultMessage = "Billing credentials saved. Official Qwen spend will now be refreshed."
+            billingResultMessage = "Billing credentials saved. Alibaba Cloud balance and Qwen spend will now be refreshed."
             credentialDidChange(id)
         } catch {
             applyBilling(error)

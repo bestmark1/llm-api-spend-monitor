@@ -107,9 +107,9 @@ struct ProviderCard: View {
     private var compactOverview: some View {
         if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
             compactMoneyRow(
-                label: "Remaining balance",
+                label: officialBalanceLabel,
                 money: balance.total.value,
-                detail: officialBalanceDetail(balance)
+                detail: officialBalanceDetail(balance, snapshot: snapshot)
             )
         } else if let platformBalance {
             compactMoneyRow(
@@ -220,8 +220,14 @@ struct ProviderCard: View {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    private func officialBalanceDetail(_ balance: ProviderBalance) -> String? {
+    private func officialBalanceDetail(
+        _ balance: ProviderBalance,
+        snapshot: ProviderSnapshot?
+    ) -> String? {
         var parts: [String] = []
+        if let snapshot, let cost = costTotals(snapshot).first {
+            parts.append("\(MetricFormatting.money(cost)) spent")
+        }
         if let granted = balance.granted {
             parts.append("\(MetricFormatting.money(granted.value)) granted")
         }
@@ -235,6 +241,10 @@ struct ProviderCard: View {
     private func metricContent(_ snapshot: ProviderSnapshot?) -> some View {
         if metadata.capabilities.contains(.balance), let balance = snapshot?.balances.first {
             officialBalanceContent(balance)
+            if let snapshot, let cost = costTotals(snapshot).first {
+                Divider()
+                periodSpendContent(snapshot, cost: cost)
+            }
         } else {
             trackedProviderContent(snapshot)
         }
@@ -249,7 +259,7 @@ struct ProviderCard: View {
 
     @ViewBuilder
     private func officialBalanceContent(_ balance: ProviderBalance) -> some View {
-        primaryMetric(label: "Remaining balance", money: balance.total.value)
+        primaryMetric(label: officialBalanceLabel, money: balance.total.value)
 
         if balance.granted != nil || balance.toppedUp != nil {
             VStack(spacing: 7) {
@@ -283,9 +293,7 @@ struct ProviderCard: View {
             if platformBalance != nil || synchronizeBalance != nil {
                 Divider()
             }
-            primaryMetric(label: "Period spend", money: cost)
-            tokenRows(snapshot)
-            modelRows(snapshot)
+            periodSpendContent(snapshot, cost: cost)
         } else if let snapshot, tokenTotal(snapshot) != nil {
             if platformBalance != nil || synchronizeBalance != nil {
                 Divider()
@@ -304,6 +312,13 @@ struct ProviderCard: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    @ViewBuilder
+    private func periodSpendContent(_ snapshot: ProviderSnapshot, cost: Money) -> some View {
+        primaryMetric(label: "Period spend", money: cost)
+        tokenRows(snapshot)
+        modelRows(snapshot)
     }
 
     private var balanceSetupContent: some View {
@@ -509,6 +524,8 @@ struct ProviderCard: View {
         switch issue {
         case .authentication, .insufficientPermissions, .keychainLocked:
             return ("Action needed", "exclamationmark.circle.fill", .red)
+        case .balanceUnavailable:
+            return ("Balance unavailable", "exclamationmark.triangle.fill", .orange)
         case .partialData:
             return ("Partial", "circle.lefthalf.filled", .orange)
         case .rateLimited, .offline, .malformedResponse, .providerUnavailable:
@@ -522,6 +539,9 @@ struct ProviderCard: View {
         }
         if metadata.capabilities.contains(.officialCostHistory) {
             var parts = ["Cost"]
+            if metadata.capabilities.contains(.balance) {
+                parts.append("balance")
+            }
             if metadata.capabilities.contains(.tokenUsage) {
                 parts.append("tokens")
             }
@@ -534,6 +554,10 @@ struct ProviderCard: View {
             return "Official balance"
         }
         return "Key validation"
+    }
+
+    private var officialBalanceLabel: String {
+        metadata.id == .qwen ? "Alibaba Cloud account balance" : "Remaining balance"
     }
 
     private var emptyStateText: String {
@@ -560,6 +584,7 @@ struct ProviderCard: View {
     private func issueText(_ issue: ProviderIssue) -> String {
         switch issue {
         case .authentication: "Check credential"
+        case .balanceUnavailable: "Balance unavailable"
         case .insufficientPermissions: "Insufficient permissions"
         case .rateLimited: "Rate limited"
         case .offline: "Offline"
@@ -573,6 +598,7 @@ struct ProviderCard: View {
     private func issueEmptyStateText(_ issue: ProviderIssue) -> String {
         switch issue {
         case .authentication: "The saved credential was rejected. Replace it in Connections."
+        case .balanceUnavailable: "The provider account balance is temporarily unavailable."
         case .insufficientPermissions: "The saved credential needs additional permissions."
         case .rateLimited: "The provider is rate limiting requests. Try again later."
         case .offline: "The provider could not be reached. Check your connection."

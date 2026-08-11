@@ -92,7 +92,7 @@ struct ProviderConnectionView: View {
                         .foregroundStyle(billingStatusColor)
                 }
 
-                Text("Use a RAM AccessKey limited to read-only BSS billing. Product Code must match Alibaba Cloud Model Studio. Only pay-as-you-go charges are counted; subscriptions are excluded.")
+                Text("Use a RAM AccessKey with bss:DescribeAcccount and bss:QueryAccountBill. The balance covers the whole Alibaba Cloud billing account; only pay-as-you-go charges are counted.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

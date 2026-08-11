@@ -66,6 +66,7 @@ struct ReportingCoverage: Codable, Equatable, Sendable {
 
 enum ProviderIssue: String, Codable, Equatable, Sendable {
     case authentication
+    case balanceUnavailable
     case insufficientPermissions
     case rateLimited
     case offline

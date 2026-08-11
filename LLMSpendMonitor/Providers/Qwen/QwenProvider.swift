@@ -239,12 +239,14 @@ struct AlibabaCloudV3Signer: Sendable {
 struct QwenProvider: ProviderClient, Sendable {
     let providerID: ProviderID = .qwen
     let capabilities: Set<ProviderCapability> = [
+        .balance,
         .credentialValidation,
         .officialCostHistory
     ]
 
     private static let billingEndpoint = URL(string: "https://business.aliyuncs.com/")!
     private static let billingAction = "QueryAccountBill"
+    private static let balanceAction = "QueryAccountBalance"
     private static let billingVersion = "2017-12-14"
 
     private let httpClient: any HTTPClient
@@ -278,22 +280,21 @@ struct QwenProvider: ProviderClient, Sendable {
         }
 
         do {
+            if let billingCredentials = try QwenBillingCredentials(store: credentialStore) {
+                guard let interval = request.reportingInterval, interval.start < interval.end else {
+                    throw ProviderClientError.malformedResponse
+                }
+                return try await financialSnapshot(
+                    interval: interval,
+                    credentials: billingCredentials
+                )
+            }
+
             let endpoint = try QwenAPIEndpoint(
                 endpointStore.loadEndpoint(for: providerID) ?? QwenAPIEndpoint.defaultValue
             )
             _ = try await listModels(endpoint: endpoint, credential: normalizedCredential)
-
-            guard let billingCredentials = try QwenBillingCredentials(store: credentialStore) else {
-                return try validationSnapshot()
-            }
-            guard let interval = request.reportingInterval, interval.start < interval.end else {
-                throw ProviderClientError.malformedResponse
-            }
-
-            return try await billingSnapshot(
-                interval: interval,
-                credentials: billingCredentials
-            )
+            return try validationSnapshot()
         } catch let error as ProviderClientError {
             throw error
         } catch is QwenAPIEndpointError {
@@ -317,7 +318,7 @@ struct QwenProvider: ProviderClient, Sendable {
         )
     }
 
-    private func billingSnapshot(
+    private func financialSnapshot(
         interval: DateInterval,
         credentials: QwenBillingCredentials
     ) async throws -> ProviderSnapshot {
@@ -326,20 +327,53 @@ struct QwenProvider: ProviderClient, Sendable {
             throw ProviderClientError.malformedResponse
         }
 
+        async let balanceResult = accountBalanceResult(credentials: credentials)
+
         var buckets: [PeriodBucket] = []
-        var isComplete = true
+        var reportSucceeded = false
+        var isReportComplete = true
+        var firstError: Error?
+
         for day in dayIntervals {
-            let result = try await fetchDailyBill(day: day, credentials: credentials)
-            isComplete = isComplete && result.isComplete
-            if let money = result.money {
-                buckets.append(
-                    PeriodBucket(
-                        start: day.start,
-                        end: day.end,
-                        cost: MoneyMetric(value: money, provenance: .official)
+            do {
+                let result = try await fetchDailyBill(day: day, credentials: credentials)
+                reportSucceeded = true
+                isReportComplete = isReportComplete && result.isComplete
+                if let money = result.money {
+                    buckets.append(
+                        PeriodBucket(
+                            start: day.start,
+                            end: day.end,
+                            cost: MoneyMetric(value: money, provenance: .official)
+                        )
                     )
-                )
+                }
+            } catch {
+                firstError = firstError ?? error
+                isReportComplete = false
+                break
             }
+        }
+
+        let balance: ProviderBalance?
+        switch await balanceResult {
+        case let .success(value):
+            balance = value
+        case let .failure(error):
+            balance = nil
+            firstError = firstError ?? error
+        }
+
+        guard balance != nil || reportSucceeded else {
+            throw firstError ?? ProviderClientError.unavailable
+        }
+        let issue: ProviderIssue?
+        if !isReportComplete {
+            issue = .partialData
+        } else if balance == nil {
+            issue = .balanceUnavailable
+        } else {
+            issue = nil
         }
 
         return try ProviderSnapshot(
@@ -349,12 +383,73 @@ struct QwenProvider: ProviderClient, Sendable {
             coverage: ReportingCoverage(
                 start: dayIntervals[0].start,
                 through: dayIntervals[dayIntervals.count - 1].end,
-                completeness: isComplete ? .complete : .partial
+                completeness: isReportComplete ? .complete : .partial
             ),
             buckets: buckets,
-            balances: [],
-            issue: isComplete ? nil : .partialData
+            balances: balance.map { [$0] } ?? [],
+            issue: issue
         )
+    }
+
+    private func accountBalanceResult(
+        credentials: QwenBillingCredentials
+    ) async -> Result<ProviderBalance, ProviderClientError> {
+        do {
+            return .success(try await fetchAccountBalance(credentials: credentials))
+        } catch let error as ProviderClientError {
+            return .failure(error)
+        } catch {
+            return .failure(.unavailable)
+        }
+    }
+
+    private func fetchAccountBalance(
+        credentials: QwenBillingCredentials
+    ) async throws -> ProviderBalance {
+        let request = try signer.makeRequest(
+            method: .get,
+            endpoint: Self.billingEndpoint,
+            action: Self.balanceAction,
+            version: Self.billingVersion,
+            queryItems: [],
+            accessKeyID: credentials.accessKeyID,
+            accessKeySecret: credentials.accessKeySecret,
+            date: now(),
+            nonce: nonce()
+        )
+
+        do {
+            let response = try await httpClient.send(request)
+            let payload = try JSONDecoder().decode(
+                AlibabaCloudResponse<AccountBalanceData>.self,
+                from: response.body
+            )
+            guard payload.success, payload.code == "200",
+                  let amount = Decimal(
+                    string: payload.data.availableAmount,
+                    locale: Locale(identifier: "en_US_POSIX")
+                  ) else {
+                throw ProviderClientError.malformedResponse
+            }
+            return ProviderBalance(
+                total: MoneyMetric(
+                    value: try Money(amount: amount, currencyCode: payload.data.currency),
+                    provenance: .official
+                ),
+                granted: nil,
+                toppedUp: nil
+            )
+        } catch let error as ProviderClientError {
+            throw error
+        } catch let error as HTTPClientError {
+            throw Self.map(error)
+        } catch is DecodingError {
+            throw ProviderClientError.malformedResponse
+        } catch is Money.ValidationError {
+            throw ProviderClientError.malformedResponse
+        } catch {
+            throw ProviderClientError.unavailable
+        }
     }
 
     private func fetchDailyBill(
@@ -383,7 +478,10 @@ struct QwenProvider: ProviderClient, Sendable {
 
         do {
             let response = try await httpClient.send(request)
-            let payload = try JSONDecoder().decode(AccountBillResponse.self, from: response.body)
+            let payload = try JSONDecoder().decode(
+                AlibabaCloudResponse<AccountBillData>.self,
+                from: response.body
+            )
             guard payload.success, payload.code.caseInsensitiveCompare("Success") == .orderedSame else {
                 throw ProviderClientError.unavailable
             }
@@ -527,15 +625,25 @@ private extension QwenProvider {
         let id: String
     }
 
-    struct AccountBillResponse: Decodable {
+    struct AlibabaCloudResponse<Payload: Decodable>: Decodable {
         let code: String
         let success: Bool
-        let data: AccountBillData
+        let data: Payload
 
         enum CodingKeys: String, CodingKey {
             case code = "Code"
             case success = "Success"
             case data = "Data"
+        }
+    }
+
+    struct AccountBalanceData: Decodable {
+        let availableAmount: String
+        let currency: String
+
+        enum CodingKeys: String, CodingKey {
+            case availableAmount = "AvailableAmount"
+            case currency = "Currency"
         }
     }
 

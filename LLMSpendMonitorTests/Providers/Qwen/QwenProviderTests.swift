@@ -37,10 +37,14 @@ final class QwenProviderTests: XCTestCase {
             QwenBillingCredentialIdentities.accessKeySecret: "billing-secret",
             QwenBillingCredentialIdentities.productCode: "model-studio-code"
         ])
-        let client = QwenHTTPClientQueue(responses: [
-            .success(Self.modelsResponse),
-            .success(Self.mixedBillResponse(date: "2026-07-15")),
-            .success(Self.billResponse(date: "2026-07-16", amount: "2.50"))
+        let client = QwenHTTPClientQueue(responsesByAction: [
+            "QueryAccountBalance": [
+                .success(Self.balanceResponse(availableAmount: "47.75", currency: "USD"))
+            ],
+            "QueryAccountBill": [
+                .success(Self.mixedBillResponse(date: "2026-07-15")),
+                .success(Self.billResponse(date: "2026-07-16", amount: "2.50"))
+            ]
         ])
         let provider = QwenProvider(
             httpClient: client,
@@ -61,7 +65,10 @@ final class QwenProviderTests: XCTestCase {
             credential: "qwen-test-key"
         )
 
-        XCTAssertEqual(snapshot.capabilities, [.credentialValidation, .officialCostHistory])
+        XCTAssertEqual(snapshot.capabilities, [.balance, .credentialValidation, .officialCostHistory])
+        XCTAssertEqual(snapshot.balances.first?.total.value.amount, Decimal(string: "47.75"))
+        XCTAssertEqual(snapshot.balances.first?.total.value.currencyCode, "USD")
+        XCTAssertEqual(snapshot.balances.first?.total.provenance, .official)
         XCTAssertEqual(snapshot.coverage?.start, interval.start)
         XCTAssertEqual(snapshot.coverage?.through, interval.end)
         XCTAssertEqual(snapshot.coverage?.completeness, .complete)
@@ -70,12 +77,141 @@ final class QwenProviderTests: XCTestCase {
 
         let requests = await client.requests
         XCTAssertEqual(requests.count, 3)
-        for request in requests.dropFirst() {
+        let balanceRequests = requests.filter {
+            $0.headers["x-acs-action"] == "QueryAccountBalance"
+        }
+        XCTAssertEqual(balanceRequests.count, 1)
+        XCTAssertFalse(try XCTUnwrap(balanceRequests.first).url.absoluteString.contains("BillingDate="))
+        let billRequests = requests.filter {
+            $0.headers["x-acs-action"] == "QueryAccountBill"
+        }
+        XCTAssertEqual(billRequests.count, 2)
+        for request in billRequests {
             XCTAssertEqual(request.url.host, "business.aliyuncs.com")
             XCTAssertTrue(request.url.absoluteString.contains("ProductCode=model-studio-code"))
             XCTAssertTrue(request.headers["Authorization"]?.hasPrefix("ACS3-HMAC-SHA256 Credential=billing-id,") == true)
             XCTAssertFalse(request.headers.values.contains { $0.contains("billing-secret") })
         }
+    }
+
+    func testOfficialBalanceSurvivesUnavailableCostHistory() async throws {
+        let credentialStore = QwenCredentialStoreStub(values: [
+            QwenBillingCredentialIdentities.accessKeyID: "billing-id",
+            QwenBillingCredentialIdentities.accessKeySecret: "billing-secret",
+            QwenBillingCredentialIdentities.productCode: "model-studio-code"
+        ])
+        let client = QwenHTTPClientQueue(responsesByAction: [
+            "QueryAccountBalance": [
+                .success(Self.balanceResponse(availableAmount: "12.34", currency: "USD"))
+            ],
+            "QueryAccountBill": [
+                .failure(HTTPClientError.httpStatus(
+                    HTTPResponse(statusCode: 401, headers: [:], body: Data())
+                ))
+            ]
+        ])
+        let provider = QwenProvider(
+            httpClient: client,
+            endpointStore: QwenEndpointStoreStub(endpoint: QwenAPIEndpoint.defaultValue),
+            credentialStore: credentialStore,
+            now: { Self.now },
+            nonce: { "fixed-nonce" }
+        )
+        let interval = DateInterval(
+            start: Self.now.addingTimeInterval(-86_400),
+            end: Self.now
+        )
+
+        let snapshot = try await provider.fetch(
+            ProviderFetchRequest(purpose: .full, reportingInterval: interval),
+            credential: "qwen-test-key"
+        )
+
+        XCTAssertEqual(snapshot.balances.first?.total.value.amount, Decimal(string: "12.34"))
+        XCTAssertTrue(snapshot.buckets.isEmpty)
+        XCTAssertEqual(snapshot.issue, .partialData)
+        XCTAssertEqual(snapshot.coverage?.completeness, .partial)
+    }
+
+    func testOfficialCostHistoryRemainsCompleteWhenBalanceIsUnavailable() async throws {
+        let credentialStore = QwenCredentialStoreStub(values: [
+            QwenBillingCredentialIdentities.accessKeyID: "billing-id",
+            QwenBillingCredentialIdentities.accessKeySecret: "billing-secret",
+            QwenBillingCredentialIdentities.productCode: "model-studio-code"
+        ])
+        let client = QwenHTTPClientQueue(responsesByAction: [
+            "QueryAccountBalance": [
+                .failure(HTTPClientError.httpStatus(
+                    HTTPResponse(statusCode: 503, headers: [:], body: Data())
+                ))
+            ],
+            "QueryAccountBill": [
+                .success(Self.billResponse(date: "2026-07-16", amount: "2.50"))
+            ]
+        ])
+        let provider = QwenProvider(
+            httpClient: client,
+            endpointStore: QwenEndpointStoreStub(endpoint: QwenAPIEndpoint.defaultValue),
+            credentialStore: credentialStore,
+            now: { Self.now },
+            nonce: { "fixed-nonce" }
+        )
+        let interval = DateInterval(
+            start: Self.now.addingTimeInterval(-86_400),
+            end: Self.now
+        )
+
+        let snapshot = try await provider.fetch(
+            ProviderFetchRequest(purpose: .full, reportingInterval: interval),
+            credential: "qwen-test-key"
+        )
+
+        XCTAssertTrue(snapshot.balances.isEmpty)
+        XCTAssertEqual(snapshot.buckets.map { $0.cost?.value.amount }, [Decimal(string: "2.50")])
+        XCTAssertEqual(snapshot.coverage?.completeness, .complete)
+        XCTAssertEqual(snapshot.issue, .balanceUnavailable)
+    }
+
+    func testPartialCostHistoryTakesPrecedenceOverUnavailableBalance() async throws {
+        let credentialStore = QwenCredentialStoreStub(values: [
+            QwenBillingCredentialIdentities.accessKeyID: "billing-id",
+            QwenBillingCredentialIdentities.accessKeySecret: "billing-secret",
+            QwenBillingCredentialIdentities.productCode: "model-studio-code"
+        ])
+        let client = QwenHTTPClientQueue(responsesByAction: [
+            "QueryAccountBalance": [
+                .failure(HTTPClientError.httpStatus(
+                    HTTPResponse(statusCode: 503, headers: [:], body: Data())
+                ))
+            ],
+            "QueryAccountBill": [
+                .success(Self.billResponse(date: "2026-07-15", amount: "1.25")),
+                .failure(HTTPClientError.httpStatus(
+                    HTTPResponse(statusCode: 503, headers: [:], body: Data())
+                ))
+            ]
+        ])
+        let provider = QwenProvider(
+            httpClient: client,
+            endpointStore: QwenEndpointStoreStub(endpoint: QwenAPIEndpoint.defaultValue),
+            credentialStore: credentialStore,
+            now: { Self.now },
+            nonce: { "fixed-nonce" }
+        )
+        let interval = DateInterval(
+            start: Self.now.addingTimeInterval(-172_800),
+            end: Self.now
+        )
+
+        let snapshot = try await provider.fetch(
+            ProviderFetchRequest(purpose: .full, reportingInterval: interval),
+            credential: "qwen-test-key"
+        )
+
+        XCTAssertTrue(snapshot.balances.isEmpty)
+        XCTAssertEqual(snapshot.buckets.map { $0.cost?.value.amount }, [Decimal(string: "1.25")])
+        XCTAssertEqual(snapshot.coverage?.completeness, .partial)
+        XCTAssertEqual(snapshot.issue, .partialData)
     }
 
     func testAlibabaV3SignerMatchesOfficialFixedVector() throws {
@@ -219,6 +355,27 @@ final class QwenProviderTests: XCTestCase {
         body: Data(#"{"object":"list","data":[{"id":"qwen3.7-plus","object":"model"}]}"#.utf8)
     )
 
+    private static func balanceResponse(availableAmount: String, currency: String) -> HTTPResponse {
+        HTTPResponse(
+            statusCode: 200,
+            headers: [:],
+            body: Data(
+                """
+                {
+                  "Code": "200",
+                  "Success": true,
+                  "Data": {
+                    "AvailableAmount": "\(availableAmount)",
+                    "AvailableCashAmount": "40.00",
+                    "CreditAmount": "7.75",
+                    "Currency": "\(currency)"
+                  }
+                }
+                """.utf8
+            )
+        )
+    }
+
     private static func billResponse(date: String, amount: String) -> HTTPResponse {
         HTTPResponse(
             statusCode: 200,
@@ -321,13 +478,27 @@ private final class QwenCredentialStoreStub: CredentialStoring, @unchecked Senda
 private actor QwenHTTPClientQueue: HTTPClient {
     private(set) var requests: [HTTPRequest] = []
     private var responses: [Result<HTTPResponse, Error>]
+    private var responsesByAction: [String: [Result<HTTPResponse, Error>]]
 
     init(responses: [Result<HTTPResponse, Error>]) {
         self.responses = responses
+        responsesByAction = [:]
+    }
+
+    init(responsesByAction: [String: [Result<HTTPResponse, Error>]]) {
+        responses = []
+        self.responsesByAction = responsesByAction
     }
 
     func send(_ request: HTTPRequest) async throws -> HTTPResponse {
         requests.append(request)
+        if let action = request.headers["x-acs-action"],
+           var actionResponses = responsesByAction[action],
+           !actionResponses.isEmpty {
+            let response = actionResponses.removeFirst()
+            responsesByAction[action] = actionResponses
+            return try response.get()
+        }
         return try responses.removeFirst().get()
     }
 }
