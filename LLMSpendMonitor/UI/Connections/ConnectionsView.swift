@@ -12,7 +12,7 @@ struct ConnectionsView: View {
         credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
         self.showDashboard = showDashboard
-        connectionModels = ProviderRegistry.all
+        connectionModels = ProviderRegistry.userFacing
             .filter { $0.integrationAvailability == .available }
             .map {
                 ConnectionViewModel(

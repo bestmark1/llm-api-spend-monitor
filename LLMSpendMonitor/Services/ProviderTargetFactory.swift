@@ -9,7 +9,6 @@ final class ProviderTargetFactory: Sendable {
         credentialStore: any CredentialStoring = KeychainStore(),
         openAIProvider: any ProviderClient = OpenAIProvider(),
         anthropicProvider: any ProviderClient = AnthropicProvider(),
-        geminiProvider: any ProviderClient = GeminiProvider(),
         deepSeekProvider: any ProviderClient = DeepSeekProvider(),
         qwenProvider: any ProviderClient = QwenProvider(),
         now: @escaping @Sendable () -> Date = Date.init
@@ -29,14 +28,6 @@ final class ProviderTargetFactory: Sendable {
                 automaticRefreshEnabled: true,
                 purpose: .full,
                 usesReportingWindow: true
-            ),
-            ProviderConfiguration(
-                provider: geminiProvider,
-                minimumInterval: 15 * 60,
-                automaticRefreshEnabled: true,
-                purpose: .full,
-                usesReportingWindow: true,
-                additionalCredentialIdentities: GeminiMonitoringCredentialIdentities.all
             ),
             ProviderConfiguration(
                 provider: deepSeekProvider,

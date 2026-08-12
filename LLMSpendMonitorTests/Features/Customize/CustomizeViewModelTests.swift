@@ -6,10 +6,10 @@ final class CustomizeViewModelTests: XCTestCase {
     func testDefaultsToRegistryOrderWithOnlyAvailableProvidersVisible() {
         let model = CustomizeViewModel(store: InMemoryCustomizationStore())
 
-        XCTAssertEqual(model.items.map(\.id), ProviderRegistry.all.map(\.id))
+        XCTAssertEqual(model.items.map(\.id), ProviderRegistry.userFacing.map(\.id))
         XCTAssertEqual(
             model.visibleProviderIDs,
-            [.openAI, .anthropic, .gemini, .deepSeek]
+            [.openAI, .anthropic, .deepSeek]
         )
     }
 
@@ -17,29 +17,27 @@ final class CustomizeViewModelTests: XCTestCase {
         let store = InMemoryCustomizationStore()
         let model = CustomizeViewModel(store: store)
 
-        model.setVisible(false, for: .gemini)
-        XCTAssertEqual(model.moveUp(.deepSeek), 2)
         XCTAssertEqual(model.moveUp(.deepSeek), 1)
+        XCTAssertEqual(model.moveUp(.deepSeek), 0)
 
         let relaunched = CustomizeViewModel(store: store)
-        var expectedOrder = ProviderRegistry.all.map(\.id)
+        var expectedOrder = ProviderRegistry.userFacing.map(\.id)
         expectedOrder.removeAll { $0 == .deepSeek }
-        expectedOrder.insert(.deepSeek, at: 1)
+        expectedOrder.insert(.deepSeek, at: 0)
 
         XCTAssertEqual(relaunched.items.map(\.id), expectedOrder)
-        XCTAssertEqual(relaunched.visibleProviderIDs, [.openAI, .deepSeek, .anthropic])
-        XCTAssertFalse(relaunched.items.first { $0.id == .gemini }!.isVisible)
+        XCTAssertEqual(relaunched.visibleProviderIDs, [.deepSeek, .openAI, .anthropic])
+        XCTAssertNil(relaunched.items.first { $0.id == .gemini })
     }
 
-    func testPlannedProviderCanBeShownAndAvailableGeminiCanBeHidden() {
+    func testPlannedProviderCanBeShownWhileGeminiRemainsHidden() {
         let store = InMemoryCustomizationStore()
         let model = CustomizeViewModel(store: store)
 
-        model.setVisible(false, for: .gemini)
         model.setVisible(true, for: .kimi)
 
         let relaunched = CustomizeViewModel(store: store)
-        XCTAssertFalse(relaunched.items.first { $0.id == .gemini }!.isVisible)
+        XCTAssertNil(relaunched.items.first { $0.id == .gemini })
         XCTAssertTrue(relaunched.items.first { $0.id == .kimi }!.isVisible)
         XCTAssertEqual(
             relaunched.visibleProviderIDs,
@@ -56,12 +54,12 @@ final class CustomizeViewModelTests: XCTestCase {
         )
 
         let model = CustomizeViewModel(store: store)
-        let remainingProviders = ProviderRegistry.all.map(\.id).filter {
+        let remainingProviders = ProviderRegistry.userFacing.map(\.id).filter {
             $0 != .gemini && $0 != .openAI
         }
 
-        XCTAssertEqual(model.items.map(\.id), [.gemini, .openAI] + remainingProviders)
-        XCTAssertEqual(Set(model.items.map(\.id)), Set(ProviderID.allCases))
+        XCTAssertEqual(model.items.map(\.id), [.openAI] + remainingProviders)
+        XCTAssertEqual(Set(model.items.map(\.id)), Set(ProviderRegistry.userFacing.map(\.id)))
         XCTAssertEqual(model.visibleProviderIDs, [.openAI, .anthropic, .deepSeek])
     }
 
@@ -71,17 +69,17 @@ final class CustomizeViewModelTests: XCTestCase {
         XCTAssertNil(model.moveUp(.openAI))
         XCTAssertNil(model.moveDown(.perplexity))
         XCTAssertEqual(model.moveDown(.openAI), 1)
-        var expectedOrder = ProviderRegistry.all.map(\.id)
+        var expectedOrder = ProviderRegistry.userFacing.map(\.id)
         expectedOrder.swapAt(0, 1)
         XCTAssertEqual(model.items.map(\.id), expectedOrder)
 
         model.setVisible(false, for: .anthropic)
         model.reset()
 
-        XCTAssertEqual(model.items.map(\.id), ProviderRegistry.all.map(\.id))
+        XCTAssertEqual(model.items.map(\.id), ProviderRegistry.userFacing.map(\.id))
         XCTAssertEqual(
             model.visibleProviderIDs,
-            [.openAI, .anthropic, .gemini, .deepSeek]
+            [.openAI, .anthropic, .deepSeek]
         )
     }
 }

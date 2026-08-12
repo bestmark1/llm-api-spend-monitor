@@ -19,7 +19,7 @@ final class CustomizeViewModel: ObservableObject {
     }
 
     init(
-        registry: [ProviderMetadata] = ProviderRegistry.all,
+        registry: [ProviderMetadata] = ProviderRegistry.userFacing,
         store: any ProviderCustomizationStoring = UserDefaultsProviderCustomizationStore()
     ) {
         self.registry = registry

@@ -29,6 +29,7 @@ final class ConnectionFlowUITests: XCTestCase {
         XCTAssertTrue(app.textFields["connection.qwen.billingAccessKeyID"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.secureTextFields["connection.qwen.billingAccessKeySecret"].exists)
         XCTAssertTrue(app.textFields["connection.qwen.billingProductCode"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["connection.gemini.card"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["connection.kimi.card"].exists)
         XCTAssertFalse(app.secureTextFields["connection.kimi.secret"].exists)
     }

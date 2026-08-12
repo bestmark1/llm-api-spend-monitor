@@ -17,6 +17,8 @@ struct ProviderMetadata: Identifiable, Equatable, Sendable {
 }
 
 enum ProviderRegistry {
+    private static let hiddenProviderIDs: Set<ProviderID> = [.gemini]
+
     static let all: [ProviderMetadata] = [
         ProviderMetadata(
             id: .openAI,
@@ -123,6 +125,10 @@ enum ProviderRegistry {
             dashboardURL: "https://www.perplexity.ai/settings/api"
         )
     ]
+
+    static var userFacing: [ProviderMetadata] {
+        all.filter { !hiddenProviderIDs.contains($0.id) }
+    }
 
     static func metadata(for id: ProviderID) -> ProviderMetadata? {
         all.first { $0.id == id }

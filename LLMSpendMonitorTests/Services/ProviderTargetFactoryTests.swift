@@ -111,28 +111,17 @@ final class ProviderTargetFactoryTests: XCTestCase {
         XCTAssertNil(call?.request.reportingInterval)
     }
 
-    func testGeminiTargetRefreshesOfficialUsageWindow() async throws {
+    func testGeminiCredentialDoesNotCreateRefreshTarget() throws {
         let store = TargetCredentialStore()
         try store.save("gemini-token", for: Self.geminiIdentity)
-        let provider = ProviderClientRecorder(providerID: .gemini)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
-            geminiProvider: provider,
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek)
         )
 
-        let target = try XCTUnwrap(factory.makeTargets().first)
-        _ = try await target.fetch()
-
-        let call = await provider.lastCall
-        XCTAssertEqual(target.providerID, .gemini)
-        XCTAssertEqual(target.minimumInterval, 15 * 60)
-        XCTAssertTrue(target.automaticRefreshEnabled)
-        XCTAssertEqual(call?.credential, "gemini-token")
-        XCTAssertEqual(call?.request.purpose, .full)
-        XCTAssertNotNil(call?.request.reportingInterval)
+        XCTAssertTrue(factory.makeTargets().isEmpty)
     }
 
     func testCreatesTargetsForEveryConnectedProvider() throws {
@@ -146,14 +135,13 @@ final class ProviderTargetFactoryTests: XCTestCase {
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
-            geminiProvider: ProviderClientRecorder(providerID: .gemini),
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
             qwenProvider: ProviderClientRecorder(providerID: .qwen)
         )
 
         XCTAssertEqual(
             factory.makeTargets().map(\.providerID),
-            [.openAI, .anthropic, .gemini, .deepSeek, .qwen]
+            [.openAI, .anthropic, .deepSeek, .qwen]
         )
     }
 
@@ -165,7 +153,6 @@ final class ProviderTargetFactoryTests: XCTestCase {
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
-            geminiProvider: ProviderClientRecorder(providerID: .gemini),
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
             qwenProvider: provider
         )
@@ -192,7 +179,6 @@ final class ProviderTargetFactoryTests: XCTestCase {
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
-            geminiProvider: ProviderClientRecorder(providerID: .gemini),
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
             qwenProvider: ProviderClientRecorder(providerID: .qwen)
         )

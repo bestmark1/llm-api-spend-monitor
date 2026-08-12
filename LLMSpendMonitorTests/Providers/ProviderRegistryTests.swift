@@ -20,6 +20,10 @@ final class ProviderRegistryTests: XCTestCase {
             ProviderRegistry.all.filter { $0.integrationAvailability == .available }.map(\.id),
             [.openAI, .anthropic, .gemini, .deepSeek, .qwen]
         )
+        XCTAssertEqual(
+            ProviderRegistry.userFacing.map(\.id),
+            [.openAI, .anthropic, .deepSeek, .kimi, .qwen, .xAI, .mistral, .openRouter, .perplexity]
+        )
     }
 
     func testProviderCapabilitiesReflectOnlyOfficialBasicKeyData() throws {
