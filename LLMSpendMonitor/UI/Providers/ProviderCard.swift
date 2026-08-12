@@ -146,6 +146,14 @@ struct ProviderCard: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
+        } else if geminiUsageNeedsConnection {
+            Label(
+                "API key connected · connect Google usage in Connections",
+                systemImage: "link.badge.plus"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil, snapshot != nil {
             Label("API key verified", systemImage: "checkmark.seal.fill")
                 .font(.callout.weight(.medium))
@@ -300,6 +308,15 @@ struct ProviderCard: View {
             }
             tokenRows(snapshot)
             modelRows(snapshot)
+        } else if geminiUsageNeedsConnection {
+            VStack(alignment: .leading, spacing: 5) {
+                Label("API key connected", systemImage: "checkmark.seal.fill")
+                    .font(.callout.weight(.medium))
+                Text("Connect Google usage in Connections to load official token and model metrics.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         } else if metadata.capabilities == [.credentialValidation], snapshot?.issue == nil {
             if platformBalance != nil {
                 Divider()
@@ -511,6 +528,9 @@ struct ProviderCard: View {
         guard let snapshot else {
             return ("Not connected", "circle", .secondary)
         }
+        if geminiUsageNeedsConnection {
+            return ("Setup needed", "link.badge.plus", .orange)
+        }
         guard let issue = snapshot.issue else {
             switch freshness ?? .current {
             case .current:
@@ -576,6 +596,9 @@ struct ProviderCard: View {
 
     private func updateText(_ snapshot: ProviderSnapshot) -> String {
         let timestamp = snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened)
+        if geminiUsageNeedsConnection {
+            return "API key checked \(timestamp) · usage not connected"
+        }
         guard let issue = snapshot.issue else {
             switch freshness ?? .current {
             case .current: return "Updated \(timestamp)"
@@ -634,6 +657,14 @@ struct ProviderCard: View {
             values.reduce(0) { $0 + $1.cachedInputTokens },
             values.reduce(0) { $0 + $1.outputTokens }
         )
+    }
+
+    private var geminiUsageNeedsConnection: Bool {
+        metadata.id == .gemini
+            && snapshot?.issue == nil
+            && snapshot?.coverage == nil
+            && snapshot?.buckets.isEmpty == true
+            && snapshot?.balances.isEmpty == true
     }
 
     private func tokenSummary(_ snapshot: ProviderSnapshot) -> String? {
