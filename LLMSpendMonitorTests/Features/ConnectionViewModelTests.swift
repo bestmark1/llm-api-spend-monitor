@@ -130,6 +130,36 @@ final class ConnectionViewModelTests: XCTestCase {
         XCTAssertThrowsError(try credentialStore.read(for: QwenBillingCredentialIdentities.accessKeySecret))
         XCTAssertEqual(changedProviders, [.qwen, .qwen])
     }
+
+    func testGeminiUsageCredentialsAreValidatedStoredAndDeleted() throws {
+        let store = InMemoryCredentialStore()
+        let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .gemini))
+        var changedProviders: [ProviderID] = []
+        let model = ConnectionViewModel(
+            metadata: metadata,
+            credentialStore: store,
+            credentialDidChange: { changedProviders.append($0) }
+        )
+        let validJSON = #"{"type":"service_account","project_id":"spender-project","private_key":"-----BEGIN PRIVATE KEY-----\nAA==\n-----END PRIVATE KEY-----\n","client_email":"spender@spender-project.iam.gserviceaccount.com"}"#
+
+        XCTAssertEqual(model.usageConnectionStatus, .notConnected)
+        model.saveGeminiUsageCredentials(Data(#"{"type":"user"}"#.utf8))
+        XCTAssertEqual(model.usageConnectionStatus, .error)
+
+        model.saveGeminiUsageCredentials(Data(validJSON.utf8))
+        XCTAssertEqual(model.usageConnectionStatus, .connected)
+        XCTAssertEqual(
+            try store.read(for: GeminiMonitoringCredentialIdentities.serviceAccountJSON),
+            validJSON
+        )
+
+        model.deleteGeminiUsageCredentials()
+        XCTAssertEqual(model.usageConnectionStatus, .notConnected)
+        XCTAssertThrowsError(
+            try store.read(for: GeminiMonitoringCredentialIdentities.serviceAccountJSON)
+        )
+        XCTAssertEqual(changedProviders, [.gemini, .gemini])
+    }
 }
 
 private final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendable {

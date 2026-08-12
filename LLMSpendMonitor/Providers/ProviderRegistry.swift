@@ -52,8 +52,8 @@ enum ProviderRegistry {
             id: .gemini,
             displayName: "Gemini",
             systemImageName: "diamond",
-            credentialHelp: "A Gemini API key validates access. Basic keys do not expose official cost or balance data.",
-            capabilities: [.credentialValidation],
+            credentialHelp: "Use any standard Gemini API key. Spender detects Free or Paid Tier automatically; read-only Google Cloud access adds official token and model usage.",
+            capabilities: [.credentialValidation, .tokenUsage, .modelBreakdown],
             externalLinks: [
                 link(.usage, "https://aistudio.google.com/usage"),
                 link(.billing, "https://aistudio.google.com/app/billing"),

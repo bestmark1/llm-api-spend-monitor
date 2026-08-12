@@ -111,7 +111,7 @@ final class ProviderTargetFactoryTests: XCTestCase {
         XCTAssertNil(call?.request.reportingInterval)
     }
 
-    func testGeminiTargetValidatesOnlyOnCredentialChanges() async throws {
+    func testGeminiTargetRefreshesOfficialUsageWindow() async throws {
         let store = TargetCredentialStore()
         try store.save("gemini-token", for: Self.geminiIdentity)
         let provider = ProviderClientRecorder(providerID: .gemini)
@@ -128,11 +128,11 @@ final class ProviderTargetFactoryTests: XCTestCase {
 
         let call = await provider.lastCall
         XCTAssertEqual(target.providerID, .gemini)
-        XCTAssertEqual(target.minimumInterval, 0)
-        XCTAssertFalse(target.automaticRefreshEnabled)
+        XCTAssertEqual(target.minimumInterval, 15 * 60)
+        XCTAssertTrue(target.automaticRefreshEnabled)
         XCTAssertEqual(call?.credential, "gemini-token")
-        XCTAssertEqual(call?.request.purpose, .credentialValidation)
-        XCTAssertNil(call?.request.reportingInterval)
+        XCTAssertEqual(call?.request.purpose, .full)
+        XCTAssertNotNil(call?.request.reportingInterval)
     }
 
     func testCreatesTargetsForEveryConnectedProvider() throws {

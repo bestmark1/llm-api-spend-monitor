@@ -32,10 +32,11 @@ final class ProviderTargetFactory: Sendable {
             ),
             ProviderConfiguration(
                 provider: geminiProvider,
-                minimumInterval: 0,
-                automaticRefreshEnabled: false,
-                purpose: .credentialValidation,
-                usesReportingWindow: false
+                minimumInterval: 15 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: true,
+                additionalCredentialIdentities: GeminiMonitoringCredentialIdentities.all
             ),
             ProviderConfiguration(
                 provider: deepSeekProvider,

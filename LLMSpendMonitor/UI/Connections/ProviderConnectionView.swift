@@ -1,9 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProviderConnectionView: View {
     @ObservedObject var viewModel: ConnectionViewModel
     @State private var isConfirmingDelete = false
     @State private var isConfirmingBillingDelete = false
+    @State private var isChoosingUsageCredentials = false
+    @State private var isConfirmingUsageDelete = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -139,6 +142,54 @@ struct ProviderConnectionView: View {
                         .accessibilityIdentifier("connection.\(viewModel.id.rawValue).billingResult")
                 }
             }
+
+            if viewModel.supportsUsageCredentials {
+                Divider()
+
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Google usage access")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text(viewModel.usageConnectionStatus.description)
+                        .font(.caption)
+                        .foregroundStyle(usageStatusColor)
+                }
+
+                Text("The API key is the same for Free and Paid Tier. To read official token usage, import a service-account JSON key from the same project with the Monitoring Viewer role. No Billing setup is required.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("connection.gemini.tierExplanation")
+
+                Link(
+                    "Open Google Cloud Service Accounts",
+                    destination: URL(string: "https://console.cloud.google.com/iam-admin/serviceaccounts")!
+                )
+                .font(.caption)
+
+                HStack {
+                    Button("Connect Google usage…") {
+                        isChoosingUsageCredentials = true
+                    }
+                    .accessibilityIdentifier("connection.\(viewModel.id.rawValue).usageConnect")
+
+                    if viewModel.usageConnectionStatus == .connected {
+                        Button("Delete usage access", role: .destructive) {
+                            isConfirmingUsageDelete = true
+                        }
+                        .accessibilityIdentifier("connection.\(viewModel.id.rawValue).usageDelete")
+                    }
+
+                    Spacer()
+                }
+
+                if let usageResultMessage = viewModel.usageResultMessage {
+                    Text(usageResultMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("connection.\(viewModel.id.rawValue).usageResult")
+                }
+            }
         }
         .padding(12)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
@@ -162,6 +213,36 @@ struct ProviderConnectionView: View {
         } message: {
             Text("Official billing history will no longer refresh.")
         }
+        .confirmationDialog(
+            "Delete \(viewModel.metadata.displayName) usage access?",
+            isPresented: $isConfirmingUsageDelete
+        ) {
+            Button(
+                "Delete Usage Access",
+                role: .destructive,
+                action: viewModel.deleteGeminiUsageCredentials
+            )
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Gemini token and model usage will no longer refresh.")
+        }
+        .fileImporter(
+            isPresented: $isChoosingUsageCredentials,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            do {
+                guard let url = try result.get().first else {
+                    viewModel.reportGeminiUsageImportFailure()
+                    return
+                }
+                let hasAccess = url.startAccessingSecurityScopedResource()
+                defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+                viewModel.saveGeminiUsageCredentials(try Data(contentsOf: url))
+            } catch {
+                viewModel.reportGeminiUsageImportFailure()
+            }
+        }
     }
 
     private var statusColor: Color {
@@ -177,6 +258,17 @@ struct ProviderConnectionView: View {
 
     private var billingStatusColor: Color {
         switch viewModel.billingConnectionStatus {
+        case .connected:
+            .green
+        case .locked, .error:
+            .orange
+        case .notConnected:
+            .secondary
+        }
+    }
+
+    private var usageStatusColor: Color {
+        switch viewModel.usageConnectionStatus {
         case .connected:
             .green
         case .locked, .error:

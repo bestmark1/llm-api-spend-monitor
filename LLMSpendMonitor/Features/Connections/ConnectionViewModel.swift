@@ -38,8 +38,10 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
     @Published var draftBillingProductCode = ""
     @Published private(set) var connectionStatus: ConnectionStatus
     @Published private(set) var billingConnectionStatus: ConnectionStatus = .notConnected
+    @Published private(set) var usageConnectionStatus: ConnectionStatus = .notConnected
     @Published private(set) var resultMessage: String?
     @Published private(set) var billingResultMessage: String?
+    @Published private(set) var usageResultMessage: String?
     @Published private(set) var generation: UInt64 = 0
 
     var canSave: Bool {
@@ -50,6 +52,7 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
 
     var requiresAPIEndpoint: Bool { id == .qwen }
     var supportsBillingCredentials: Bool { id == .qwen }
+    var supportsUsageCredentials: Bool { id == .gemini }
     var canDeleteCredential: Bool { connectionStatus != .notConnected }
     var apiKeyPlaceholder: String { id == .qwen ? "Pay-as-you-go API key" : "API key" }
 
@@ -101,6 +104,12 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
                 ?? QwenAPIEndpoint.defaultValue
             billingConnectionStatus = Self.loadBundleStatus(
                 identities: QwenBillingCredentialIdentities.all,
+                from: credentialStore
+            )
+        }
+        if metadata.id == .gemini {
+            usageConnectionStatus = Self.loadBundleStatus(
+                identities: GeminiMonitoringCredentialIdentities.all,
                 from: credentialStore
             )
         }
@@ -191,6 +200,54 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
             credentialDidChange(id)
         } catch {
             applyBilling(error)
+        }
+    }
+
+    func saveGeminiUsageCredentials(_ data: Data) {
+        guard supportsUsageCredentials, let json = String(data: data, encoding: .utf8) else {
+            usageConnectionStatus = .error
+            usageResultMessage = "Choose the JSON key downloaded for a Google Cloud service account."
+            return
+        }
+
+        do {
+            _ = try GeminiMonitoringCredentials(json: json)
+            try credentialStore.save(
+                json,
+                for: GeminiMonitoringCredentialIdentities.serviceAccountJSON
+            )
+            usageConnectionStatus = .connected
+            generation &+= 1
+            usageResultMessage = "Google usage connected. Gemini tier, tokens, and models will now refresh automatically."
+            credentialDidChange(id)
+        } catch {
+            usageConnectionStatus = .error
+            usageResultMessage = "That file isn't a valid Google Cloud service account JSON key."
+        }
+    }
+
+    func reportGeminiUsageImportFailure() {
+        usageConnectionStatus = .error
+        usageResultMessage = "The selected file couldn't be read."
+    }
+
+    func deleteGeminiUsageCredentials() {
+        do {
+            for identity in GeminiMonitoringCredentialIdentities.all {
+                try credentialStore.delete(for: identity)
+            }
+            usageConnectionStatus = .notConnected
+            generation &+= 1
+            usageResultMessage = "Google usage connection deleted."
+            credentialDidChange(id)
+        } catch {
+            if let keychainError = error as? KeychainStoreError, keychainError == .locked {
+                usageConnectionStatus = .locked
+                usageResultMessage = "Unlock your Mac and try again."
+            } else {
+                usageConnectionStatus = .error
+                usageResultMessage = "Could not delete the Google usage connection."
+            }
         }
     }
 

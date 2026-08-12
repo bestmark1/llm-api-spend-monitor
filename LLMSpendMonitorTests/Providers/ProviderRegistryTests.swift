@@ -31,7 +31,7 @@ final class ProviderRegistryTests: XCTestCase {
 
         XCTAssertEqual(openAI.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(anthropic.capabilities, [.officialCostHistory, .tokenUsage, .modelBreakdown])
-        XCTAssertEqual(gemini.capabilities, [.credentialValidation])
+        XCTAssertEqual(gemini.capabilities, [.credentialValidation, .tokenUsage, .modelBreakdown])
         XCTAssertEqual(deepSeek.capabilities, [.balance])
         XCTAssertEqual(qwen.capabilities, [.balance, .credentialValidation, .officialCostHistory])
     }

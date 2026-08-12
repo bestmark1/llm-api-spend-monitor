@@ -553,6 +553,11 @@ struct ProviderCard: View {
         if metadata.capabilities.contains(.balance) {
             return "Official balance"
         }
+        if metadata.capabilities.contains(.tokenUsage) {
+            return metadata.capabilities.contains(.modelBreakdown)
+                ? "Tokens · models"
+                : "Tokens"
+        }
         return "Key validation"
     }
 
