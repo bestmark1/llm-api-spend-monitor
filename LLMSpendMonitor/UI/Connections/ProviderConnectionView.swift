@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -5,7 +6,6 @@ struct ProviderConnectionView: View {
     @ObservedObject var viewModel: ConnectionViewModel
     @State private var isConfirmingDelete = false
     @State private var isConfirmingBillingDelete = false
-    @State private var isChoosingUsageCredentials = false
     @State private var isConfirmingUsageDelete = false
 
     var body: some View {
@@ -169,7 +169,7 @@ struct ProviderConnectionView: View {
 
                 HStack {
                     Button("Connect Google usage…") {
-                        isChoosingUsageCredentials = true
+                        chooseGeminiUsageCredentials()
                     }
                     .accessibilityIdentifier("connection.\(viewModel.id.rawValue).usageConnect")
 
@@ -226,18 +226,23 @@ struct ProviderConnectionView: View {
         } message: {
             Text("Gemini token and model usage will no longer refresh.")
         }
-        .fileImporter(
-            isPresented: $isChoosingUsageCredentials,
-            allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
+    }
+
+    private func chooseGeminiUsageCredentials() {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.title = "Connect Google usage"
+        panel.message = "Choose the service-account JSON key for the Gemini project."
+        panel.prompt = "Connect"
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
             do {
-                guard let url = try result.get().first else {
-                    viewModel.reportGeminiUsageImportFailure()
-                    return
-                }
-                let hasAccess = url.startAccessingSecurityScopedResource()
-                defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
                 viewModel.saveGeminiUsageCredentials(try Data(contentsOf: url))
             } catch {
                 viewModel.reportGeminiUsageImportFailure()
