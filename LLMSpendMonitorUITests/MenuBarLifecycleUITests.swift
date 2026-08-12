@@ -89,7 +89,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
     }
 
-    func testCustomizeCanHideGeminiAndShowPlannedKimi() {
+    func testCustomizeOmitsGeminiAndCanShowPlannedKimi() {
         let app = XCUIApplication()
         let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
         UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
@@ -109,10 +109,9 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
         let geminiToggle = app.descendants(matching: .any)["customize.gemini.visible"]
         let kimiToggle = app.descendants(matching: .any)["customize.kimi.visible"]
-        XCTAssertTrue(geminiToggle.waitForExistence(timeout: 3))
+        XCTAssertTrue(geminiToggle.waitForNonExistence(timeout: 1))
         XCTAssertTrue(kimiToggle.waitForExistence(timeout: 3))
 
-        geminiToggle.click()
         kimiToggle.click()
 
         let customizationScreenshot = XCTAttachment(screenshot: app.screenshot())
