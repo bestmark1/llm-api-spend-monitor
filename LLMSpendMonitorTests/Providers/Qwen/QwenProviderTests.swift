@@ -78,18 +78,22 @@ final class QwenProviderTests: XCTestCase {
         let requests = await client.requests
         XCTAssertEqual(requests.count, 3)
         let balanceRequests = requests.filter {
-            $0.headers["x-acs-action"] == "QueryAccountBalance"
+            Self.queryValue("Action", in: $0) == "QueryAccountBalance"
         }
         XCTAssertEqual(balanceRequests.count, 1)
         XCTAssertFalse(try XCTUnwrap(balanceRequests.first).url.absoluteString.contains("BillingDate="))
         let billRequests = requests.filter {
-            $0.headers["x-acs-action"] == "QueryAccountBill"
+            Self.queryValue("Action", in: $0) == "QueryAccountBill"
         }
         XCTAssertEqual(billRequests.count, 2)
         for request in billRequests {
-            XCTAssertEqual(request.url.host, "business.aliyuncs.com")
+            XCTAssertEqual(request.url.host, "business.ap-southeast-1.aliyuncs.com")
             XCTAssertTrue(request.url.absoluteString.contains("ProductCode=model-studio-code"))
-            XCTAssertTrue(request.headers["Authorization"]?.hasPrefix("ACS3-HMAC-SHA256 Credential=billing-id,") == true)
+            XCTAssertNil(request.headers["Authorization"])
+            XCTAssertEqual(Self.queryValue("AccessKeyId", in: request), "billing-id")
+            XCTAssertEqual(Self.queryValue("SignatureMethod", in: request), "HMAC-SHA1")
+            XCTAssertEqual(Self.queryValue("Version", in: request), "2017-12-14")
+            XCTAssertNotNil(Self.queryValue("Signature", in: request))
             XCTAssertFalse(request.headers.values.contains { $0.contains("billing-secret") })
         }
     }
@@ -254,28 +258,42 @@ final class QwenProviderTests: XCTestCase {
         }
     }
 
-    func testAlibabaV3SignerMatchesOfficialFixedVector() throws {
+    func testAlibabaRPCSignerMatchesBSSFixedVector() throws {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
-        let date = try XCTUnwrap(formatter.date(from: "2023-10-26T10:22:32Z"))
-        let request = try AlibabaCloudV3Signer().makeRequest(
-            method: .post,
-            endpoint: try XCTUnwrap(URL(string: "https://ecs.cn-shanghai.aliyuncs.com/")),
-            action: "RunInstances",
-            version: "2014-05-26",
-            queryItems: [
-                URLQueryItem(name: "ImageId", value: "win2019_1809_x64_dtc_zh-cn_40G_alibase_20230811.vhd"),
-                URLQueryItem(name: "RegionId", value: "cn-shanghai")
-            ],
-            accessKeyID: "YourAccessKeyId",
-            accessKeySecret: "YourAccessKeySecret",
+        let date = try XCTUnwrap(formatter.date(from: "2026-08-11T12:00:00Z"))
+        let request = try AlibabaCloudRPCSigner().makeRequest(
+            method: .get,
+            endpoint: try XCTUnwrap(URL(string: "https://business.aliyuncs.com/")),
+            action: "QueryAccountBalance",
+            version: "2017-12-14",
+            queryItems: [],
+            accessKeyID: "test-access-key-id",
+            accessKeySecret: "test-access-key-secret",
             date: date,
-            nonce: "3156853299f313e23d1673dc12e1703d"
+            nonce: "fixed-nonce"
         )
 
         XCTAssertEqual(
-            request.headers["Authorization"],
-            "ACS3-HMAC-SHA256 Credential=YourAccessKeyId,SignedHeaders=host;x-acs-action;x-acs-content-sha256;x-acs-date;x-acs-signature-nonce;x-acs-version,Signature=06563a9e1b43f5dfe96b81484da74bceab24a1d853912eee15083a6f0f3283c0"
+            URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.percentEncodedQuery,
+            "AccessKeyId=test-access-key-id&Action=QueryAccountBalance&Format=JSON&SignatureMethod=HMAC-SHA1&SignatureNonce=fixed-nonce&SignatureVersion=1.0&Timestamp=2026-08-11T12%3A00%3A00Z&Version=2017-12-14&Signature=V3WgfVAEvyItz%2FaGM0IsPNVYFoQ%3D"
+        )
+        XCTAssertEqual(request.headers["Accept"], "application/json")
+        XCTAssertNil(request.headers["Authorization"])
+    }
+
+    func testBillingEndpointFollowsConfiguredQwenRegion() throws {
+        XCTAssertEqual(
+            QwenProvider.billingEndpoint(for: try QwenAPIEndpoint(QwenAPIEndpoint.defaultValue)).host,
+            "business.ap-southeast-1.aliyuncs.com"
+        )
+        XCTAssertEqual(
+            QwenProvider.billingEndpoint(
+                for: try QwenAPIEndpoint(
+                    "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                )
+            ).host,
+            "business.aliyuncs.com"
         )
     }
 
@@ -416,6 +434,13 @@ final class QwenProviderTests: XCTestCase {
         )
     }
 
+    private static func queryValue(_ name: String, in request: HTTPRequest) -> String? {
+        URLComponents(url: request.url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first { $0.name == name }?
+            .value
+    }
+
     private static func billResponse(date: String, amount: String) -> HTTPResponse {
         HTTPResponse(
             statusCode: 200,
@@ -532,7 +557,10 @@ private actor QwenHTTPClientQueue: HTTPClient {
 
     func send(_ request: HTTPRequest) async throws -> HTTPResponse {
         requests.append(request)
-        if let action = request.headers["x-acs-action"],
+        if let action = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == "Action" })?
+            .value,
            var actionResponses = responsesByAction[action],
            !actionResponses.isEmpty {
             let response = actionResponses.removeFirst()

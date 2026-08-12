@@ -111,17 +111,7 @@ struct QwenBillingCredentials: Equatable, Sendable {
     }
 }
 
-struct AlibabaCloudV3Signer: Sendable {
-    private static let algorithm = "ACS3-HMAC-SHA256"
-    private static let signedHeaderNames = [
-        "host",
-        "x-acs-action",
-        "x-acs-content-sha256",
-        "x-acs-date",
-        "x-acs-signature-nonce",
-        "x-acs-version"
-    ]
-
+struct AlibabaCloudRPCSigner: Sendable {
     func makeRequest(
         method: HTTPMethod,
         endpoint: URL,
@@ -134,70 +124,64 @@ struct AlibabaCloudV3Signer: Sendable {
         nonce: String
     ) throws -> HTTPRequest {
         guard
+            method == .get,
             endpoint.scheme?.lowercased() == "https",
             endpoint.user == nil,
             endpoint.password == nil,
             endpoint.query == nil,
             endpoint.fragment == nil,
-            let host = endpoint.host?.lowercased(),
-            !host.isEmpty,
+            endpoint.path.isEmpty || endpoint.path == "/",
+            endpoint.host?.isEmpty == false,
             !accessKeyID.isEmpty,
             !accessKeySecret.isEmpty,
-            !nonce.isEmpty
+            !action.isEmpty,
+            !version.isEmpty,
+            !nonce.isEmpty,
+            !queryItems.contains(where: { Self.commonParameterNames.contains($0.name) })
         else {
             throw ProviderClientError.malformedResponse
         }
 
-        let canonicalQuery = Self.canonicalQuery(queryItems)
+        let commonItems = [
+            URLQueryItem(name: "AccessKeyId", value: accessKeyID),
+            URLQueryItem(name: "Action", value: action),
+            URLQueryItem(name: "Format", value: "JSON"),
+            URLQueryItem(name: "SignatureMethod", value: "HMAC-SHA1"),
+            URLQueryItem(name: "SignatureNonce", value: nonce),
+            URLQueryItem(name: "SignatureVersion", value: "1.0"),
+            URLQueryItem(name: "Timestamp", value: Self.timestamp(date)),
+            URLQueryItem(name: "Version", value: version)
+        ]
+        let canonicalQuery = Self.canonicalQuery(commonItems + queryItems)
+        let stringToSign = [
+            Self.percentEncode(method.rawValue),
+            Self.percentEncode("/"),
+            Self.percentEncode(canonicalQuery)
+        ].joined(separator: "&")
+        let signature = Self.hmacSHA1Base64(
+            key: Data((accessKeySecret + "&").utf8),
+            message: Data(stringToSign.utf8)
+        )
         var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
         components?.percentEncodedQuery = canonicalQuery
+            + "&Signature="
+            + Self.percentEncode(signature)
         guard let url = components?.url else {
             throw ProviderClientError.malformedResponse
         }
-
-        let payloadHash = Self.sha256Hex(Data())
-        let headers = [
-            "host": host,
-            "x-acs-action": action,
-            "x-acs-content-sha256": payloadHash,
-            "x-acs-date": Self.timestamp(date),
-            "x-acs-signature-nonce": nonce,
-            "x-acs-version": version
-        ]
-        let signedHeaders = Self.signedHeaderNames.joined(separator: ";")
-        let canonicalHeaders = Self.signedHeaderNames.map { name in
-            "\(name):\(headers[name]!)"
-        }.joined(separator: "\n")
-        let endpointPath = URLComponents(
-            url: endpoint,
-            resolvingAgainstBaseURL: false
-        )?.percentEncodedPath ?? endpoint.path
-        let canonicalURI = endpointPath.isEmpty ? "/" : endpointPath
-        let canonicalRequest = [
-            method.rawValue,
-            canonicalURI,
-            canonicalQuery,
-            canonicalHeaders,
-            "",
-            signedHeaders,
-            payloadHash
-        ].joined(separator: "\n")
-        let stringToSign = "\(Self.algorithm)\n\(Self.sha256Hex(Data(canonicalRequest.utf8)))"
-        let signature = Self.hmacSHA256Hex(
-            key: Data(accessKeySecret.utf8),
-            message: Data(stringToSign.utf8)
-        )
-        var requestHeaders = headers
-        requestHeaders["Authorization"] = "\(Self.algorithm) Credential=\(accessKeyID),SignedHeaders=\(signedHeaders),Signature=\(signature)"
-        requestHeaders["Accept"] = "application/json"
 
         return try HTTPRequest(
             method: method,
             url: url,
             allowedOrigin: try HTTPOrigin(httpsURL: endpoint),
-            headers: requestHeaders
+            headers: ["Accept": "application/json"]
         )
     }
+
+    private static let commonParameterNames: Set<String> = [
+        "AccessKeyId", "Action", "Format", "Signature", "SignatureMethod",
+        "SignatureNonce", "SignatureVersion", "Timestamp", "Version"
+    ]
 
     private static func canonicalQuery(_ items: [URLQueryItem]) -> String {
         let encodedItems = items.map { item in
@@ -224,15 +208,11 @@ struct AlibabaCloudV3Signer: Sendable {
         return formatter.string(from: date)
     }
 
-    private static func sha256Hex(_ data: Data) -> String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func hmacSHA256Hex(key: Data, message: Data) -> String {
-        HMAC<SHA256>.authenticationCode(
+    private static func hmacSHA1Base64(key: Data, message: Data) -> String {
+        Data(HMAC<Insecure.SHA1>.authenticationCode(
             for: message,
             using: SymmetricKey(data: key)
-        ).map { String(format: "%02x", $0) }.joined()
+        )).base64EncodedString()
     }
 }
 
@@ -244,7 +224,10 @@ struct QwenProvider: ProviderClient, Sendable {
         .officialCostHistory
     ]
 
-    private static let billingEndpoint = URL(string: "https://business.aliyuncs.com/")!
+    private static let chinaBillingEndpoint = URL(string: "https://business.aliyuncs.com/")!
+    private static let internationalBillingEndpoint = URL(
+        string: "https://business.ap-southeast-1.aliyuncs.com/"
+    )!
     private static let billingAction = "QueryAccountBill"
     private static let balanceAction = "QueryAccountBalance"
     private static let billingVersion = "2017-12-14"
@@ -254,7 +237,7 @@ struct QwenProvider: ProviderClient, Sendable {
     private let credentialStore: any CredentialStoring
     private let now: @Sendable () -> Date
     private let nonce: @Sendable () -> String
-    private let signer = AlibabaCloudV3Signer()
+    private let signer = AlibabaCloudRPCSigner()
 
     init(
         httpClient: any HTTPClient = URLSessionHTTPClient(),
@@ -280,19 +263,20 @@ struct QwenProvider: ProviderClient, Sendable {
         }
 
         do {
+            let endpoint = try QwenAPIEndpoint(
+                endpointStore.loadEndpoint(for: providerID) ?? QwenAPIEndpoint.defaultValue
+            )
             if let billingCredentials = try QwenBillingCredentials(store: credentialStore) {
                 guard let interval = request.reportingInterval, interval.start < interval.end else {
                     throw ProviderClientError.malformedResponse
                 }
                 return try await financialSnapshot(
                     interval: interval,
-                    credentials: billingCredentials
+                    credentials: billingCredentials,
+                    billingEndpoint: Self.billingEndpoint(for: endpoint)
                 )
             }
 
-            let endpoint = try QwenAPIEndpoint(
-                endpointStore.loadEndpoint(for: providerID) ?? QwenAPIEndpoint.defaultValue
-            )
             _ = try await listModels(endpoint: endpoint, credential: normalizedCredential)
             return try validationSnapshot()
         } catch let error as ProviderClientError {
@@ -320,14 +304,18 @@ struct QwenProvider: ProviderClient, Sendable {
 
     private func financialSnapshot(
         interval: DateInterval,
-        credentials: QwenBillingCredentials
+        credentials: QwenBillingCredentials,
+        billingEndpoint: URL
     ) async throws -> ProviderSnapshot {
         let dayIntervals = Self.completeUTCDays(in: interval)
         guard !dayIntervals.isEmpty else {
             throw ProviderClientError.malformedResponse
         }
 
-        async let balanceResult = accountBalanceResult(credentials: credentials)
+        async let balanceResult = accountBalanceResult(
+            credentials: credentials,
+            billingEndpoint: billingEndpoint
+        )
 
         var buckets: [PeriodBucket] = []
         var reportSucceeded = false
@@ -336,7 +324,11 @@ struct QwenProvider: ProviderClient, Sendable {
 
         for day in dayIntervals {
             do {
-                let result = try await fetchDailyBill(day: day, credentials: credentials)
+                let result = try await fetchDailyBill(
+                    day: day,
+                    credentials: credentials,
+                    billingEndpoint: billingEndpoint
+                )
                 reportSucceeded = true
                 isReportComplete = isReportComplete && result.isComplete
                 if let money = result.money {
@@ -392,10 +384,16 @@ struct QwenProvider: ProviderClient, Sendable {
     }
 
     private func accountBalanceResult(
-        credentials: QwenBillingCredentials
+        credentials: QwenBillingCredentials,
+        billingEndpoint: URL
     ) async -> Result<ProviderBalance, ProviderClientError> {
         do {
-            return .success(try await fetchAccountBalance(credentials: credentials))
+            return .success(
+                try await fetchAccountBalance(
+                    credentials: credentials,
+                    billingEndpoint: billingEndpoint
+                )
+            )
         } catch let error as ProviderClientError {
             return .failure(error)
         } catch {
@@ -404,11 +402,12 @@ struct QwenProvider: ProviderClient, Sendable {
     }
 
     private func fetchAccountBalance(
-        credentials: QwenBillingCredentials
+        credentials: QwenBillingCredentials,
+        billingEndpoint: URL
     ) async throws -> ProviderBalance {
         let request = try signer.makeRequest(
             method: .get,
-            endpoint: Self.billingEndpoint,
+            endpoint: billingEndpoint,
             action: Self.balanceAction,
             version: Self.billingVersion,
             queryItems: [],
@@ -454,11 +453,12 @@ struct QwenProvider: ProviderClient, Sendable {
 
     private func fetchDailyBill(
         day: DateInterval,
-        credentials: QwenBillingCredentials
+        credentials: QwenBillingCredentials,
+        billingEndpoint: URL
     ) async throws -> DailyBillResult {
         let request = try signer.makeRequest(
             method: .get,
-            endpoint: Self.billingEndpoint,
+            endpoint: billingEndpoint,
             action: Self.billingAction,
             version: Self.billingVersion,
             queryItems: [
@@ -572,6 +572,12 @@ struct QwenProvider: ProviderClient, Sendable {
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = format
         return formatter.string(from: date)
+    }
+
+    static func billingEndpoint(for endpoint: QwenAPIEndpoint) -> URL {
+        endpoint.baseURL.host?.lowercased() == "dashscope.aliyuncs.com"
+            ? chinaBillingEndpoint
+            : internationalBillingEndpoint
     }
 
     private static func map(_ error: HTTPClientError) -> ProviderClientError {
