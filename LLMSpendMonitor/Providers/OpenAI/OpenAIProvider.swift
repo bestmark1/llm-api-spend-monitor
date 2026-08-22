@@ -219,7 +219,7 @@ struct OpenAIProvider: ProviderClient, Sendable {
         } catch let error as ProviderClientError {
             throw error
         } catch let error as HTTPClientError {
-            throw Self.map(error)
+            throw ProviderErrorMapper.map(error, forbidden: .insufficientPermissions)
         } catch is DecodingError {
             throw ProviderClientError.malformedResponse
         } catch {
@@ -279,35 +279,6 @@ struct OpenAIProvider: ProviderClient, Sendable {
         }
     }
 
-    private static func map(_ error: HTTPClientError) -> ProviderClientError {
-        switch error {
-        case let .httpStatus(response):
-            switch response.statusCode {
-            case 401:
-                .invalidCredential
-            case 403:
-                .insufficientPermissions
-            case 429:
-                .rateLimited(
-                    retryAfterSeconds: response.header(named: "retry-after").flatMap(TimeInterval.init)
-                )
-            default:
-                .unavailable
-            }
-        case let .transport(code):
-            switch code {
-            case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
-                .offline
-            default:
-                .unavailable
-            }
-        case .invalidRequest, .invalidResponse, .responseTooLarge,
-             .insecureURL, .disallowedOrigin, .crossOriginRedirect:
-            .malformedResponse
-        case .cancelled:
-            .unavailable
-        }
-    }
 }
 
 private extension OpenAIProvider {

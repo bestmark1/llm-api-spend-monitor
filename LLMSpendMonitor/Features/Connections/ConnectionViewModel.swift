@@ -54,7 +54,18 @@ final class ConnectionViewModel: ObservableObject, Identifiable {
     var supportsBillingCredentials: Bool { id == .qwen }
     var supportsUsageCredentials: Bool { id == .gemini }
     var canDeleteCredential: Bool { connectionStatus != .notConnected }
-    var apiKeyPlaceholder: String { id == .qwen ? "Pay-as-you-go API key" : "API key" }
+    var apiKeyPlaceholder: String {
+        switch id {
+        case .qwen:
+            "Pay-as-you-go API key"
+        case .openRouter, .xAI:
+            "Management API key"
+        case .mistral:
+            "Admin API key"
+        default:
+            "API key"
+        }
+    }
 
     var apiKeyError: String? {
         guard id == .qwen, QwenAPIKey.isTokenPlan(draftSecret) else { return nil }

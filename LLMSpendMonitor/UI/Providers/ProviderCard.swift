@@ -525,6 +525,9 @@ struct ProviderCard: View {
         if metadata.integrationAvailability == .planned {
             return ("Planned", "clock", .secondary)
         }
+        if metadata.integrationAvailability == .unavailable {
+            return ("Unavailable", "xmark.circle", .secondary)
+        }
         guard let snapshot else {
             return ("Not connected", "circle", .secondary)
         }
@@ -546,16 +549,23 @@ struct ProviderCard: View {
             return ("Action needed", "exclamationmark.circle.fill", .red)
         case .balanceUnavailable:
             return ("Balance unavailable", "exclamationmark.triangle.fill", .orange)
+        case .noSpendingLimit:
+            return ("No limit", "checkmark.circle.fill", .green)
         case .partialData:
             return ("Partial", "circle.lefthalf.filled", .orange)
         case .rateLimited, .offline, .malformedResponse, .providerUnavailable:
             return ("Cached", "clock.badge.exclamationmark", .orange)
+        case .spendingLimitReached:
+            return ("Limit reached", "exclamationmark.circle.fill", .red)
         }
     }
 
     private var capabilityText: String {
         if metadata.integrationAvailability == .planned {
             return "Integration planned"
+        }
+        if metadata.integrationAvailability == .unavailable {
+            return "No account-wide billing API"
         }
         if metadata.capabilities.contains(.officialCostHistory) {
             var parts = ["Cost"]
@@ -582,12 +592,22 @@ struct ProviderCard: View {
     }
 
     private var officialBalanceLabel: String {
-        metadata.id == .qwen ? "Alibaba Cloud account balance" : "Remaining balance"
+        switch metadata.id {
+        case .qwen:
+            "Alibaba Cloud account balance"
+        case .mistral:
+            "Remaining monthly limit"
+        default:
+            "Remaining balance"
+        }
     }
 
     private var emptyStateText: String {
         if metadata.integrationAvailability == .planned {
             return "Spending integration is not available yet."
+        }
+        if metadata.integrationAvailability == .unavailable {
+            return metadata.credentialHelp
         }
         return metadata.capabilities == [.credentialValidation]
             ? "Connect a key to verify access. Spend stays in Google AI Studio."
@@ -618,8 +638,10 @@ struct ProviderCard: View {
         case .offline: "Offline"
         case .keychainLocked: "Keychain locked"
         case .malformedResponse: "Unexpected response"
+        case .noSpendingLimit: "No spending limit"
         case .providerUnavailable: "Provider unavailable"
         case .partialData: "Partial report"
+        case .spendingLimitReached: "Spending limit reached"
         }
     }
 
@@ -632,8 +654,10 @@ struct ProviderCard: View {
         case .offline: "The provider could not be reached. Check your connection."
         case .keychainLocked: "Unlock your Mac to read the saved credential."
         case .malformedResponse: "The provider returned an unexpected response."
+        case .noSpendingLimit: "This organization has no monthly spending limit."
         case .providerUnavailable: "The provider is temporarily unavailable."
         case .partialData: "The provider returned an incomplete report."
+        case .spendingLimitReached: "This organization has reached its monthly spending limit."
         }
     }
 

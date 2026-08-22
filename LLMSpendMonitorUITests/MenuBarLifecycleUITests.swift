@@ -89,7 +89,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
     }
 
-    func testCustomizeOmitsGeminiAndCanShowPlannedKimi() {
+    func testCustomizeOmitsUnsupportedProvidersAndCanShowAvailableProvider() {
         let app = XCUIApplication()
         let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
         UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
@@ -108,8 +108,10 @@ final class MenuBarLifecycleUITests: XCTestCase {
         app.menuItems["Customize"].click()
 
         let geminiToggle = app.descendants(matching: .any)["customize.gemini.visible"]
+        let perplexityToggle = app.descendants(matching: .any)["customize.perplexity.visible"]
         let kimiToggle = app.descendants(matching: .any)["customize.kimi.visible"]
         XCTAssertTrue(geminiToggle.waitForNonExistence(timeout: 1))
+        XCTAssertTrue(perplexityToggle.waitForNonExistence(timeout: 1))
         XCTAssertTrue(kimiToggle.waitForExistence(timeout: 3))
 
         kimiToggle.click()
@@ -126,21 +128,34 @@ final class MenuBarLifecycleUITests: XCTestCase {
                 .waitForNonExistence(timeout: 3)
         )
         XCTAssertTrue(
-            app.descendants(matching: .any)["provider.kimi.card"]
-                .waitForExistence(timeout: 3)
+            app.descendants(matching: .any)["provider.perplexity.card"]
+                .waitForNonExistence(timeout: 3)
         )
-        XCTAssertTrue(app.staticTexts["Planned"].exists)
+        let dashboardScroll = app.scrollViews.firstMatch
+        let kimiCard = app.descendants(matching: .any)["provider.kimi.card"]
+        scrollUntilVisible(kimiCard, in: dashboardScroll)
+        XCTAssertTrue(kimiCard.exists)
 
         app.buttons["provider.kimi.disclosure"].click()
         XCTAssertTrue(
-            app.staticTexts["Spending integration is not available yet."]
+            app.staticTexts["Connect this provider to load official data."]
                 .waitForExistence(timeout: 3)
         )
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "Gemini hidden and planned Kimi shown"
+        screenshot.name = "Optional available provider"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    private func scrollUntilVisible(
+        _ element: XCUIElement,
+        in container: XCUIElement,
+        attempts: Int = 10
+    ) {
+        for _ in 0..<attempts where !element.exists || !element.isHittable {
+            container.swipeUp()
+        }
     }
 
 }

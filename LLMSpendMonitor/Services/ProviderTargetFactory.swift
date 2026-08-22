@@ -10,7 +10,11 @@ final class ProviderTargetFactory: Sendable {
         openAIProvider: any ProviderClient = OpenAIProvider(),
         anthropicProvider: any ProviderClient = AnthropicProvider(),
         deepSeekProvider: any ProviderClient = DeepSeekProvider(),
+        kimiProvider: any ProviderClient = KimiProvider(),
         qwenProvider: any ProviderClient = QwenProvider(),
+        xAIProvider: any ProviderClient = XAIProvider(),
+        mistralProvider: any ProviderClient = MistralProvider(),
+        openRouterProvider: any ProviderClient = OpenRouterProvider(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.credentialStore = credentialStore
@@ -37,12 +41,40 @@ final class ProviderTargetFactory: Sendable {
                 usesReportingWindow: false
             ),
             ProviderConfiguration(
+                provider: kimiProvider,
+                minimumInterval: 5 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: false
+            ),
+            ProviderConfiguration(
                 provider: qwenProvider,
                 minimumInterval: 6 * 60 * 60,
                 automaticRefreshEnabled: true,
                 purpose: .full,
                 usesReportingWindow: true,
                 additionalCredentialIdentities: QwenBillingCredentialIdentities.all
+            ),
+            ProviderConfiguration(
+                provider: xAIProvider,
+                minimumInterval: 15 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: true
+            ),
+            ProviderConfiguration(
+                provider: mistralProvider,
+                minimumInterval: 15 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: false
+            ),
+            ProviderConfiguration(
+                provider: openRouterProvider,
+                minimumInterval: 5 * 60,
+                automaticRefreshEnabled: true,
+                purpose: .full,
+                usesReportingWindow: false
             )
         ]
         self.now = now

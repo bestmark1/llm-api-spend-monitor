@@ -99,8 +99,21 @@ struct ProviderOrderRow: View {
         if item.metadata.integrationAvailability == .planned {
             return "Integration planned"
         }
+        if item.metadata.integrationAvailability == .unavailable {
+            return "No account-wide billing API"
+        }
         if item.metadata.capabilities.contains(.officialCostHistory) {
-            return "Official spend · tokens · models"
+            var parts = ["Official spend"]
+            if item.metadata.capabilities.contains(.balance) {
+                parts.append("balance")
+            }
+            if item.metadata.capabilities.contains(.tokenUsage) {
+                parts.append("tokens")
+            }
+            if item.metadata.capabilities.contains(.modelBreakdown) {
+                parts.append("models")
+            }
+            return parts.joined(separator: " · ")
         }
         if item.metadata.capabilities.contains(.balance) {
             return "Current official balance"

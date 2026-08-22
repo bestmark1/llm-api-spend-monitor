@@ -29,3 +29,38 @@ protocol ProviderClient: Sendable {
         credential: String
     ) async throws -> ProviderSnapshot
 }
+
+enum ProviderErrorMapper {
+    static func map(
+        _ error: HTTPClientError,
+        forbidden: ProviderClientError = .unavailable
+    ) -> ProviderClientError {
+        switch error {
+        case let .httpStatus(response):
+            switch response.statusCode {
+            case 401:
+                .invalidCredential
+            case 403:
+                forbidden
+            case 429:
+                .rateLimited(
+                    retryAfterSeconds: response.header(named: "retry-after").flatMap(TimeInterval.init)
+                )
+            default:
+                .unavailable
+            }
+        case let .transport(code):
+            switch code {
+            case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
+                .offline
+            default:
+                .unavailable
+            }
+        case .invalidRequest, .invalidResponse, .responseTooLarge,
+             .insecureURL, .disallowedOrigin, .crossOriginRedirect:
+            .malformedResponse
+        case .cancelled:
+            .unavailable
+        }
+    }
+}

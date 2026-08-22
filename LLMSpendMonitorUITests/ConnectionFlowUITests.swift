@@ -11,7 +11,8 @@ final class ConnectionFlowUITests: XCTestCase {
         XCTAssertTrue(app.secureTextFields["connection.openai.secret"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["connection.openai.save"].exists)
 
-        app.scrollViews.firstMatch.swipeUp()
+        let scrollView = app.scrollViews.firstMatch
+        scrollView.swipeUp()
         let qwenSecret = app.secureTextFields["connection.qwen.secret"]
         XCTAssertTrue(qwenSecret.waitForExistence(timeout: 3))
         XCTAssertTrue(app.textFields["connection.qwen.endpoint"].exists)
@@ -25,12 +26,28 @@ final class ConnectionFlowUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
 
-        app.scrollViews.firstMatch.swipeUp()
+        scrollView.swipeUp()
         XCTAssertTrue(app.textFields["connection.qwen.billingAccessKeyID"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.secureTextFields["connection.qwen.billingAccessKeySecret"].exists)
         XCTAssertTrue(app.textFields["connection.qwen.billingProductCode"].exists)
+
+        for providerID in ["kimi", "xai", "mistral", "openrouter"] {
+            let field = app.secureTextFields["connection.\(providerID).secret"]
+            scrollUntilVisible(field, in: scrollView)
+            XCTAssertTrue(field.exists, "\(providerID) should expose a secure credential field")
+        }
+
         XCTAssertFalse(app.descendants(matching: .any)["connection.gemini.card"].exists)
-        XCTAssertFalse(app.descendants(matching: .any)["connection.kimi.card"].exists)
-        XCTAssertFalse(app.secureTextFields["connection.kimi.secret"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["connection.perplexity.card"].exists)
+    }
+
+    private func scrollUntilVisible(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        attempts: Int = 8
+    ) {
+        for _ in 0..<attempts where !element.exists || !element.isHittable {
+            scrollView.swipeUp()
+        }
     }
 }

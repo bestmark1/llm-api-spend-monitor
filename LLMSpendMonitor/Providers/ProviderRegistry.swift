@@ -3,6 +3,7 @@ import Foundation
 enum ProviderIntegrationAvailability: Equatable, Sendable {
     case available
     case planned
+    case unavailable
 }
 
 struct ProviderMetadata: Identifiable, Equatable, Sendable {
@@ -17,7 +18,7 @@ struct ProviderMetadata: Identifiable, Equatable, Sendable {
 }
 
 enum ProviderRegistry {
-    private static let hiddenProviderIDs: Set<ProviderID> = [.gemini]
+    private static let hiddenProviderIDs: Set<ProviderID> = [.gemini, .perplexity]
 
     static let all: [ProviderMetadata] = [
         ProviderMetadata(
@@ -63,7 +64,7 @@ enum ProviderRegistry {
                 link(.status, "https://status.cloud.google.com")
             ],
             integrationAvailability: .available,
-            isVisibleByDefault: true
+            isVisibleByDefault: false
         ),
         ProviderMetadata(
             id: .deepSeek,
@@ -80,11 +81,19 @@ enum ProviderRegistry {
             integrationAvailability: .available,
             isVisibleByDefault: true
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .kimi,
             displayName: "Kimi",
             systemImageName: "moon.stars",
-            dashboardURL: "https://platform.moonshot.ai/console"
+            credentialHelp: "A standard Moonshot API key provides the official current balance. Kimi does not expose aggregate spend history via API.",
+            capabilities: [.balance],
+            externalLinks: [
+                link(.usage, "https://platform.moonshot.ai/console/info-center/usage"),
+                link(.billing, "https://platform.moonshot.ai/console/info-center"),
+                link(.dashboard, "https://platform.moonshot.ai/console")
+            ],
+            integrationAvailability: .available,
+            isVisibleByDefault: false
         ),
         ProviderMetadata(
             id: .qwen,
@@ -100,29 +109,63 @@ enum ProviderRegistry {
             integrationAvailability: .available,
             isVisibleByDefault: false
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .xAI,
             displayName: "xAI · Grok",
             systemImageName: "xmark",
-            dashboardURL: "https://console.x.ai/"
+            credentialHelp: "Requires a team-scoped xAI Management API key with read access to billing. Spender reads the official prepaid balance and daily USD usage.",
+            capabilities: [.balance, .officialCostHistory, .modelBreakdown],
+            externalLinks: [
+                link(.usage, "https://console.x.ai/team/default/usage"),
+                link(.billing, "https://console.x.ai/team/default/billing"),
+                link(.dashboard, "https://console.x.ai/team/default/settings/management-keys"),
+                link(.status, "https://status.x.ai")
+            ],
+            integrationAvailability: .available,
+            isVisibleByDefault: false
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .mistral,
             displayName: "Mistral AI",
             systemImageName: "wind",
-            dashboardURL: "https://console.mistral.ai/"
+            credentialHelp: "Requires a dedicated Enterprise Admin API key from Mistral Backoffice. A standard Studio API key cannot read financial data. Spender shows the official remaining monthly spending limit.",
+            capabilities: [.balance],
+            externalLinks: [
+                link(.usage, "https://admin.mistral.ai/api/usage"),
+                link(.billing, "https://admin.mistral.ai/subscriptions/billing"),
+                link(.dashboard, "https://backoffice.mistral.ai/"),
+                link(.status, "https://status.mistral.ai")
+            ],
+            integrationAvailability: .available,
+            isVisibleByDefault: false
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .openRouter,
             displayName: "OpenRouter",
             systemImageName: "arrow.triangle.branch",
-            dashboardURL: "https://openrouter.ai/activity"
+            credentialHelp: "Requires an OpenRouter Management API key to read the official account-wide remaining credits.",
+            capabilities: [.balance],
+            externalLinks: [
+                link(.usage, "https://openrouter.ai/activity"),
+                link(.billing, "https://openrouter.ai/settings/credits"),
+                link(.dashboard, "https://openrouter.ai/settings/management-keys")
+            ],
+            integrationAvailability: .available,
+            isVisibleByDefault: false
         ),
-        plannedProvider(
+        ProviderMetadata(
             id: .perplexity,
             displayName: "Perplexity",
             systemImageName: "network",
-            dashboardURL: "https://www.perplexity.ai/settings/api"
+            credentialHelp: "Perplexity does not expose account-wide Sonar API balance or usage through a public API. A standard API key only reports the cost of each request made with that key, so Spender cannot reconstruct activity from other apps.",
+            capabilities: [],
+            externalLinks: [
+                link(.billing, "https://console.perplexity.ai/project/billing"),
+                link(.dashboard, "https://console.perplexity.ai/project/api-keys"),
+                link(.status, "https://status.perplexity.com")
+            ],
+            integrationAvailability: .unavailable,
+            isVisibleByDefault: false
         )
     ]
 
@@ -138,21 +181,4 @@ enum ProviderRegistry {
         ExternalLink(kind: kind, url: URL(string: value)!)
     }
 
-    private static func plannedProvider(
-        id: ProviderID,
-        displayName: String,
-        systemImageName: String,
-        dashboardURL: String
-    ) -> ProviderMetadata {
-        ProviderMetadata(
-            id: id,
-            displayName: displayName,
-            systemImageName: systemImageName,
-            credentialHelp: "Spending integration is planned but not available yet.",
-            capabilities: [],
-            externalLinks: [link(.dashboard, dashboardURL)],
-            integrationAvailability: .planned,
-            isVisibleByDefault: false
-        )
-    }
 }

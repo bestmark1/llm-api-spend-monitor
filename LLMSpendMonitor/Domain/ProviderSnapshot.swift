@@ -72,8 +72,10 @@ enum ProviderIssue: String, Codable, Equatable, Sendable {
     case offline
     case keychainLocked
     case malformedResponse
+    case noSpendingLimit
     case providerUnavailable
     case partialData
+    case spendingLimitReached
 }
 
 struct ProviderSnapshot: Codable, Equatable, Sendable {

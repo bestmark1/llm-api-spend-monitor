@@ -3,6 +3,30 @@ import XCTest
 
 @MainActor
 final class ConnectionViewModelTests: XCTestCase {
+    func testProviderSpecificCredentialPlaceholdersExplainRequiredKeyType() throws {
+        let openRouter = ConnectionViewModel(
+            metadata: try XCTUnwrap(ProviderRegistry.metadata(for: .openRouter)),
+            credentialStore: InMemoryCredentialStore()
+        )
+        let kimi = ConnectionViewModel(
+            metadata: try XCTUnwrap(ProviderRegistry.metadata(for: .kimi)),
+            credentialStore: InMemoryCredentialStore()
+        )
+        let xAI = ConnectionViewModel(
+            metadata: try XCTUnwrap(ProviderRegistry.metadata(for: .xAI)),
+            credentialStore: InMemoryCredentialStore()
+        )
+        let mistral = ConnectionViewModel(
+            metadata: try XCTUnwrap(ProviderRegistry.metadata(for: .mistral)),
+            credentialStore: InMemoryCredentialStore()
+        )
+
+        XCTAssertEqual(openRouter.apiKeyPlaceholder, "Management API key")
+        XCTAssertEqual(kimi.apiKeyPlaceholder, "API key")
+        XCTAssertEqual(xAI.apiKeyPlaceholder, "Management API key")
+        XCTAssertEqual(mistral.apiKeyPlaceholder, "Admin API key")
+    }
+
     func testSaveReplaceAndDeleteIncrementGenerationAndClearDraft() throws {
         let store = InMemoryCredentialStore()
         let metadata = try XCTUnwrap(ProviderRegistry.metadata(for: .openAI))

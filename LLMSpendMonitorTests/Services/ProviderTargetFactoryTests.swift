@@ -130,19 +130,117 @@ final class ProviderTargetFactoryTests: XCTestCase {
         try store.save("anthropic-admin-token", for: Self.anthropicIdentity)
         try store.save("gemini-token", for: Self.geminiIdentity)
         try store.save("deepseek-token", for: Self.deepSeekIdentity)
+        try store.save("kimi-token", for: Self.kimiIdentity)
         try store.save("qwen-token", for: Self.qwenIdentity)
+        try store.save("xai-management-key", for: Self.xAIIdentity)
+        try store.save("mistral-admin-key", for: Self.mistralIdentity)
+        try store.save("openrouter-management-key", for: Self.openRouterIdentity)
         let factory = ProviderTargetFactory(
             credentialStore: store,
             openAIProvider: ProviderClientRecorder(),
             anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
             deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
-            qwenProvider: ProviderClientRecorder(providerID: .qwen)
+            kimiProvider: ProviderClientRecorder(providerID: .kimi),
+            qwenProvider: ProviderClientRecorder(providerID: .qwen),
+            xAIProvider: ProviderClientRecorder(providerID: .xAI),
+            mistralProvider: ProviderClientRecorder(providerID: .mistral),
+            openRouterProvider: ProviderClientRecorder(providerID: .openRouter)
         )
 
         XCTAssertEqual(
             factory.makeTargets().map(\.providerID),
-            [.openAI, .anthropic, .deepSeek, .qwen]
+            [.openAI, .anthropic, .deepSeek, .kimi, .qwen, .xAI, .mistral, .openRouter]
         )
+    }
+
+    func testMistralTargetUsesEnterpriseAdminKeyWithoutReportingWindow() async throws {
+        let store = TargetCredentialStore()
+        try store.save("mistral-admin-key", for: Self.mistralIdentity)
+        let provider = ProviderClientRecorder(providerID: .mistral)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+            kimiProvider: ProviderClientRecorder(providerID: .kimi),
+            qwenProvider: ProviderClientRecorder(providerID: .qwen),
+            xAIProvider: ProviderClientRecorder(providerID: .xAI),
+            mistralProvider: provider,
+            openRouterProvider: ProviderClientRecorder(providerID: .openRouter)
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .mistral)
+        XCTAssertEqual(target.minimumInterval, 15 * 60)
+        XCTAssertEqual(call?.credential, "mistral-admin-key")
+        XCTAssertNil(call?.request.reportingInterval)
+    }
+
+    func testXAITargetUsesManagementKeyAndUTCThirtyDayWindow() async throws {
+        let store = TargetCredentialStore()
+        try store.save("xai-management-key", for: Self.xAIIdentity)
+        let provider = ProviderClientRecorder(providerID: .xAI)
+        let now = Date(timeIntervalSince1970: 1_784_283_600)
+        let factory = ProviderTargetFactory(
+            credentialStore: store,
+            openAIProvider: ProviderClientRecorder(),
+            anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+            deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+            kimiProvider: ProviderClientRecorder(providerID: .kimi),
+            qwenProvider: ProviderClientRecorder(providerID: .qwen),
+            xAIProvider: provider,
+            openRouterProvider: ProviderClientRecorder(providerID: .openRouter),
+            now: { now }
+        )
+
+        let target = try XCTUnwrap(factory.makeTargets().first)
+        _ = try await target.fetch()
+
+        let call = await provider.lastCall
+        XCTAssertEqual(target.providerID, .xAI)
+        XCTAssertEqual(target.minimumInterval, 15 * 60)
+        XCTAssertEqual(call?.credential, "xai-management-key")
+        XCTAssertEqual(call?.request.purpose, .full)
+        XCTAssertEqual(
+            call?.request.reportingInterval,
+            DateInterval(
+                start: Date(timeIntervalSince1970: 1_781_740_800),
+                end: Date(timeIntervalSince1970: 1_784_332_800)
+            )
+        )
+    }
+
+    func testBalanceOnlyProvidersRefreshWithoutReportingWindow() async throws {
+        let cases: [(ProviderID, CredentialIdentity)] = [
+            (.kimi, Self.kimiIdentity),
+            (.openRouter, Self.openRouterIdentity)
+        ]
+
+        for (providerID, identity) in cases {
+            let store = TargetCredentialStore()
+            try store.save("credential", for: identity)
+            let provider = ProviderClientRecorder(providerID: providerID)
+            let factory = ProviderTargetFactory(
+                credentialStore: store,
+                openAIProvider: ProviderClientRecorder(),
+                anthropicProvider: ProviderClientRecorder(providerID: .anthropic),
+                deepSeekProvider: ProviderClientRecorder(providerID: .deepSeek),
+                kimiProvider: providerID == .kimi ? provider : ProviderClientRecorder(providerID: .kimi),
+                qwenProvider: ProviderClientRecorder(providerID: .qwen),
+                openRouterProvider: providerID == .openRouter ? provider : ProviderClientRecorder(providerID: .openRouter)
+            )
+
+            let target = try XCTUnwrap(factory.makeTargets().first)
+            _ = try await target.fetch()
+
+            let call = await provider.lastCall
+            XCTAssertEqual(target.providerID, providerID)
+            XCTAssertEqual(target.minimumInterval, 5 * 60)
+            XCTAssertNil(call?.request.reportingInterval)
+        }
     }
 
     func testQwenTargetRefreshesThirtyDayBillingWindow() async throws {
@@ -196,7 +294,11 @@ final class ProviderTargetFactoryTests: XCTestCase {
     private static let anthropicIdentity = CredentialIdentity(providerID: .anthropic)
     private static let geminiIdentity = CredentialIdentity(providerID: .gemini)
     private static let deepSeekIdentity = CredentialIdentity(providerID: .deepSeek)
+    private static let kimiIdentity = CredentialIdentity(providerID: .kimi)
     private static let qwenIdentity = CredentialIdentity(providerID: .qwen)
+    private static let xAIIdentity = CredentialIdentity(providerID: .xAI)
+    private static let mistralIdentity = CredentialIdentity(providerID: .mistral)
+    private static let openRouterIdentity = CredentialIdentity(providerID: .openRouter)
 }
 
 private final class TargetCredentialStore: CredentialStoring, @unchecked Sendable {
@@ -236,11 +338,13 @@ private actor ProviderClientRecorder: ProviderClient {
             capabilities = [.credentialValidation]
         case .qwen:
             capabilities = [.credentialValidation, .officialCostHistory]
-        case .deepSeek:
+        case .deepSeek, .kimi, .mistral, .openRouter:
             capabilities = [.balance]
         case .openAI, .anthropic:
             capabilities = [.officialCostHistory, .tokenUsage, .modelBreakdown]
-        case .kimi, .xAI, .mistral, .openRouter, .perplexity:
+        case .xAI:
+            capabilities = [.balance, .officialCostHistory, .modelBreakdown]
+        case .perplexity:
             capabilities = []
         }
     }
