@@ -131,8 +131,7 @@ private struct DashboardView: View {
                 total: viewModel.trackedUSDTotal,
                 breakdown: viewModel.trackedUSDBreakdown,
                 dailySpend: viewModel.trackedUSDDailySpend,
-                excludedProviderCount: viewModel.excludedOfficialCostProviderCount,
-                estimatedProviderCount: viewModel.estimatedUSDProviderCount
+                excludedProviderCount: viewModel.excludedOfficialCostProviderCount
             )
 
             ScrollView {

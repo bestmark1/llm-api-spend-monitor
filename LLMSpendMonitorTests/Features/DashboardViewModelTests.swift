@@ -107,7 +107,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(model.trackedUSDBreakdown.map(\.providerID), [.deepSeek])
         XCTAssertEqual(model.trackedUSDBreakdown.first?.provenance, .estimated)
         XCTAssertEqual(model.trackedUSDDailySpend.map(\.amount.amount), [Decimal(string: "1.70")])
-        XCTAssertEqual(model.estimatedUSDProviderCount, 1)
         XCTAssertEqual(model.officialUSDTotal.amount, 0)
         XCTAssertEqual(model.menuBarUSDTotal.amount, Decimal(string: "1.70"))
     }

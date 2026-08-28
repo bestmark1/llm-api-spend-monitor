@@ -237,11 +237,13 @@ struct ProviderCard: View {
             let qualifier = hasEstimatedCost(snapshot) ? "estimated spent" : "spent"
             parts.append("\(MetricFormatting.money(cost)) \(qualifier)")
         }
-        if let granted = balance.granted {
-            parts.append("\(MetricFormatting.money(granted.value)) granted")
-        }
-        if let toppedUp = balance.toppedUp {
-            parts.append("\(MetricFormatting.money(toppedUp.value)) topped up")
+        if metadata.id != .deepSeek {
+            if let granted = balance.granted {
+                parts.append("\(MetricFormatting.money(granted.value)) granted")
+            }
+            if let toppedUp = balance.toppedUp {
+                parts.append("\(MetricFormatting.money(toppedUp.value)) topped up")
+            }
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -270,7 +272,7 @@ struct ProviderCard: View {
     private func officialBalanceContent(_ balance: ProviderBalance) -> some View {
         primaryMetric(label: officialBalanceLabel, money: balance.total.value)
 
-        if balance.granted != nil || balance.toppedUp != nil {
+        if metadata.id != .deepSeek, (balance.granted != nil || balance.toppedUp != nil) {
             VStack(spacing: 7) {
                 if let granted = balance.granted {
                     MetricRow(label: "Granted", value: MetricFormatting.money(granted.value))
@@ -549,7 +551,7 @@ struct ProviderCard: View {
             case .current:
                 return ("Current", "checkmark.circle.fill", .green)
             case .processing:
-                return ("Processing", "clock.arrow.2.circlepath", .blue)
+                return ("Current", "checkmark.circle.fill", .green)
             case .stale:
                 return ("Stale", "clock.badge.exclamationmark", .orange)
             }

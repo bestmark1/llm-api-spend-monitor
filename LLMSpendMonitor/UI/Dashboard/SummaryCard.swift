@@ -5,7 +5,6 @@ struct SummaryCard: View {
     let breakdown: [ProviderSpendSummary]
     let dailySpend: [DailySpendPoint]
     let excludedProviderCount: Int
-    let estimatedProviderCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -18,7 +17,14 @@ struct SummaryCard: View {
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .contentTransition(.numericText(value: decimalValue(total.amount)))
-                    statusLabel
+                    if excludedProviderCount > 0 {
+                        Label(
+                            "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("dashboard.summary.partial")
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -45,29 +51,6 @@ struct SummaryCard: View {
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dashboard.summary")
-    }
-
-    @ViewBuilder
-    private var statusLabel: some View {
-        if excludedProviderCount > 0 {
-            Label(
-                "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
-                systemImage: "exclamationmark.circle.fill"
-            )
-            .foregroundStyle(.orange)
-            .accessibilityIdentifier("dashboard.summary.partial")
-        } else if estimatedProviderCount > 0 {
-            Label(
-                "Official reports · (estimatedProviderCount) balance estimate\(estimatedProviderCount == 1 ? "" : "s")",
-                systemImage: "equal.circle.fill"
-            )
-            .foregroundStyle(.secondary)
-            .accessibilityIdentifier("dashboard.summary.estimated")
-        } else {
-            Label("Complete official USD reports", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("dashboard.summary.complete")
-        }
     }
 
     private var providerLegend: some View {

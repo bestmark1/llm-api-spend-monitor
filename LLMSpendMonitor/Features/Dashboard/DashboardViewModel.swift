@@ -217,13 +217,6 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
-    var estimatedUSDProviderCount: Int {
-        snapshots.keys.count { providerID in
-            completeTrackedCostSnapshot(for: providerID)?
-                .capabilities.contains(.estimatedCostHistory) == true
-        }
-    }
-
     var excludedOfficialCostProviderCount: Int {
         snapshots.keys.reduce(into: 0) { result, providerID in
             guard snapshots[providerID]?.capabilities.contains(.officialCostHistory) == true else { return }
