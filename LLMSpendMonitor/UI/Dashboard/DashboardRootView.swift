@@ -128,10 +128,11 @@ private struct DashboardView: View {
             PeriodPicker(selection: $viewModel.selectedPeriod)
 
             SummaryCard(
-                total: viewModel.officialUSDTotal,
-                breakdown: viewModel.officialUSDBreakdown,
-                dailySpend: viewModel.officialUSDDailySpend,
-                excludedProviderCount: viewModel.excludedOfficialCostProviderCount
+                total: viewModel.trackedUSDTotal,
+                breakdown: viewModel.trackedUSDBreakdown,
+                dailySpend: viewModel.trackedUSDDailySpend,
+                excludedProviderCount: viewModel.excludedOfficialCostProviderCount,
+                estimatedProviderCount: viewModel.estimatedUSDProviderCount
             )
 
             ScrollView {

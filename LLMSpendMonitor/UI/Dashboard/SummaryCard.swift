@@ -5,12 +5,13 @@ struct SummaryCard: View {
     let breakdown: [ProviderSpendSummary]
     let dailySpend: [DailySpendPoint]
     let excludedProviderCount: Int
+    let estimatedProviderCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Official spend")
+                    Text("Tracked spend")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.secondary)
                     Text(MetricFormatting.money(total))
@@ -55,6 +56,13 @@ struct SummaryCard: View {
             )
             .foregroundStyle(.orange)
             .accessibilityIdentifier("dashboard.summary.partial")
+        } else if estimatedProviderCount > 0 {
+            Label(
+                "Official reports · (estimatedProviderCount) balance estimate\(estimatedProviderCount == 1 ? "" : "s")",
+                systemImage: "equal.circle.fill"
+            )
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("dashboard.summary.estimated")
         } else {
             Label("Complete official USD reports", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.secondary)
@@ -78,7 +86,9 @@ struct SummaryCard: View {
                         .monospacedDigit()
                 }
                 .font(.callout)
-                .help("Official spend reported by \(providerName(summary.providerID))")
+                .help(summary.provenance == .estimated
+                    ? "Estimated from saved balance decreases for \(providerName(summary.providerID))"
+                    : "Official spend reported by \(providerName(summary.providerID))")
             }
         }
     }

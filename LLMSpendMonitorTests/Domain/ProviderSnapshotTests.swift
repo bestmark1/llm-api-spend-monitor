@@ -62,7 +62,26 @@ final class ProviderSnapshotTests: XCTestCase {
         }
     }
 
-    func testSnapshotRejectsEstimatedProviderMoney() throws {
+    func testSnapshotAcceptsEstimatedProviderMoneyWithMatchingCapability() throws {
+        let estimated = MoneyMetric(
+            value: try Money(amount: 1, currencyCode: "USD"),
+            provenance: .estimated
+        )
+
+        let snapshot = try ProviderSnapshot(
+            providerID: .deepSeek,
+            capabilities: [.balance, .estimatedCostHistory],
+            fetchedAt: end,
+            coverage: ReportingCoverage(start: start, through: end, completeness: .complete),
+            buckets: [PeriodBucket(start: start, end: end, cost: estimated)],
+            balances: [],
+            issue: nil
+        )
+
+        XCTAssertEqual(snapshot.buckets.first?.cost, estimated)
+    }
+
+    func testSnapshotRejectsEstimatedProviderMoneyWithoutMatchingCapability() throws {
         let estimated = MoneyMetric(
             value: try Money(amount: 1, currencyCode: "USD"),
             provenance: .estimated
@@ -70,8 +89,8 @@ final class ProviderSnapshotTests: XCTestCase {
 
         XCTAssertThrowsError(
             try ProviderSnapshot(
-                providerID: .openAI,
-                capabilities: [.officialCostHistory],
+                providerID: .deepSeek,
+                capabilities: [.balance],
                 fetchedAt: end,
                 coverage: ReportingCoverage(start: start, through: end, completeness: .complete),
                 buckets: [PeriodBucket(start: start, end: end, cost: estimated)],
@@ -79,7 +98,7 @@ final class ProviderSnapshotTests: XCTestCase {
                 issue: nil
             )
         ) { error in
-            XCTAssertEqual(error as? ProviderSnapshot.ValidationError, .nonOfficialProviderMoney)
+            XCTAssertEqual(error as? ProviderSnapshot.ValidationError, .unsupportedMetric(.estimatedCostHistory))
         }
     }
 

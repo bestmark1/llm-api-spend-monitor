@@ -40,6 +40,7 @@ enum DashboardPeriod: Int, CaseIterable, Identifiable, Sendable {
 struct ProviderSpendSummary: Identifiable, Equatable, Sendable {
     let providerID: ProviderID
     let amount: Money
+    let provenance: MetricProvenance
 
     var id: ProviderID { providerID }
 }
@@ -122,12 +123,20 @@ final class DashboardViewModel: ObservableObject {
         return try! Money(amount: total, currencyCode: "USD")
     }
 
+    var trackedUSDTotal: Money {
+        let total = trackedUSDBreakdown.reduce(into: Decimal.zero) { result, summary in
+            result += summary.amount.amount
+        }
+        return try! Money(amount: total, currencyCode: "USD")
+    }
+
     var menuBarUSDTotal: Money {
         let interval = DashboardPeriod.today.interval(containing: now())
         let total = snapshots.values.reduce(into: Decimal.zero) { result, snapshot in
             guard
                 Self.acceptsOfficialCost(snapshot.issue),
-                snapshot.capabilities.contains(.officialCostHistory),
+                snapshot.capabilities.contains(.officialCostHistory)
+                    || snapshot.capabilities.contains(.estimatedCostHistory),
                 let coverage = snapshot.coverage,
                 coverage.completeness == .complete,
                 coverage.start <= interval.start,
@@ -136,7 +145,7 @@ final class DashboardViewModel: ObservableObject {
 
             for bucket in snapshot.buckets where
                 bucket.start >= interval.start && bucket.end <= interval.end {
-                result += officialUSDCost(in: bucket)?.amount ?? 0
+                result += trackedUSDCostMetric(in: bucket)?.value.amount ?? 0
             }
         }
         return try! Money(amount: total, currencyCode: "USD")
@@ -151,7 +160,25 @@ final class DashboardViewModel: ObservableObject {
             guard total > 0 else { return nil }
             return ProviderSpendSummary(
                 providerID: providerID,
-                amount: try! Money(amount: total, currencyCode: "USD")
+                amount: try! Money(amount: total, currencyCode: "USD"),
+                provenance: .official
+            )
+        }
+    }
+
+    var trackedUSDBreakdown: [ProviderSpendSummary] {
+        snapshots.keys.sorted(by: { $0.rawValue < $1.rawValue }).compactMap { providerID in
+            guard let snapshot = completeTrackedCostSnapshot(for: providerID) else { return nil }
+            let costs = trackedUSDCostMetrics(in: snapshot)
+            let total = costs.reduce(into: Decimal.zero) { $0 += $1.value.amount }
+            guard total > 0 else { return nil }
+            let provenance: MetricProvenance = costs.contains { $0.provenance == .estimated }
+                ? .estimated
+                : .official
+            return ProviderSpendSummary(
+                providerID: providerID,
+                amount: try! Money(amount: total, currencyCode: "USD"),
+                provenance: provenance
             )
         }
     }
@@ -170,6 +197,30 @@ final class DashboardViewModel: ObservableObject {
                 date: date,
                 amount: try! Money(amount: totals[date, default: 0], currencyCode: "USD")
             )
+        }
+    }
+
+    var trackedUSDDailySpend: [DailySpendPoint] {
+        var totals: [Date: Decimal] = [:]
+        for providerID in snapshots.keys {
+            guard let snapshot = completeTrackedCostSnapshot(for: providerID) else { continue }
+            for bucket in snapshot.buckets {
+                guard let cost = trackedUSDCostMetric(in: bucket) else { continue }
+                totals[utcStartOfDay(for: bucket.start), default: 0] += cost.value.amount
+            }
+        }
+        return totals.keys.sorted().map { date in
+            DailySpendPoint(
+                date: date,
+                amount: try! Money(amount: totals[date, default: 0], currencyCode: "USD")
+            )
+        }
+    }
+
+    var estimatedUSDProviderCount: Int {
+        snapshots.keys.count { providerID in
+            completeTrackedCostSnapshot(for: providerID)?
+                .capabilities.contains(.estimatedCostHistory) == true
         }
     }
 
@@ -360,6 +411,17 @@ final class DashboardViewModel: ObservableObject {
             Self.acceptsOfficialCost(snapshot.issue),
             snapshot.capabilities.contains(.officialCostHistory),
             snapshot.coverage?.completeness == .complete
+        else { return nil }
+        return snapshot
+    }
+
+    private func completeTrackedCostSnapshot(for providerID: ProviderID) -> ProviderSnapshot? {
+        guard
+            let snapshot = snapshot(for: providerID),
+            Self.acceptsOfficialCost(snapshot.issue),
+            snapshot.coverage?.completeness == .complete,
+            snapshot.capabilities.contains(.officialCostHistory)
+                || snapshot.capabilities.contains(.estimatedCostHistory)
         else { return nil }
         return snapshot
     }
@@ -571,6 +633,19 @@ final class DashboardViewModel: ObservableObject {
             cost.value.currencyCode == "USD"
         else { return nil }
         return cost.value
+    }
+
+    private func trackedUSDCostMetrics(in snapshot: ProviderSnapshot) -> [MoneyMetric] {
+        snapshot.buckets.compactMap(trackedUSDCostMetric(in:))
+    }
+
+    private func trackedUSDCostMetric(in bucket: PeriodBucket) -> MoneyMetric? {
+        guard
+            let cost = bucket.cost,
+            cost.value.currencyCode == "USD",
+            cost.provenance == .official || cost.provenance == .estimated
+        else { return nil }
+        return cost
     }
 
     private func utcStartOfDay(for date: Date) -> Date {

@@ -234,7 +234,8 @@ struct ProviderCard: View {
     ) -> String? {
         var parts: [String] = []
         if let snapshot, let cost = costTotals(snapshot).first {
-            parts.append("\(MetricFormatting.money(cost)) spent")
+            let qualifier = hasEstimatedCost(snapshot) ? "estimated spent" : "spent"
+            parts.append("\(MetricFormatting.money(cost)) \(qualifier)")
         }
         if let granted = balance.granted {
             parts.append("\(MetricFormatting.money(granted.value)) granted")
@@ -333,7 +334,16 @@ struct ProviderCard: View {
 
     @ViewBuilder
     private func periodSpendContent(_ snapshot: ProviderSnapshot, cost: Money) -> some View {
-        primaryMetric(label: "Period spend", money: cost)
+        primaryMetric(
+            label: hasEstimatedCost(snapshot) ? "Estimated period spend" : "Period spend",
+            money: cost
+        )
+        if hasEstimatedCost(snapshot) {
+            Text("Calculated from saved balance decreases. Top-ups are not counted as spend.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         tokenRows(snapshot)
         modelRows(snapshot)
     }
@@ -580,6 +590,11 @@ struct ProviderCard: View {
             }
             return parts.joined(separator: " · ")
         }
+        if metadata.capabilities.contains(.estimatedCostHistory) {
+            return metadata.capabilities.contains(.balance)
+                ? "Balance · estimated spend"
+                : "Estimated spend"
+        }
         if metadata.capabilities.contains(.balance) {
             return "Official balance"
         }
@@ -663,12 +678,19 @@ struct ProviderCard: View {
 
     private func costTotals(_ snapshot: ProviderSnapshot) -> [Money] {
         let totals = snapshot.buckets.reduce(into: [String: Decimal]()) { result, bucket in
-            guard let cost = bucket.cost, cost.provenance == .official else { return }
+            guard
+                let cost = bucket.cost,
+                cost.provenance == .official || cost.provenance == .estimated
+            else { return }
             result[cost.value.currencyCode, default: 0] += cost.value.amount
         }
         return totals.keys.sorted().compactMap { currencyCode in
             try? Money(amount: totals[currencyCode, default: 0], currencyCode: currencyCode)
         }
+    }
+
+    private func hasEstimatedCost(_ snapshot: ProviderSnapshot) -> Bool {
+        snapshot.buckets.contains { $0.cost?.provenance == .estimated }
     }
 
     private func tokenTotal(

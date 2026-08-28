@@ -75,6 +75,43 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertFalse(model.isOfficialCostPartial)
     }
 
+    func testTrackedSpendIncludesDeepSeekEstimatedBalanceDecrease() async throws {
+        let now = Date(timeIntervalSince1970: 1_700_265_599)
+        let interval = DashboardPeriod.today.interval(containing: now)
+        let estimatedCost = MoneyMetric(
+            value: try Money(amount: Decimal(string: "1.70")!, currencyCode: "USD"),
+            provenance: .estimated
+        )
+        let snapshot = try ProviderSnapshot(
+            providerID: .deepSeek,
+            capabilities: [.balance, .estimatedCostHistory],
+            fetchedAt: now,
+            coverage: ReportingCoverage(
+                start: interval.start.addingTimeInterval(-29 * 86_400),
+                through: interval.end,
+                completeness: .complete
+            ),
+            buckets: [PeriodBucket(start: interval.start, end: interval.end, cost: estimatedCost)],
+            balances: [],
+            issue: nil
+        )
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStub(cached: [.deepSeek: snapshot], refreshed: [:]),
+            targets: [],
+            now: { now }
+        )
+
+        await model.loadCache()
+
+        XCTAssertEqual(model.trackedUSDTotal.amount, Decimal(string: "1.70"))
+        XCTAssertEqual(model.trackedUSDBreakdown.map(\.providerID), [.deepSeek])
+        XCTAssertEqual(model.trackedUSDBreakdown.first?.provenance, .estimated)
+        XCTAssertEqual(model.trackedUSDDailySpend.map(\.amount.amount), [Decimal(string: "1.70")])
+        XCTAssertEqual(model.estimatedUSDProviderCount, 1)
+        XCTAssertEqual(model.officialUSDTotal.amount, 0)
+        XCTAssertEqual(model.menuBarUSDTotal.amount, Decimal(string: "1.70"))
+    }
+
     func testAggregateExcludesErroredProviderCost() async throws {
         let errored = try makeCostSnapshot(
             providerID: .openAI,

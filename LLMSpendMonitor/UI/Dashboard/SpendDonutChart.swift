@@ -7,7 +7,7 @@ struct SpendDonutChart: View {
     var body: some View {
         Chart(breakdown) { summary in
             SectorMark(
-                angle: .value("Official spend", decimalValue(summary.amount.amount)),
+                angle: .value("Tracked spend", decimalValue(summary.amount.amount)),
                 innerRadius: .ratio(0.68),
                 angularInset: 1.5
             )
@@ -17,7 +17,7 @@ struct SpendDonutChart: View {
         .chartLegend(.hidden)
         .frame(width: 96, height: 96)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Official spend distribution")
+        .accessibilityLabel("Tracked spend distribution")
         .accessibilityValue(accessibilitySummary)
         .accessibilityIdentifier("dashboard.spendDistribution")
     }

@@ -112,7 +112,9 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
             throw ValidationError.unsupportedMetric(missingCapability)
         }
 
-        guard Self.providerMoney(in: buckets, balances: balances).allSatisfy({ $0.provenance == .official }) else {
+        guard Self.providerMoney(in: buckets, balances: balances).allSatisfy({
+            $0.provenance == .official || $0.provenance == .estimated
+        }) else {
             throw ValidationError.nonOfficialProviderMoney
         }
 
@@ -179,8 +181,14 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
     ) -> Set<ProviderCapability> {
         var capabilities: Set<ProviderCapability> = []
 
-        if buckets.contains(where: { $0.cost != nil || $0.modelBreakdown.contains(where: { $0.cost != nil }) }) {
+        let costMetrics = buckets.flatMap { bucket in
+            [bucket.cost].compactMap { $0 } + bucket.modelBreakdown.compactMap(\.cost)
+        }
+        if costMetrics.contains(where: { $0.provenance == .official }) {
             capabilities.insert(.officialCostHistory)
+        }
+        if costMetrics.contains(where: { $0.provenance == .estimated }) {
+            capabilities.insert(.estimatedCostHistory)
         }
         if buckets.contains(where: { $0.tokenUsage != nil || $0.modelBreakdown.contains(where: { $0.tokenUsage != nil }) }) {
             capabilities.insert(.tokenUsage)

@@ -102,7 +102,10 @@ actor RefreshCoordinator {
                 lastAttemptAt[snapshot.providerID] = attemptedAt
                 consecutiveFailures.removeValue(forKey: snapshot.providerID)
                 retryNotBefore.removeValue(forKey: snapshot.providerID)
-                snapshots[snapshot.providerID] = snapshot
+                snapshots[snapshot.providerID] = Self.mergingLocalMetrics(
+                    into: snapshot,
+                    previous: snapshots[snapshot.providerID]
+                )
             case let .failure(providerID, issue, retryAfter):
                 lastAttemptAt[providerID] = attemptedAt
                 let failureCount = consecutiveFailures[providerID, default: 0] + 1
@@ -205,6 +208,92 @@ actor RefreshCoordinator {
         )) ?? snapshot
     }
 
+    private static func mergingLocalMetrics(
+        into snapshot: ProviderSnapshot,
+        previous: ProviderSnapshot?
+    ) -> ProviderSnapshot {
+        guard snapshot.providerID == .deepSeek else { return snapshot }
+
+        let interval = thirtyDayUTCInterval(containing: snapshot.fetchedAt)
+        var costsByDayAndCurrency: [BalanceCostKey: Decimal] = [:]
+
+        if let previous {
+            for bucket in previous.buckets {
+                guard
+                    bucket.start >= interval.start,
+                    bucket.end <= interval.end,
+                    let cost = bucket.cost,
+                    cost.provenance == .estimated
+                else { continue }
+                costsByDayAndCurrency[
+                    BalanceCostKey(day: bucket.start, currencyCode: cost.value.currencyCode),
+                    default: 0
+                ] += cost.value.amount
+            }
+
+            let previousBalances = previous.balances.reduce(into: [String: Decimal]()) {
+                $0[$1.total.value.currencyCode] = $1.total.value.amount
+            }
+            let day = utcStartOfDay(snapshot.fetchedAt)
+            for balance in snapshot.balances {
+                let currencyCode = balance.total.value.currencyCode
+                guard let oldAmount = previousBalances[currencyCode] else { continue }
+                let decrease = oldAmount - balance.total.value.amount
+                guard decrease > 0 else { continue }
+                costsByDayAndCurrency[
+                    BalanceCostKey(day: day, currencyCode: currencyCode),
+                    default: 0
+                ] += decrease
+            }
+        }
+
+        let buckets = costsByDayAndCurrency.keys.sorted {
+            $0.day == $1.day
+                ? $0.currencyCode < $1.currencyCode
+                : $0.day < $1.day
+        }.compactMap { key -> PeriodBucket? in
+            guard
+                let amount = costsByDayAndCurrency[key],
+                let money = try? Money(amount: amount, currencyCode: key.currencyCode)
+            else { return nil }
+            return PeriodBucket(
+                start: key.day,
+                end: key.day.addingTimeInterval(86_400),
+                cost: MoneyMetric(value: money, provenance: .estimated)
+            )
+        }
+
+        return (try? ProviderSnapshot(
+            providerID: snapshot.providerID,
+            capabilities: snapshot.capabilities.union([.estimatedCostHistory]),
+            fetchedAt: snapshot.fetchedAt,
+            coverage: ReportingCoverage(
+                start: interval.start,
+                through: interval.end,
+                completeness: .complete
+            ),
+            buckets: buckets,
+            balances: snapshot.balances,
+            issue: snapshot.issue
+        )) ?? snapshot
+    }
+
+    private static func thirtyDayUTCInterval(containing date: Date) -> DateInterval {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let today = calendar.startOfDay(for: date)
+        return DateInterval(
+            start: calendar.date(byAdding: .day, value: -29, to: today)!,
+            end: calendar.date(byAdding: .day, value: 1, to: today)!
+        )
+    }
+
+    private static func utcStartOfDay(_ date: Date) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar.startOfDay(for: date)
+    }
+
     private static func diagnosticSnapshot(
         providerID: ProviderID,
         issue: ProviderIssue,
@@ -223,4 +312,9 @@ actor RefreshCoordinator {
             issue: issue
         )
     }
+}
+
+private struct BalanceCostKey: Hashable {
+    let day: Date
+    let currencyCode: String
 }

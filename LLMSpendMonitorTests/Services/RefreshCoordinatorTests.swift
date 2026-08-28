@@ -61,6 +61,57 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertTrue(snapshots[.openAI]?.buckets.isEmpty == true)
     }
 
+    func testDeepSeekBalanceDecreaseCreatesEstimatedDailySpendAndPersistsIt() async throws {
+        let firstDate = Date(timeIntervalSince1970: 1_784_332_800)
+        let secondDate = firstDate.addingTimeInterval(86_400)
+        let cache = InMemorySnapshotCache()
+        let coordinator = RefreshCoordinator(cache: cache, now: { secondDate })
+        let probe = SequencedFetchProbe(results: [
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "10.00", fetchedAt: firstDate)),
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "8.30", fetchedAt: secondDate))
+        ])
+        let target = makeTarget(providerID: .deepSeek, fetch: { try await probe.fetch() })
+
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let snapshots = await coordinator.refresh(trigger: .manual, targets: [target])
+
+        let deepSeek = try XCTUnwrap(snapshots[.deepSeek])
+        XCTAssertEqual(deepSeek.capabilities, [.balance, .estimatedCostHistory])
+        XCTAssertEqual(deepSeek.buckets.count, 1)
+        XCTAssertEqual(deepSeek.buckets.first?.cost?.value.amount, Decimal(string: "1.70"))
+        XCTAssertEqual(deepSeek.buckets.first?.cost?.provenance, .estimated)
+        XCTAssertEqual(deepSeek.buckets.first?.start, secondDate)
+        XCTAssertEqual(deepSeek.buckets.first?.end, secondDate.addingTimeInterval(86_400))
+
+        let persisted = await cache.load()
+        XCTAssertEqual(persisted[.deepSeek], deepSeek)
+    }
+
+    func testDeepSeekTopUpDoesNotCreateSpendOrDiscardEarlierEstimate() async throws {
+        let firstDate = Date(timeIntervalSince1970: 1_784_332_800)
+        let secondDate = firstDate.addingTimeInterval(86_400)
+        let thirdDate = secondDate.addingTimeInterval(86_400)
+        let coordinator = RefreshCoordinator(
+            cache: InMemorySnapshotCache(),
+            now: { thirdDate }
+        )
+        let probe = SequencedFetchProbe(results: [
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "10.00", fetchedAt: firstDate)),
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "8.30", fetchedAt: secondDate)),
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "12.00", fetchedAt: thirdDate))
+        ])
+        let target = makeTarget(providerID: .deepSeek, fetch: { try await probe.fetch() })
+
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let snapshots = await coordinator.refresh(trigger: .manual, targets: [target])
+
+        let deepSeek = try XCTUnwrap(snapshots[.deepSeek])
+        XCTAssertEqual(deepSeek.buckets.count, 1)
+        XCTAssertEqual(deepSeek.buckets.first?.cost?.value.amount, Decimal(string: "1.70"))
+        XCTAssertEqual(deepSeek.balances.first?.total.value.amount, Decimal(string: "12.00"))
+    }
+
     func testTimerSkipsButManualRefreshesValidationOnlyProvider() async throws {
         let cache = InMemorySnapshotCache()
         let coordinator = RefreshCoordinator(cache: cache, now: { Date(timeIntervalSince1970: 2_000_000_000) })
@@ -225,6 +276,30 @@ final class RefreshCoordinatorTests: XCTestCase {
             coverage: nil,
             buckets: [],
             balances: [],
+            issue: nil
+        )
+    }
+
+    private func makeBalanceSnapshot(
+        providerID: ProviderID,
+        amount: String,
+        fetchedAt: Date
+    ) throws -> ProviderSnapshot {
+        let balance = ProviderBalance(
+            total: MoneyMetric(
+                value: try Money(amount: Decimal(string: amount)!, currencyCode: "USD"),
+                provenance: .official
+            ),
+            granted: nil,
+            toppedUp: nil
+        )
+        return try ProviderSnapshot(
+            providerID: providerID,
+            capabilities: [.balance],
+            fetchedAt: fetchedAt,
+            coverage: nil,
+            buckets: [],
+            balances: [balance],
             issue: nil
         )
     }

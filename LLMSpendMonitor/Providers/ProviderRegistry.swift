@@ -70,8 +70,8 @@ enum ProviderRegistry {
             id: .deepSeek,
             displayName: "DeepSeek",
             systemImageName: "wave.3.right.circle",
-            credentialHelp: "A standard API key provides the official current balance, but not cost history.",
-            capabilities: [.balance],
+            credentialHelp: "A standard API key provides the official current balance. Spender estimates daily spend from saved balance decreases because DeepSeek does not expose cost history via API.",
+            capabilities: [.balance, .estimatedCostHistory],
             externalLinks: [
                 link(.usage, "https://platform.deepseek.com/usage"),
                 link(.billing, "https://platform.deepseek.com/top_up"),

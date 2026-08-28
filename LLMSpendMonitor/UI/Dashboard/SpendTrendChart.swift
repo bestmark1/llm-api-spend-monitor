@@ -8,7 +8,7 @@ struct SpendTrendChart: View {
         Chart(points) { point in
             BarMark(
                 x: .value("Day", point.date, unit: .day),
-                y: .value("Official spend", decimalValue(point.amount.amount))
+                y: .value("Tracked spend", decimalValue(point.amount.amount))
             )
             .foregroundStyle(.tint)
             .cornerRadius(2)
@@ -17,7 +17,7 @@ struct SpendTrendChart: View {
         .chartYAxis(.hidden)
         .frame(height: 42)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Daily official spend trend")
+        .accessibilityLabel("Daily tracked spend trend")
         .accessibilityValue(accessibilitySummary)
         .accessibilityIdentifier("dashboard.spendTrend")
     }
