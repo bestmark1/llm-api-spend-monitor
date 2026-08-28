@@ -26,6 +26,9 @@ struct SummaryCard: View {
                         .foregroundStyle(.orange)
                         .accessibilityIdentifier("dashboard.summary.partial")
                     }
+                    if !showsDetails, !breakdown.isEmpty {
+                        compactProviderLegend
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -76,6 +79,23 @@ struct SummaryCard: View {
             }
         }
         .accessibilityIdentifier("dashboard.providerBreakdown")
+    }
+
+    private var compactProviderLegend: some View {
+        HStack(spacing: 12) {
+            ForEach(breakdown) { summary in
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(ProviderVisualStyle.color(for: summary.providerID))
+                        .frame(width: 7, height: 7)
+                        .accessibilityHidden(true)
+                    Text(providerName(summary.providerID))
+                }
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityIdentifier("dashboard.compactProviderLegend")
     }
 
     private func providerName(_ providerID: ProviderID) -> String {

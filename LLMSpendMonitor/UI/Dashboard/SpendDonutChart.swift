@@ -13,7 +13,7 @@ struct SpendDonutChart: View {
             .foregroundStyle(ProviderVisualStyle.color(for: summary.providerID))
         }
         .chartLegend(.hidden)
-        .frame(width: 104, height: 104)
+        .frame(width: 92, height: 92)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Tracked spend distribution")
         .accessibilityValue(accessibilitySummary)
