@@ -382,7 +382,24 @@ final class DashboardViewModel: ObservableObject {
 
     func credentialDidChange(_ providerID: ProviderID) async {
         snapshots.removeValue(forKey: providerID)
-        if platformBalanceCheckpoints.removeValue(forKey: providerID) != nil {
+        if let checkpoint = platformBalanceCheckpoints[providerID] {
+            let remainingAmount = max(
+                Decimal.zero,
+                checkpoint.enteredBalance.amount - checkpoint.deductedSpend.amount
+            )
+            platformBalanceCheckpoints[providerID] = PlatformBalanceCheckpoint(
+                providerID: providerID,
+                enteredBalance: try! Money(
+                    amount: remainingAmount,
+                    currencyCode: checkpoint.enteredBalance.currencyCode
+                ),
+                synchronizedAt: now(),
+                deductedSpend: try! Money(
+                    amount: 0,
+                    currencyCode: checkpoint.enteredBalance.currencyCode
+                ),
+                costAnchors: []
+            )
             persistPlatformBalances()
         }
         await dataSource.purge(providerID)

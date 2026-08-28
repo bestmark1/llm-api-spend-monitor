@@ -306,23 +306,29 @@ final class PlatformBalanceTests: XCTestCase {
         }
     }
 
-    func testCredentialChangeClearsTrackedBalance() async throws {
+    func testCredentialChangePreservesTrackedBalanceAsNewBaseline() async throws {
         let snapshot = try makeSnapshot(firstDay: "5.00")
         let model = DashboardViewModel(
             dataSource: DashboardDataSourceStubForBalance(
                 refreshed: [.openAI: snapshot]
             ),
             targets: [],
-            platformBalanceStore: InMemoryPlatformBalanceStore()
+            platformBalanceStore: InMemoryPlatformBalanceStore(),
+            now: { platformBalanceSyncDate }
         )
-        _ = await model.synchronizePlatformBalance(
+        let synchronized = await model.synchronizePlatformBalance(
             providerID: .openAI,
             balance: try Money(amount: 100, currencyCode: "USD")
         )
+        XCTAssertTrue(synchronized)
+        XCTAssertNotNil(model.platformBalance(for: .openAI))
 
         await model.credentialDidChange(.openAI)
 
-        XCTAssertNil(model.platformBalance(for: .openAI))
+        let balance = try XCTUnwrap(model.platformBalance(for: .openAI))
+        XCTAssertEqual(balance.calibratedBalance.amount, 100)
+        XCTAssertEqual(balance.remaining.amount, 100)
+        XCTAssertEqual(balance.deductedSpend.amount, 0)
     }
 
     func testRefreshPublishesReconciledBalanceToNotificationService() async throws {
