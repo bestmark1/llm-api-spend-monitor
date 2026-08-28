@@ -7,7 +7,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testFirstLaunchPresentsOnboardingAndKeepsRunning() {
-        let app = XCUIApplication()
+        let app = makeIsolatedApp()
         app.launch()
 
         XCTAssertNotEqual(app.state, .notRunning)
@@ -18,7 +18,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testSettingsExposeStartupAndLowBalanceControls() {
-        let app = XCUIApplication()
+        let app = makeIsolatedApp()
         app.launchArguments.append("--dashboard-preview")
         app.launch()
 
@@ -38,7 +38,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testDashboardPanelClosesWhenAnotherApplicationActivates() {
-        let app = XCUIApplication()
+        let app = makeIsolatedApp()
         app.launchArguments.append("--dashboard-preview")
         app.launch()
 
@@ -56,7 +56,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testProviderCardCanExpandFromCompactSummary() {
-        let app = XCUIApplication()
+        let app = makeIsolatedApp()
         app.launchArguments.append(contentsOf: [
             "--dashboard-preview",
             "--reset-provider-card-expansion"
@@ -92,7 +92,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testCustomizeOmitsUnsupportedProvidersAndCanShowAvailableProvider() {
-        let app = XCUIApplication()
+        let app = makeIsolatedApp()
         let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
         UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         addTeardownBlock {
@@ -158,6 +158,19 @@ final class MenuBarLifecycleUITests: XCTestCase {
         for _ in 0..<attempts where !element.exists || !element.isHittable {
             container.swipeUp()
         }
+    }
+
+    private func makeIsolatedApp() -> XCUIApplication {
+        let app = XCUIApplication()
+        let suiteName = "com.bestmark.SpenderUITests.Balances.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)
+        defaults?.removePersistentDomain(forName: suiteName)
+        app.launchEnvironment["SPENDER_PLATFORM_BALANCE_SUITE"] = suiteName
+        addTeardownBlock {
+            app.terminate()
+            defaults?.removePersistentDomain(forName: suiteName)
+        }
+        return app
     }
 
 }

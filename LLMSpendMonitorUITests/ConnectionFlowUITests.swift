@@ -4,6 +4,14 @@ import XCTest
 final class ConnectionFlowUITests: XCTestCase {
     func testConnectionsExposeMaskedCredentialControls() {
         let app = XCUIApplication()
+        let suiteName = "com.bestmark.SpenderUITests.Balances.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)
+        defaults?.removePersistentDomain(forName: suiteName)
+        app.launchEnvironment["SPENDER_PLATFORM_BALANCE_SUITE"] = suiteName
+        addTeardownBlock {
+            app.terminate()
+            defaults?.removePersistentDomain(forName: suiteName)
+        }
         app.launch()
 
         app.buttons["Connect Provider"].click()

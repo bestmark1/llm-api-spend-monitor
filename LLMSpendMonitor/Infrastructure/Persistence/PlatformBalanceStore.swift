@@ -24,11 +24,24 @@ final class UserDefaultsPlatformBalanceStore: PlatformBalanceStoring {
     private let key: String
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: UserDefaults? = nil,
         key: String = "platform-balances-v1"
     ) {
-        self.defaults = defaults
+        self.defaults = defaults ?? Self.defaultDefaults()
         self.key = key
+    }
+
+    private static func defaultDefaults() -> UserDefaults {
+        #if DEBUG
+        if
+            let suiteName = ProcessInfo.processInfo.environment["SPENDER_PLATFORM_BALANCE_SUITE"],
+            !suiteName.isEmpty,
+            let defaults = UserDefaults(suiteName: suiteName)
+        {
+            return defaults
+        }
+        #endif
+        return .standard
     }
 
     func load() -> [ProviderID: PlatformBalanceCheckpoint] {

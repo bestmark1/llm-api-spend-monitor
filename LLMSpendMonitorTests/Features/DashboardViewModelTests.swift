@@ -13,6 +13,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { cached.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -41,6 +42,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { complete.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -61,6 +63,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { openAI.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -98,6 +101,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: DashboardDataSourceStub(cached: [.deepSeek: snapshot], refreshed: [:]),
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { now }
         )
 
@@ -121,6 +125,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { errored.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -139,6 +144,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { snapshot.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -160,6 +166,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { cached.coverage!.through.addingTimeInterval(-1) }
         )
         await model.loadCache()
@@ -180,6 +187,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { Date(timeIntervalSince1970: 1_700_265_599) }
         )
         await model.loadCache()
@@ -211,6 +219,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { Date(timeIntervalSince1970: 1_700_265_599) }
         )
         model.selectedPeriod = .thirtyDays
@@ -236,6 +245,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: targets,
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { snapshot.coverage!.through.addingTimeInterval(-1) }
         )
 
@@ -253,7 +263,8 @@ final class DashboardViewModelTests: XCTestCase {
         )
         let model = DashboardViewModel(
             dataSource: dataSource,
-            targets: [makeTarget(.openAI), makeTarget(.gemini)]
+            targets: [makeTarget(.openAI), makeTarget(.gemini)],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub()
         )
 
         let activeRefresh = Task { await model.refresh(trigger: .manual) }
@@ -276,6 +287,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { snapshot.buckets[1].start.addingTimeInterval(3_600) }
         )
         model.selectedPeriod = .yesterday
@@ -296,6 +308,7 @@ final class DashboardViewModelTests: XCTestCase {
         let model = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { current.fetchedAt.addingTimeInterval(60) }
         )
 
@@ -307,6 +320,7 @@ final class DashboardViewModelTests: XCTestCase {
         let staleModel = DashboardViewModel(
             dataSource: dataSource,
             targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
             now: { current.fetchedAt.addingTimeInterval(30 * 60 + 1) }
         )
         await staleModel.loadCache()
@@ -407,6 +421,18 @@ final class DashboardViewModelTests: XCTestCase {
             balances: [],
             issue: nil
         )
+    }
+}
+
+private final class DashboardPlatformBalanceStoreStub: PlatformBalanceStoring {
+    private var checkpoints: [ProviderID: PlatformBalanceCheckpoint] = [:]
+
+    func load() -> [ProviderID: PlatformBalanceCheckpoint] {
+        checkpoints
+    }
+
+    func save(_ checkpoints: [ProviderID: PlatformBalanceCheckpoint]) {
+        self.checkpoints = checkpoints
     }
 }
 
