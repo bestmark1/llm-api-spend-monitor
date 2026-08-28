@@ -60,7 +60,9 @@ struct SummaryCard: View {
             }
         }
         .padding(18)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background {
+            GlassSurface(cornerRadius: 16, prominence: .primary)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dashboard.summary")
     }

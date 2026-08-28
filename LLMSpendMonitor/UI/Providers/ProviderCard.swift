@@ -10,6 +10,7 @@ struct ProviderCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage private var isExpanded: Bool
     @State private var isBalanceEditorPresented = false
+    @State private var isHovered = false
 
     init(
         metadata: ProviderMetadata,
@@ -48,7 +49,18 @@ struct ProviderCard: View {
             }
         }
         .padding(15)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background {
+            GlassSurface(
+                cornerRadius: 16,
+                prominence: .secondary,
+                isHovered: isHovered
+            )
+        }
+        .onHover { hovering in
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
+                isHovered = hovering
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).card")
         .sheet(isPresented: $isBalanceEditorPresented) {

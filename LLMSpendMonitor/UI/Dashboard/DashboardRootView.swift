@@ -46,7 +46,9 @@ struct DashboardRootView: View {
             }
         }
         .frame(width: 420, height: 640)
-        .background(.regularMaterial)
+        .background {
+            GlassSurface(cornerRadius: 18, prominence: .panel)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityIdentifier("menu.panel")
     }

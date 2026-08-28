@@ -39,7 +39,7 @@ struct CustomizeProvidersView: View {
             .listStyle(.inset)
             .scrollContentBackground(.hidden)
         }
-        .background(.background.secondary)
+        .background(.clear)
         .accessibilityIdentifier("customize.root")
     }
 

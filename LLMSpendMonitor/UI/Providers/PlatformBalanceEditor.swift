@@ -105,7 +105,9 @@ struct PlatformBalanceEditor: View {
                     billingLink
                 }
                 .padding(12)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+                .background {
+                    GlassSurface(cornerRadius: 12, prominence: .secondary)
+                }
             } else {
                 billingLink
             }

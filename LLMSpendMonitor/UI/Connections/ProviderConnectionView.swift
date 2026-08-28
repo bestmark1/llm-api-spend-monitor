@@ -192,7 +192,9 @@ struct ProviderConnectionView: View {
             }
         }
         .padding(12)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            GlassSurface(cornerRadius: 12, prominence: .secondary)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("connection.\(viewModel.id.rawValue).card")
         .confirmationDialog(
