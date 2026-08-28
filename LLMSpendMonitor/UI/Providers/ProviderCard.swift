@@ -609,14 +609,7 @@ struct ProviderCard: View {
     }
 
     private var officialBalanceLabel: String {
-        switch metadata.id {
-        case .qwen:
-            "Alibaba Cloud account balance"
-        case .mistral:
-            "Remaining monthly limit"
-        default:
-            "Remaining balance"
-        }
+        "Remaining balance"
     }
 
     private var emptyStateText: String {

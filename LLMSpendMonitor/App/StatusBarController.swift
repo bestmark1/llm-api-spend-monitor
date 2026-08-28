@@ -237,6 +237,7 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
     var didShow: (() -> Void)?
 
     private let panel: MenuBarPanel
+    private var outsideClickMonitor: GlobalMouseMonitor?
 
     var isVisible: Bool { panel.isVisible }
 
@@ -264,6 +265,14 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
                 quitApplication: { NSApplication.shared.terminate(nil) }
             )
         )
+        outsideClickMonitor = GlobalMouseMonitor(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard self?.isVisible == true else { return }
+                self?.hide()
+            }
+        }
     }
 
     func show() {
@@ -316,6 +325,20 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
             x: min(max(origin.x, visibleFrame.minX), visibleFrame.maxX - size.width),
             y: max(origin.y, visibleFrame.minY)
         )
+    }
+}
+
+private final class GlobalMouseMonitor: @unchecked Sendable {
+    private let token: Any?
+
+    init(matching mask: NSEvent.EventTypeMask, handler: @escaping (NSEvent) -> Void) {
+        token = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handler)
+    }
+
+    deinit {
+        if let token {
+            NSEvent.removeMonitor(token)
+        }
     }
 }
 

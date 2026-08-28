@@ -44,9 +44,17 @@ struct SummaryCard: View {
 
             if showsDetails, dailySpend.count > 1 {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Daily trend")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text("Daily spend")
+                            .font(.caption.weight(.medium))
+                        Spacer()
+                        if let peakDailySpend {
+                            Text("Peak \(MetricFormatting.money(peakDailySpend))")
+                                .font(.caption)
+                                .monospacedDigit()
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                     SpendTrendChart(points: dailySpend)
                 }
             }
@@ -96,6 +104,10 @@ struct SummaryCard: View {
         .font(.caption)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier("dashboard.compactProviderLegend")
+    }
+
+    private var peakDailySpend: Money? {
+        dailySpend.max { $0.amount.amount < $1.amount.amount }?.amount
     }
 
     private func providerName(_ providerID: ProviderID) -> String {

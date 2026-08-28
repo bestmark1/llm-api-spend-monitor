@@ -62,6 +62,21 @@ final class CustomizeViewModel: ObservableObject {
         persist()
     }
 
+    @discardableResult
+    func move(_ providerID: ProviderID, to destinationID: ProviderID) -> Bool {
+        guard
+            providerID != destinationID,
+            let sourceIndex = items.firstIndex(where: { $0.id == providerID }),
+            let destinationIndex = items.firstIndex(where: { $0.id == destinationID })
+        else { return false }
+
+        let item = items.remove(at: sourceIndex)
+        let insertionIndex = min(destinationIndex, items.count)
+        items.insert(item, at: insertionIndex)
+        persist()
+        return true
+    }
+
     func reset() {
         items = Self.makeItems(registry: registry, preferences: nil)
         persist()

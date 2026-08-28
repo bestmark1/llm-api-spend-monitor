@@ -5,19 +5,31 @@ struct SpendTrendChart: View {
     let points: [DailySpendPoint]
 
     var body: some View {
-        Chart(points) { point in
-            BarMark(
-                x: .value("Day", point.date, unit: .day),
-                y: .value("Tracked spend", decimalValue(point.amount.amount))
-            )
-            .foregroundStyle(.tint)
-            .cornerRadius(2)
+        VStack(spacing: 3) {
+            Chart(points) { point in
+                BarMark(
+                    x: .value("Day", point.date, unit: .day),
+                    y: .value("Daily spend", decimalValue(point.amount.amount))
+                )
+                .foregroundStyle(.tint)
+                .cornerRadius(2)
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .frame(height: 48)
+
+            if let first = points.first?.date, let last = points.last?.date {
+                HStack {
+                    Text(shortDate(first))
+                    Spacer()
+                    Text(shortDate(last))
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            }
         }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .frame(height: 42)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Daily tracked spend trend")
+        .accessibilityLabel("Daily spend")
         .accessibilityValue(accessibilitySummary)
         .accessibilityIdentifier("dashboard.spendTrend")
     }
@@ -31,5 +43,13 @@ struct SpendTrendChart: View {
 
     private func decimalValue(_ decimal: Decimal) -> Double {
         NSDecimalNumber(decimal: decimal).doubleValue
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 }

@@ -2,6 +2,13 @@ import XCTest
 @testable import LLMSpendMonitor
 
 final class MoneyTests: XCTestCase {
+    func testTokenFormattingUsesLocaleIndependentEnglishSuffixes() {
+        XCTAssertEqual(MetricFormatting.tokens(927), "927")
+        XCTAssertEqual(MetricFormatting.tokens(3_700), "3.7K")
+        XCTAssertEqual(MetricFormatting.tokens(12_000), "12K")
+        XCTAssertEqual(MetricFormatting.tokens(1_250_000), "1.3M")
+    }
+
     func testDashboardFormattingUsesStableEnglishCurrencyStyle() throws {
         let money = try Money(amount: Decimal(string: "1234.5")!, currencyCode: "USD")
 

@@ -32,6 +32,25 @@ enum MetricFormatting {
     }
 
     static func tokens(_ value: Int64) -> String {
-        value.formatted(.number.notation(.compactName))
+        let magnitude = abs(Double(value))
+        let unit: (divisor: Double, suffix: String)? = if magnitude >= 1_000_000_000 {
+            (1_000_000_000, "B")
+        } else if magnitude >= 1_000_000 {
+            (1_000_000, "M")
+        } else if magnitude >= 1_000 {
+            (1_000, "K")
+        } else {
+            nil
+        }
+        guard let unit else { return String(value) }
+
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        formatter.roundingMode = .halfUp
+        let compactValue = Double(value) / unit.divisor
+        return "\(formatter.string(from: NSNumber(value: compactValue)) ?? String(compactValue))\(unit.suffix)"
     }
 }

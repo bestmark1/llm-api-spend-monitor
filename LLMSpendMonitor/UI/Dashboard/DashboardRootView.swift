@@ -23,6 +23,9 @@ struct DashboardRootView: View {
                     providers: customizeViewModel.items
                         .filter(\.isVisible)
                         .map(\.metadata),
+                    moveProvider: { providerID, destinationID in
+                        customizeViewModel.move(providerID, to: destinationID)
+                    },
                     showConnections: appState.showConnections,
                     showCustomize: appState.showCustomize,
                     closePanel: closePanel,
@@ -102,6 +105,7 @@ private struct OnboardingView: View {
 private struct DashboardView: View {
     @ObservedObject var viewModel: DashboardViewModel
     let providers: [ProviderMetadata]
+    let moveProvider: (ProviderID, ProviderID) -> Bool
     let showConnections: () -> Void
     let showCustomize: () -> Void
     let closePanel: () -> Void
@@ -150,6 +154,15 @@ private struct DashboardView: View {
                                 )
                             } : nil
                         )
+                        .draggable(provider.id.rawValue)
+                        .dropDestination(for: String.self) { values, _ in
+                            guard
+                                let rawValue = values.first,
+                                let draggedProviderID = ProviderID(rawValue: rawValue)
+                            else { return false }
+                            return moveProvider(draggedProviderID, provider.id)
+                        }
+                        .help("Drag to reorder providers")
                     }
 
                     if providers.isEmpty {

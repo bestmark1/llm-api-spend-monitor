@@ -82,6 +82,18 @@ final class CustomizeViewModelTests: XCTestCase {
             [.openAI, .anthropic, .deepSeek]
         )
     }
+
+    func testDroppingProviderAtAnotherProviderPersistsDashboardOrder() {
+        let store = InMemoryCustomizationStore()
+        let model = CustomizeViewModel(store: store)
+
+        XCTAssertTrue(model.move(.openAI, to: .deepSeek))
+        XCTAssertEqual(Array(model.items.map(\.id).prefix(3)), [.anthropic, .deepSeek, .openAI])
+
+        let relaunched = CustomizeViewModel(store: store)
+        XCTAssertEqual(Array(relaunched.items.map(\.id).prefix(3)), [.anthropic, .deepSeek, .openAI])
+        XCTAssertFalse(relaunched.move(.deepSeek, to: .deepSeek))
+    }
 }
 
 private final class InMemoryCustomizationStore: ProviderCustomizationStoring {

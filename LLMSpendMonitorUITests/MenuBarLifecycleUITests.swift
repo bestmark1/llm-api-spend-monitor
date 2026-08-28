@@ -37,7 +37,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         add(screenshot)
     }
 
-    func testDashboardPanelRemainsVisibleWhenAnotherApplicationActivates() {
+    func testDashboardPanelClosesWhenAnotherApplicationActivates() {
         let app = XCUIApplication()
         app.launchArguments.append("--dashboard-preview")
         app.launch()
@@ -45,11 +45,13 @@ final class MenuBarLifecycleUITests: XCTestCase {
         let heading = app.staticTexts["Spender"]
         XCTAssertTrue(heading.waitForExistence(timeout: 5))
 
-        XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
+        let finder = XCUIApplication(bundleIdentifier: "com.apple.finder")
+        finder.activate()
+        finder.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
 
         XCTAssertTrue(
-            heading.waitForExistence(timeout: 3),
-            "The dashboard should remain visible until the user closes it."
+            heading.waitForNonExistence(timeout: 3),
+            "The dashboard should close after the user clicks outside Spender."
         )
     }
 
