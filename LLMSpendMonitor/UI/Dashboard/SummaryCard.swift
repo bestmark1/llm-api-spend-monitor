@@ -5,6 +5,7 @@ struct SummaryCard: View {
     let breakdown: [ProviderSpendSummary]
     let dailySpend: [DailySpendPoint]
     let excludedProviderCount: Int
+    let showsDetails: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -28,17 +29,17 @@ struct SummaryCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if breakdown.count > 1 {
+                if !breakdown.isEmpty {
                     SpendDonutChart(breakdown: breakdown)
                 }
             }
 
-            if !breakdown.isEmpty {
+            if showsDetails, !breakdown.isEmpty {
                 Divider()
                 providerLegend
             }
 
-            if dailySpend.count > 1 {
+            if showsDetails, dailySpend.count > 1 {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Daily trend")
                         .font(.caption.weight(.medium))
@@ -74,6 +75,7 @@ struct SummaryCard: View {
                     : "Official spend reported by \(providerName(summary.providerID))")
             }
         }
+        .accessibilityIdentifier("dashboard.providerBreakdown")
     }
 
     private func providerName(_ providerID: ProviderID) -> String {
