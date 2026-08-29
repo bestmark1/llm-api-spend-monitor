@@ -11,13 +11,25 @@ struct SummaryCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Tracked spend")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Text("Tracked spend")
+                            .font(.callout.weight(.medium))
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .help("Official provider reports plus clearly labeled estimates when an official spend API is unavailable.")
+                            .accessibilityLabel("About tracked spend")
+                    }
+                    .foregroundStyle(.secondary)
                     Text(MetricFormatting.money(total))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .contentTransition(.numericText(value: decimalValue(total.amount)))
+                    if let provenanceSummary {
+                        Text(provenanceSummary)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("dashboard.summary.provenance")
+                    }
                     if excludedProviderCount > 0 {
                         Label(
                             "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
@@ -77,6 +89,7 @@ struct SummaryCard: View {
                         .accessibilityHidden(true)
                     Text(providerName(summary.providerID))
                         .foregroundStyle(.secondary)
+                    provenanceBadge(summary.provenance)
                     Spacer()
                     Text(MetricFormatting.money(summary.amount))
                         .fontWeight(.medium)
@@ -110,6 +123,30 @@ struct SummaryCard: View {
 
     private var peakDailySpend: Money? {
         dailySpend.max { $0.amount.amount < $1.amount.amount }?.amount
+    }
+
+    private var hasEstimatedSpend: Bool {
+        breakdown.contains { $0.provenance == .estimated }
+    }
+
+    private var provenanceSummary: String? {
+        guard !breakdown.isEmpty else { return nil }
+        let hasOfficial = breakdown.contains { $0.provenance == .official }
+        return switch (hasOfficial, hasEstimatedSpend) {
+        case (true, true): "Official + estimated data"
+        case (true, false): "Official provider reports"
+        case (false, true): "Estimated provider data"
+        case (false, false): nil
+        }
+    }
+
+    private func provenanceBadge(_ provenance: MetricProvenance) -> some View {
+        Text(provenance == .estimated ? "Estimated" : "Official")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.quaternary, in: Capsule())
     }
 
     private func providerName(_ providerID: ProviderID) -> String {

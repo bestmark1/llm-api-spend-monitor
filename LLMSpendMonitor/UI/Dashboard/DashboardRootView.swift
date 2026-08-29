@@ -119,16 +119,20 @@ private struct DashboardView: View {
                 Text("Spender")
                     .font(.title2.bold())
                 Spacer()
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                DashboardHeaderButton(
+                    title: "Refresh",
+                    systemImage: "arrow.clockwise",
+                    isDisabled: viewModel.isRefreshing,
+                    accessibilityIdentifier: "dashboard.refresh"
+                ) {
                     Task { await viewModel.refresh(trigger: .manual) }
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-                .disabled(viewModel.isRefreshing)
-                .accessibilityIdentifier("dashboard.refresh")
-                Button("Close", systemImage: "xmark", action: closePanel)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
+                DashboardHeaderButton(
+                    title: "Close",
+                    systemImage: "xmark",
+                    accessibilityIdentifier: "dashboard.close",
+                    action: closePanel
+                )
             }
 
             PeriodPicker(selection: $viewModel.selectedPeriod)
@@ -203,5 +207,36 @@ private struct DashboardView: View {
         .padding(20)
         .accessibilityIdentifier("dashboard.root")
         .task { await viewModel.start() }
+    }
+}
+
+private struct DashboardHeaderButton: View {
+    let title: String
+    let systemImage: String
+    var isDisabled = false
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(title, systemImage: systemImage, action: action)
+            .labelStyle(.iconOnly)
+            .buttonStyle(.plain)
+            .frame(width: 28, height: 28)
+            .contentShape(Circle())
+            .background(
+                Color.primary.opacity(isHovered && !isDisabled ? 0.08 : 0),
+                in: Circle()
+            )
+            .disabled(isDisabled)
+            .onHover { hovering in
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
+                    isHovered = hovering
+                }
+            }
+            .help(title)
+            .accessibilityIdentifier(accessibilityIdentifier)
     }
 }

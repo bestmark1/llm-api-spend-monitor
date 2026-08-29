@@ -555,13 +555,25 @@ struct ProviderCard: View {
     }
 
     private var statusBadge: some View {
-        Label(status.title, systemImage: status.icon)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(status.color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(status.color.opacity(0.1), in: Capsule())
-            .accessibilityIdentifier("provider.\(metadata.id.rawValue).status")
+        Group {
+            if status.title == "Current" {
+                HStack(spacing: 4) {
+                    Image(systemName: status.icon)
+                        .foregroundStyle(status.color)
+                    Text(status.title)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.caption.weight(.medium))
+            } else {
+                Label(status.title, systemImage: status.icon)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(status.color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(status.color.opacity(0.1), in: Capsule())
+            }
+        }
+        .accessibilityIdentifier("provider.\(metadata.id.rawValue).status")
     }
 
     private var status: (title: String, icon: String, color: Color) {

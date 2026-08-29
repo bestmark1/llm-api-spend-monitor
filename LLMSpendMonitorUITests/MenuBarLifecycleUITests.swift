@@ -102,6 +102,30 @@ final class MenuBarLifecycleUITests: XCTestCase {
         )
     }
 
+    func testThirtyDaySummaryShowsProvenanceAndTrend() {
+        let app = makeIsolatedApp()
+        app.launchArguments.append("--dashboard-preview")
+        app.launch()
+
+        let thirtyDays = app.descendants(matching: .any)["30 Days"]
+        XCTAssertTrue(thirtyDays.waitForExistence(timeout: 5))
+        thirtyDays.click()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["dashboard.summary.provenance"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(
+            app.descendants(matching: .any)["dashboard.spendTrend"]
+                .waitForExistence(timeout: 3)
+        )
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Thirty-day spend provenance and trend"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testCustomizeOmitsUnsupportedProvidersAndCanShowAvailableProvider() {
         let app = makeIsolatedApp()
         let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
