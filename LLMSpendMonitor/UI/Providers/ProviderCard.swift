@@ -62,6 +62,7 @@ struct ProviderCard: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .accessibilityHint("Drag to reorder providers")
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).card")
         .sheet(isPresented: $isBalanceEditorPresented) {
             if let synchronizeBalance {
@@ -75,7 +76,25 @@ struct ProviderCard: View {
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            VStack(spacing: 2.5) {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack(spacing: 2.5) {
+                        Circle()
+                            .frame(width: 2.5, height: 2.5)
+                        Circle()
+                            .frame(width: 2.5, height: 2.5)
+                    }
+                }
+            }
+            .foregroundStyle(Color.secondary.opacity(isHovered ? 0.9 : 0.55))
+            .frame(width: 12, height: 30)
+            .contentShape(Rectangle())
+            .help("Drag to reorder providers")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Drag \(metadata.displayName) to reorder")
+            .accessibilityIdentifier("provider.\(metadata.id.rawValue).dragHandle")
+
             Image(systemName: metadata.systemImageName)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(ProviderVisualStyle.color(for: metadata.id))

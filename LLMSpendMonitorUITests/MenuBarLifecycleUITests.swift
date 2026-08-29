@@ -91,6 +91,17 @@ final class MenuBarLifecycleUITests: XCTestCase {
         XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
     }
 
+    func testProviderCardsExposeDragHandle() {
+        let app = makeIsolatedApp()
+        app.launchArguments.append("--dashboard-preview")
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["provider.openai.dragHandle"]
+                .waitForExistence(timeout: 5)
+        )
+    }
+
     func testCustomizeOmitsUnsupportedProvidersAndCanShowAvailableProvider() {
         let app = makeIsolatedApp()
         let suiteName = "com.bestmark.SpenderUITests.\(UUID().uuidString)"
