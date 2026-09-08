@@ -5,280 +5,259 @@ date: 2026-08-30
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 execution: code
-product_contract_source: ce-plan-bootstrap
 ---
 
 # Spender Chrome Extension
 
 ## Goal Capsule
 
-**Objective:** A Chrome user can install Spender, securely connect supported LLM billing credentials, and monitor truthful spend or balance metrics without installing the macOS app or creating a Spender cloud account.
+**Objective:** A Chrome user can install Spender, securely connect supported LLM billing credentials, and monitor truthful spend or calibrated remaining-balance metrics without the macOS app or a Spender cloud account.
 
-**Means:** Build an independent Manifest V3 extension that stores an encrypted local vault and calls provider reporting APIs directly from its service worker (KTD1–KTD4).
+**Means:** Build an independent Manifest V3 extension. Its service worker calls provider reporting APIs directly and its encrypted local vault stores credentials and financial state (KTD1–KTD13).
 
-**Authority hierarchy:** This plan governs the Chrome extension. Existing Swift provider behavior and sanitized fixtures define metric semantics where this plan cites them. Current official Chrome and provider documentation overrides stale implementation assumptions. User-settled product decisions override convenience choices.
+**Authority hierarchy:** This plan governs the Chrome extension. Current official Chrome and provider documentation overrides stale implementation assumptions. Existing Swift behavior and canonical sanitized fixtures supply semantics only where this plan cites them; no Swift runtime is shared. User-settled decisions override convenience choices.
 
-**Execution profile:** Deep, security-sensitive feature work. Implement units in dependency order. Keep the Swift application operational throughout.
+**Observable completion criterion:** A production MV3 ZIP, loaded unpacked from a clean checkout, completes the tested one-provider pilot, then all feasible MVP adapters; it keeps secrets encrypted and locked after restart, presents only correctly scoped UTC data or calibrated remaining balances, and passes the Verification Contract and Store checklist.
 
-**Stop conditions:** Stop and escalate if a provider's documented account-reporting endpoint cannot be called from an MV3 extension with the named credential; if Chrome Web Store policy requires broader data collection or permissions than this plan allows; or if a requested change would persist a decrypt key across browser restarts, introduce a backend, or collect browsing activity.
+**Stop conditions:** Stop and escalate if a documented provider reporting endpoint cannot be called from MV3 with the named credential; Store policy requires broader data collection or permissions; the early pilot user gate rejects the connection experience; or a proposed change requires a persisted decrypt key, backend, FX conversion, browsing data, or notification state.
 
-**Tail owner:** `ce-work` owns implementation, verification, atomic commits, and release preparation. Google owns the external review duration and final publication decision.
+**Tail owner:** `ce-work` owns implementation, verification, atomic commits, and release preparation. Google owns external review duration and publication.
 
 ## Product Contract
 
 ### Summary
 
-Add a standalone desktop Chrome extension under `chrome-extension/`. Its popup provides the fastest view of Today, Yesterday, and 30 Days. A full extension page owns onboarding, connections, detailed reporting, card customization, security, and notifications. Data goes directly from the extension to the selected provider APIs over HTTPS. Spender has no backend, analytics, account system, request proxy, or prompt collection.
-
-### Problem Frame
-
-The macOS application is useful only on a Mac and cannot be published in Chrome Web Store. A browser extension is easier for Chrome users to discover and install, but Chrome does not provide Keychain-equivalent secret storage or a permanently running background process. The design must therefore make local encryption, browser-session unlocking, service-worker eviction, partial provider coverage, and Store disclosure first-class behavior rather than hidden implementation details.
+Add a standalone desktop Chrome extension under `chrome-extension/`. The popup is a compact **Today** monitor. The full extension page owns Yesterday, 30 Days, details, Connections, card customization, and security. Data goes over HTTPS directly from the extension to explicitly connected providers. There is no backend, analytics, account system, request proxy, prompt collection, or notification feature in v1.
 
 ### Key Decisions
 
-- **KD1 — session-settled: ship a standalone local extension.** It must not require the macOS application, native messaging, a backend, or a Spender account. Governs R1, R2, R4, R15.
-- **KD2 — session-settled: optimize for the simplest end-user install.** Chrome Web Store install is one step; credential setup remains provider-specific because billing APIs require different credential types. Governs R3, R6, R10.
-- **KD3 — call the product “periodic,” not “real-time.”** Chrome alarms are best effort and do not wake a closed or sleeping browser. Governs R8, R9, R11.
-- **KD4 — truth beats visual parity.** Missing spend history is shown as unavailable, never as zero or reconstructed from unrelated lifetime values. Governs R6, R7, R12.
-- **KD5 — release four providers first.** OpenAI, Anthropic, DeepSeek, and OpenRouter form the MVP; other providers remain deferred until their financial APIs pass the same feasibility gate. Governs R6, R16.
+- **KD1 — standalone local extension:** No macOS app, native messaging, backend, Spender account, or paid Spender service. Governs R1, R2, R4, R20.
+- **KD2 — simplest install:** Store installation is one step. Credential setup remains provider-specific because reporting APIs need different credential types. Governs R3, R15.
+- **KD3 — periodic, not real-time:** Alarms are best effort and do not wake closed or sleeping Chrome. Governs R14.
+- **KD4 — truth before parity:** Missing, incompatible, or partial financial history is never zeroed, converted, proportionally split, or reconstructed from lifetime values. Governs R8–R13.
+- **KD5 — four providers after feasibility:** OpenAI, Anthropic, DeepSeek, and OpenRouter are MVP candidates, not unconditional promises. Each must pass U1; a provider with no useful confirmed capability is removed from MVP. Governs R9–R12, R20.
+- **KD6 — validate usability early:** After one feasible reporting provider works end-to-end, a user reviews the actual connection and first-value experience before the other adapters and broad UI are built. Governs U5.
 
-### Actors
+### Actors and trust boundary
 
-- **Extension user:** creates and unlocks the vault, supplies provider credentials, reads metrics, controls notifications, and deletes data.
-- **Chrome extension service worker:** is the only component that decrypts credentials and calls provider APIs.
-- **Provider API:** returns official cost, usage, or balance data according to its own contract.
-- **Chrome Web Store reviewer:** verifies single purpose, permissions, privacy disclosures, remote-code compliance, and listing assets.
+- **Extension user:** creates and unlocks the vault, supplies credentials, reads metrics, calibrates balances, customizes card order, and deletes local data.
+- **Privileged extension contexts:** The service worker is the sole network and credential-operation owner. Popup and full extension pages never receive a saved credential, but remain trusted extension contexts: `chrome.storage.session` can be accessed by extension pages. They therefore receive the same strict CSP, sender validation, and injection hardening; this is not an untrusted-page boundary.
+- **Provider API:** returns official cost, usage, or balance according to its documented contract.
+- **Chrome Web Store reviewer:** verifies single purpose, permissions, privacy disclosures, locally bundled code, and listing assets.
 
 ### Requirements
 
 #### Product boundary and privacy
 
-- **R1 — Standalone install:** The extension works on desktop Chrome without the macOS app, native messaging, a backend, a Spender login, or a paid Spender service.
-- **R2 — Local-only data path:** Credentials and financial snapshots remain in the selected Chrome profile. Network requests go only to the exact HTTPS origins of explicitly connected providers. The extension contains no analytics, telemetry, prompt capture, page inspection, or browsing-history collection.
-- **R3 — Clear onboarding:** Before a credential is entered, the UI names the exact credential type, explains why an ordinary inference key may be insufficient, links to the official provider console, and states what metrics that connection can supply.
-- **R4 — Complete deletion:** Deleting a provider removes its encrypted credential, financial snapshots, estimation checkpoints, and notification state. Reset Vault removes all extension data after destructive confirmation.
+- **R1 — Standalone install:** The extension works in desktop Chrome without the macOS app, native messaging, backend, Spender login, or paid Spender service.
+- **R2 — Local-only data path:** Credentials and financial snapshots remain in the selected Chrome profile. Requests go only to exact HTTPS origins of explicitly connected providers. There is no analytics, telemetry, prompt capture, page inspection, or browsing-history collection.
+- **R3 — Clear onboarding:** Before credential entry, the UI names the exact credential type, why an ordinary inference key may be insufficient, links to the official console, and states confirmed metrics and their limitations.
+- **R4 — Complete deletion:** Provider deletion removes its encrypted credential, snapshots, checkpoints/calibrations, and exact optional host permission. Reset Vault removes all extension data and revokes all optional provider origins after destructive confirmation. A permission-revocation error does not block local deletion; the UI identifies the residual browser permission and recovery action. Local deletion does not revoke a provider-side key, so recovery links to provider rotation/revocation guidance.
 
 #### Vault and session security
 
-- **R5 — Encrypted at rest:** Persistent Chrome storage contains only authenticated ciphertext and non-secret schema metadata for protected data. It never contains plaintext credentials, the master password, or a persistent decrypt key. `chrome.storage.sync` is not used for secrets or financial history.
-- **R6 — Session unlock:** After each full Chrome restart, extension update/disable cycle, or manual Lock, the user must unlock the vault once. Until then, the UI says `Locked — unlock to refresh`, provider calls and notifications are paused, and cached financial values remain masked.
-- **R7 — Safe vault lifecycle:** Wrong passwords and tampered envelopes fail closed. Change Password re-encrypts atomically. A forgotten password has no recovery path other than destructive Reset Vault, and onboarding explains this before vault creation.
+- **R5 — Encrypted at rest and ephemeral plaintext:** Persistent Chrome storage contains authenticated ciphertext and non-secret schema metadata only. It never contains plaintext credentials, master password, or a persistent decrypt key. A plaintext credential/password may exist in the user-entered ephemeral form and worker request needed to validate/save it. A saved credential may be decrypted only into service-worker memory for the duration of an authorized fixed-origin provider request. Neither kind is returned as a saved UI value, persisted, logged, placed in a diagnostic/canary, or retained after request completion/failure/abort, save, validation completion, close, Lock, Reset, or navigation; the worker explicitly clears its references. `chrome.storage.sync` is not used for secrets or financial history.
+- **R6 — Session unlock:** After a full Chrome restart, extension update/disable cycle, or manual Lock, the user unlocks once. Until then, `Locked — unlock to refresh` is shown, provider calls are paused, and financial values are masked.
+- **R7 — Safe vault lifecycle and races:** Wrong passwords and tampered envelopes fail closed. Password change is atomic. Lock, Reset Vault, provider delete, credential replacement, and Change Password cancel applicable in-flight requests, serialize state mutation, advance a generation, and invalidate late results. A late response must neither restore deleted/replaced data nor reveal or write a financial amount. A forgotten password can be recovered only by destructive Reset Vault; onboarding states this before creation.
 
-#### Metrics and provider truthfulness
+#### Metric, currency, and interval truthfulness
 
-- **R8 — Supported periods:** The dashboard offers Today, Yesterday, and 30 Days with explicit last-updated time, reporting coverage, and provenance. Presentation uses the user's local timezone; provider request boundaries and stored buckets use UTC and are aggregated without overlap at timezone or DST boundaries.
-- **R9 — OpenAI:** An Organization Admin API key retrieves official cost, token, and model usage from organization reporting endpoints. Pagination limits and incomplete coverage remain visible.
-- **R10 — Anthropic:** A Console Admin API key retrieves official cost, token, and model usage. Priority Tier gaps or page limits mark coverage partial instead of inventing complete totals.
-- **R11 — DeepSeek:** A standard API key retrieves official current balance. Estimated daily spend starts only after two balance observations, records positive balance decreases, ignores top-ups as negative spend, and is labeled `Estimated`.
-- **R12 — OpenRouter:** A Management API key retrieves official remaining credits. It does not create Today, Yesterday, 30 Days, or chart sectors from lifetime `total_usage` unless a future documented period endpoint is implemented.
-- **R13 — Honest aggregation:** Official and estimated values are never silently mixed. A mixed total is labeled `Official + estimated`; incomplete provider coverage is marked partial; unavailable metrics are omitted rather than converted to `$0.00`.
+- **R8 — UTC period contract:** v1 has one calculation timezone: UTC, visibly labeled on every Today, Yesterday, and 30 Days surface. `Today` is `[00:00:00Z of the current UTC date, now)`; `Yesterday` is the preceding complete `[00:00:00Z, 00:00:00Z)` day; `30 Days` is `[00:00:00Z of the UTC date 29 days before today, now)`, i.e. 30 UTC calendar dates including the current partial UTC day. Each value shows its actual half-open observed-coverage interval and last update. Only report buckets fully attributable to the requested interval can contribute; a bucket crossing an interval or calibration boundary is excluded and produces `Partial/Unavailable`, never a proportional split. A nominal current-day bucket such as `[today, tomorrow)` can contribute to Today only when U1 proves the provider's actual observed coverage ends at the request/report timestamp rather than at its nominal end; it is then `Provisional/Partial` and displays that proven observed end. Without that capability evidence, it is excluded. DST and local timezones do not alter calculations.
+- **R9 — OpenAI official reporting and calibrated remaining balance:** An Organization Admin API key retrieves official cost, token, and model usage from confirmed organization reporting endpoints. It supports official UTC period spend where coverage permits. It may additionally show **Calibrated remaining balance** only after the user enters a source balance and confirms calibration: `entered balance − recomputed official cost anchors wholly after calibration`, per account scope and ISO currency. It is a derived estimate, never named or styled as a fetched official balance. Pagination limits, revisions, incomplete coverage, and the initial partly pre-calibration report bucket remain visible. That excluded initial gap remains Partial even when later anchors are complete, until the user recalibrates on a verifiable boundary or a confirmed finer-grained provider report covers it exactly.
+- **R10 — Anthropic official reporting and calibrated remaining balance:** A Console Admin API key retrieves official cost, token, and model usage from confirmed reports. It supports official UTC period spend where coverage permits and the same user-calibrated remaining-balance model as R9. Priority Tier gaps, page limits, revised reports, incomplete coverage, and a partly pre-calibration initial bucket make the applicable value partial rather than precise. Later complete anchors do not erase that initial gap; only recalibration on a verifiable boundary or confirmed exact finer-grained reporting can do so.
+- **R11 — DeepSeek observations:** A standard API key retrieves official current balance. Each estimate records its observation interval. A positive decrease is dated only if both observations fall in the same requested UTC day and the gap is within a calibrated maximum. A cross-boundary or long-gap decrease is `Unallocated estimate`, excluded from Today/Yesterday. It may appear in 30 Days only with `Partial` coverage **and only when its entire observation interval lies inside that selected 30-Day interval**; an interval crossing the 30-Day start/end is excluded with Partial coverage, never split. Top-ups never create negative spend; all derived values say `Estimated`. No artificial allocation across days is allowed.
+- **R12 — OpenRouter balance only:** A Management API key retrieves official remaining credits. It does not create Today, Yesterday, 30 Days, or chart sectors from lifetime `total_usage` without a future documented period endpoint.
+- **R13 — Honest aggregation:** Official and estimated values are never silently mixed; a mixed total says `Official + estimated`. Incomplete coverage is `Partial`; unavailable metrics are omitted rather than `$0.00`. Money aggregates only within one ISO currency; multiple currencies are displayed as separate totals and chart series or as `Multiple currencies`, never converted. Period spend, calibrated remaining balances, and provider-reported balances are separate metric families and are never added together.
 
-#### Refresh, user experience, and alerts
+#### Refresh and user experience
 
-- **R14 — Best-effort refresh:** Manual refresh and popup-open refresh work while unlocked. A `chrome.alarms` schedule refreshes stale providers while Chrome is running. Concurrent triggers coalesce, providers fail independently, `Retry-After` and exponential backoff are respected, and the last good snapshot remains available as `Outdated`.
-- **R15 — Focused UI:** The popup is a compact monitor. Connection forms, dashboard detail, customization, security, and notification settings live on a full extension page. Users can hide and reorder provider cards without deleting connections.
-- **R16 — Optional notifications:** Notifications are off by default. Chrome asks for the optional permission only when the user enables alerts. Cost thresholds apply to providers with period spend; low-balance thresholds apply to balance providers. Events are deduplicated and re-armed after recovery, top-up, or a new reporting period.
-- **R17 — Accessible interaction:** Onboarding, unlocking, period switching, refresh, connection management, customization, and security flows are keyboard complete, screen-reader labeled, not color-only, and usable with reduced motion and high contrast.
+- **R14 — Best-effort refresh:** Manual and popup-open refresh work while unlocked. `chrome.alarms` refreshes stale providers only while Chrome runs. Concurrent triggers coalesce, providers fail independently, `Retry-After` and exponential backoff apply, and last-good data stays `Outdated`.
+- **R15 — Focused UI:** The popup is a compact Today monitor with one primary `Open dashboard` action. The full page owns Yesterday/30 Days, detail, Connections, customization, security, calibration and provider links. Users can hide/reorder cards without deleting connections.
+- **R16 — Notifications deferred:** v1 declares and requests no `notifications` permission and contains no alert, threshold, or notification state. Notifications are post-v1 and require a separate privacy/lifecycle decision.
+- **R17 — Accessible interaction:** Onboarding, unlock, period switching, refresh, calibration, connection management, customization, and security flows are keyboard-complete, screen-reader labeled, not color-only, and usable with reduced motion/high contrast. Reordering has accessible `Move up`/`Move down` controls, retains focus, announces `name, position N of M`, and disables impossible boundary moves; drag-and-drop is optional only.
 
 #### Distribution
 
-- **R18 — Store-compliant package:** The production ZIP uses Manifest V3, has `manifest.json` at its root, bundles all executable code locally, declares no content scripts, and requests only `storage`, `alarms`, optional `notifications`, and exact optional provider origins.
-- **R19 — Transparent publication:** A public Privacy Policy and Chrome Web Store disclosures describe authentication and financial data, local encryption, direct provider requests, retention/deletion, absence of backend/analytics, and support contact. The listing supplies required icons, screenshots, promotional image, single-purpose description, permission justifications, and Limited Use certification.
-- **R20 — Independent maintenance:** Chrome code and builds remain isolated from the Xcode target. Domain behavior stays aligned through documented contracts and sanitized cross-platform fixtures, not through generated Swift/TypeScript shared runtime code.
+- **R18 — Store-compliant package:** The production ZIP uses Manifest V3, has root `manifest.json`, bundles all executable code locally, declares no content scripts, and requests only `storage`, `alarms`, and exact optional provider origins.
+- **R19 — Transparent publication:** Public Privacy Policy and Store disclosures describe authentication and financial data, local encryption, direct requests, UTC/partial reporting limitations, calibrated-balance derivation, retention/deletion, no backend/analytics, and support contact. Listing supplies required assets, single-purpose description, permission justifications, and Limited Use certification.
+- **R20 — Independent maintenance:** Chrome code/builds remain isolated from Xcode. Behavioral alignment uses documented contracts plus canonical sanitized cross-platform fixtures, never shared generated/runtime code.
 
-### Key Flows
+### Key flows
 
-1. **First run:** Install → Welcome tab → local-only explanation → Create Vault → master password confirmation and no-recovery warning → select provider → credential guidance → grant exact host permission → test credential → encrypt and save → initial refresh → open dashboard.
-2. **Returning session:** Open popup → Unlock → show decrypted cached snapshot → refresh stale providers → default to Today.
-3. **Routine monitoring:** Select period → inspect aggregate provenance and provider cards → expand detail → open Billing or provider Dashboard when needed.
-4. **Connection replacement:** Enter replacement in an ephemeral form → validate in worker memory → save ciphertext only after success or explicit save-with-warning choice → clear the form. The old credential remains until commit.
-5. **Background refresh:** Alarm fires → worker checks session unlock → skips silently if locked → refreshes eligible providers independently → atomically stores encrypted results → evaluates deduplicated alerts.
-6. **Recovery:** Offline, 401/403, 429, timeout, or malformed response keeps the last good metric and adds a specific action. It never deletes a credential automatically.
-7. **Security:** Lock clears the session key immediately. Change Password atomically replaces the vault. Reset Vault deletes all extension data after confirmation.
+1. **First run:** Install → Welcome → local-only/no-recovery explanation → Create Vault → password confirmation → select provider → guidance → grant exact origin → validate credential → encrypt/save → initial refresh → dashboard.
+2. **Returning session:** Open popup → Unlock → render decrypted cached state → refresh stale providers → Today in UTC.
+3. **Calibrate OpenAI/Anthropic remaining:** After a successfully identified account scope, user enters a source balance and confirms its timestamp/currency → state saves `enteredBalance`, `synchronizedAt`, and no pre-calibration deduction → subsequent official report anchors are upserted and recomputed → UI shows `Calibrated remaining balance`, scope/currency, source timestamp, deduction coverage, and `Partial` where the initial report cannot be divided exactly. Recalibration/top-up replaces the checkpoint; it is not a provider-fetched balance.
+4. **Routine monitoring:** Select UTC period in full page → inspect separate currency totals, provenance, coverage, and provider cards → detail or official Billing/Dashboard link.
+5. **Credential replacement:** Hold the replacement in an ephemeral form → validate in worker memory → identify account scope → save ciphertext only after success/explicit warning → retain old credential until commit. Same provider but changed account scope starts a new data lineage: old scope snapshots and calibration cannot contribute and the user must calibrate again.
+6. **Background refresh:** Alarm → worker verifies unlocked state/current generation → eligible adapters fetch fixed endpoints → normalized results are accepted only if account/credential/vault generation is still current → encrypted state atomically persists.
+7. **Security mutation:** Lock, Reset, delete, or Change Password advances the relevant generation before clearing/replacing data and aborts pending requests. Late callbacks are discarded before any state/UI write.
 
-### Acceptance Examples
+### Acceptance examples
 
-- **AE1:** Given a fresh install, before the user connects a provider, the extension sends no provider or Spender network request.
-- **AE2:** Given a populated vault and a full Chrome restart, opening the popup shows Unlock and no amount. No provider call occurs until unlock succeeds.
-- **AE3:** Given a service-worker termination within the same browser session, the next event restores the session key from trusted `chrome.storage.session` and continues without another password prompt.
-- **AE4:** Given a wrong password or modified ciphertext, unlock fails without changing storage and without revealing which provider credentials exist.
-- **AE5:** Given OpenAI and Anthropic official buckets, Today total equals only intersecting complete buckets; token counts are never converted to money.
-- **AE6:** Given the first DeepSeek balance observation, the card shows balance and no spend. Given a later decrease, it adds estimated spend. Given a top-up, it adds no negative spend.
-- **AE7:** Given OpenRouter credits, the card shows Remaining balance but contributes no fake period spend or donut sector.
-- **AE8:** Given one provider returns 429, other providers update, the failed provider keeps its last value as Outdated, and retry observes `Retry-After`.
-- **AE9:** Given the user deletes Anthropic, its ciphertext, snapshots, alerts, and checkpoints disappear while all other providers remain intact.
-- **AE10:** Given notifications are disabled, `notifications` permission is absent. Enabling alerts requests it at that moment and handles denial without breaking monitoring.
-- **AE11:** Given keyboard-only or ChromeVox use, the user can create/unlock the vault, connect a provider, change period, refresh, inspect provenance, reorder cards, and delete data.
-- **AE12:** Given the production ZIP, a static audit finds no remote executable code, broad host permission, content script, plaintext canary, source map containing secrets, or undeclared network origin.
+- **AE1:** Fresh install and no connection sends no provider or Spender request.
+- **AE2:** After full Chrome restart, popup shows Unlock and no amount; no provider request occurs before success.
+- **AE3:** Same-session worker termination restores only session key material from trusted `chrome.storage.session`; full browser restart clears it.
+- **AE4:** Wrong password or modified ciphertext fails without storage mutation and without exposing credential presence.
+- **AE5:** Every period label says UTC. At `2026-09-08T14:00:00Z`, Today is `[2026-09-08T00:00:00Z, 2026-09-08T14:00:00Z)`, Yesterday is `[2026-09-07T00:00:00Z, 2026-09-08T00:00:00Z)`, and 30 Days starts `2026-08-10T00:00:00Z`; no DST/local conversion occurs.
+- **AE6:** A daily report bucket crossing a requested period boundary is excluded and status is Partial/Unavailable; it is never proportionally split or combined with an incompatible interval. A nominal current-day `[today, tomorrow)` bucket may show as Provisional/Partial Today only after U1 proves actual observed coverage through its stated report/request timestamp; UI displays that actual end, not the nominal tomorrow end. Otherwise it is excluded.
+- **AE7:** First DeepSeek observation shows official balance and no spend; close same-UTC-day decrease produces dated Estimated spend; cross-midnight/long gap becomes Unallocated estimate; top-up does not create negative spend. An Unallocated interval crossing the selected 30-Day start or end is excluded with Partial coverage rather than contributing its full delta.
+- **AE8:** OpenRouter credits show an official remaining-balance card but no period-spend sector.
+- **AE9:** For a same-scope OpenAI/Anthropic calibration at an arbitrary time within a daily report bucket, the full overlapping bucket is not deducted. Only wholly post-calibration anchors count, and the excluded initial gap remains Partial despite later complete anchors until recalibration at a verifiable boundary or a confirmed exact finer-grained report covers it. It never calls the derived value `official balance`.
+- **AE10:** A corrected/reissued official cost anchor with the same provider, account scope, report identity, interval, and currency replaces its old value; calibrated remaining is recomputed, not double-deducted. Replacing credentials with another account scope does not reuse the prior checkpoint or anchors.
+- **AE11:** One provider returning 429 leaves other providers updated and its last value Outdated; retry follows `Retry-After`.
+- **AE12:** Deleting Anthropic removes only its ciphertext, snapshots, anchors/checkpoint, and exact host permission. A permission-revocation failure is reported after successful local deletion.
+- **AE13:** Keyboard-only/ChromeVox user can create/unlock, connect, calibrate, switch period, refresh, inspect provenance, move a card up/down, and delete data.
+- **AE14:** Lock, Reset, provider delete, credential replacement, and Change Password each abort a deferred provider request; a response released afterward cannot render, persist, or restore its old metric.
+- **AE15:** Production package has neither `notifications` permission nor alert settings/state.
+- **AE16:** Static production audit finds no remote executable code, broad host permission, content script, plaintext canary, secret-bearing source map, or undeclared origin.
 
-### Success Criteria
+### Scope boundaries
 
-- A new user can reach the first valid provider snapshot without installing anything beyond the Chrome Web Store item.
-- All four MVP adapters pass fixture contract tests and at least one sanitized real-contract validation before public submission.
-- Browser restart, forced worker eviction, offline, authentication failure, rate limiting, and vault corruption have tested recovery behavior.
-- Chrome Web Store private-test review has no unresolved security, privacy, permission, or misleading-metrics blocker before public rollout.
+**MVP includes:** Chrome desktop MV3; the four feasibility-passed candidates; encrypted local vault; popup Today; full UTC dashboard; official API-native reports; user-calibrated remaining balances for confirmed OpenAI/Anthropic scopes; DeepSeek observation estimates; OpenRouter balance; last-good cache; hide/reorder; periodic/manual refresh; privacy and Store package.
 
-### Scope Boundaries
+**Deferred:** notifications/thresholds; providers beyond MVP; multiple accounts per provider; export/import; cross-device sync; localization; forecasting; currency conversion; Edge, Firefox, Safari, and mobile.
 
-**MVP includes:** Chrome desktop Manifest V3; OpenAI, Anthropic, DeepSeek, OpenRouter; encrypted local vault; popup and full dashboard; Today/Yesterday/30 Days where supported; last-good cache; hide/reorder; periodic/manual refresh; optional notifications; privacy and Store package.
+**Explicitly out:** backend/proxy; account registration; native companion/messaging; interception of LLM requests; dashboard scraping/cookies/private endpoints/content scripts; prompt/browsing collection; persistent auto-unlock; generic migration framework/journal; real-time or complete-reporting claims unsupported by an API.
 
-**Deferred:** Qwen, Kimi, xAI, Mistral and other provider parity; Gemini and Perplexity; multiple accounts per provider; encrypted export/import; cross-device sync; localization beyond the first release language; forecasting and currency conversion; Edge, Firefox, Safari, and mobile.
+### Toolchain policy
 
-**Explicitly out:** backend or hosted API proxy; account registration; native companion or native messaging; intercepting LLM requests; dashboard scraping, cookies, private endpoints, or content scripts; prompt or browsing collection; persistent auto-unlock; claims of real-time or complete reporting when an API cannot supply it.
-
-### Dependencies and Resource Estimate
-
-#### Engineering estimate
-
-| Workstream | Developer days |
-|---|---:|
-| Feasibility, workspace, manifest, and provider-origin spikes | 3–5 |
-| Encrypted vault and migrations | 4–6 |
-| Domain model, HTTP boundary, and four provider adapters | 7–10 |
-| Refresh, persistence, alarms, and notifications | 3–5 |
-| Popup, dashboard, onboarding, and customization UI | 5–8 |
-| E2E, security hardening, privacy, and Store preparation | 3–6 |
-| **MVP total** | **25–40 developer days (about 200–320 hours)** |
-
-One senior developer should expect about 5–8 calendar weeks plus Google review time. Product/design polish needs 2–4 focused days; security review needs 2–4 days; QA and Store submission need 3–5 days and can overlap the engineering total when one person owns all roles. Ongoing provider maintenance is estimated at 1–3 days per month. There is no planned hosting bill. Chrome Web Store requires the one-time registration fee shown in the developer dashboard.
-
-Adding broader provider parity after the MVP is a separate 10–20 day tranche, conditional on each provider exposing a documented financial API suitable for a browser extension.
-
-#### Toolchain policy
-
-Use a separate npm workspace in `chrome-extension/` with a committed `package-lock.json`. Prefer zero runtime libraries: TypeScript, native DOM/CSS/SVG, Web Crypto, Fetch, and Chrome APIs are sufficient. Vite, TypeScript, Vitest, ESLint, and Puppeteer are development tools only. Any production runtime dependency, decimal library, hosted privacy service, or external analytics service requires explicit approval before installation.
+`chrome-extension/` is a separate npm workspace with committed `package-lock.json`. Production uses native TypeScript DOM, CSS, SVG, Web Crypto, Fetch, and Chrome APIs; it does not use React or AI Elements. TypeScript, Vite, Vitest, ESLint, and Puppeteer are development tools. Any new production runtime dependency, including a decimal library, hosted privacy service, or analytics service, requires explicit approval.
 
 ## Planning Contract
 
-### Key Technical Decisions
+### Technical decisions
 
-- **KTD1 — independent workspace:** Create `chrome-extension/` in the existing repository. It has its own build, tests, lockfile, and release ZIP. It never becomes an Xcode target. This implements KD1 and R1/R20.
-- **KTD2 — MV3 event architecture:** Use a Manifest V3 service worker as the only network and credential owner. Popup and full pages send typed messages; they never receive a saved secret. Persistent state is the source of truth because the worker may stop at any time.
-- **KTD3 — versioned local vault:** Derive a wrapping key with PBKDF2-SHA-256 using a random salt and versioned work factor. Encrypt each protected envelope with AES-GCM and a unique random IV. Persist ciphertext and KDF metadata in `chrome.storage.local`; keep the derived key only in trusted `chrome.storage.session` until Lock or browser restart.
-- **KTD4 — protect financial cache too:** Encrypt provider credentials, financial snapshots, estimation checkpoints, and alert state in the vault. Persist only non-sensitive preferences and a coarse locked/freshness marker outside it. This makes the locked popup mask amounts consistently.
-- **KTD5 — trusted storage boundary:** At startup, call `chrome.storage.local.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'})` and set session storage to trusted contexts. Do not declare content scripts, externally connectable messaging, `tabs`, `cookies`, `webRequest`, or `scripting`.
-- **KTD6 — optional exact origins:** Put each exact provider HTTPS origin in `optional_host_permissions`. Request it only when connecting that provider. Adapter code owns a fixed URL allowlist and rejects arbitrary message-supplied URLs and cross-origin redirects.
-- **KTD7 — exact decimal strings:** Represent money as validated signed decimal strings plus ISO currency. Implement bounded, tested string/`BigInt` scale arithmetic in the domain layer rather than JavaScript `number`. Do not add a decimal runtime library without approval.
-- **KTD8 — capability-driven provider model:** Port `ProviderSnapshot`, metric provenance, reporting coverage, provider capabilities, and normalized errors from Swift. UI renders only capabilities a provider actually supplies.
-- **KTD9 — contract parity through fixtures:** Copy sanitized JSON fixtures and behavior cases into extension tests. Do not share runtime code or read Xcode resources at extension runtime.
-- **KTD10 — periodic refresh state machine:** Recreate alarms on install/startup/wake, coalesce triggers, use per-provider cooldown, honor `Retry-After`, and cap exponential backoff. Refresh runs only while unlocked. Popup-open refreshes stale data; manual refresh remains available.
-- **KTD11 — local production bundle:** Bundle every script, style, icon, and chart implementation in the ZIP. No CDN, remote imports, WebAssembly download, `eval`, `new Function`, or source-code interpretation is permitted.
-- **KTD12 — staged publication:** Load and dogfood the production build unpacked, then submit the same release item to private trusted testers, resolve review feedback, and only then switch distribution to public.
+- **KTD1 — independent workspace:** `chrome-extension/` has isolated build/tests/lockfile/release ZIP and is not an Xcode target.
+- **KTD2 — MV3 ownership and honest boundary:** Service worker owns network and credential operations; typed UI messages receive status/derived view models only. Extension pages are trusted contexts, not a security boundary, so all extension UI follows strict CSP and injection rules.
+- **KTD3 — vault cryptography:** PBKDF2-SHA-256 derives a 256-bit wrapping key from a random salt of at least 16 bytes. U1 benchmarks candidate work factors on the declared minimum supported hardware and records sanitized method/device class/result evidence; the selected versioned minimum work factor must produce approximately 250–500 ms and cannot be lowered automatically on a weaker device. Protected envelopes use AES-GCM with unique random 12-byte IVs. Ciphertext/KDF metadata are in `chrome.storage.local`; exportable session key material is in trusted `chrome.storage.session` only until Lock/restart. Creation rejects weak passwords; obsolete parameters upgrade only via the atomic generation protocol.
+- **KTD4 — encrypted financial state and ephemeral plaintext:** Credentials, snapshots, report anchors, balance checkpoints, and calibrations are authenticated encrypted state. A connection form may hold user-entered credential/password text only while the user is acting on it; the worker may use that text solely for the associated validation/save request. For routine refresh it may decrypt a saved credential only into worker memory for the current authorized fixed-origin request, then clears its reference on completion, failure, abort, Lock, Reset, deletion, replacement, or error handling. Saved secrets are never sent back to UI. Only non-sensitive preferences and coarse locked/freshness markers are outside encrypted state.
+- **KTD5 — fixed security controls:** At startup set local and session storage access level to `TRUSTED_CONTEXTS`. Use local-only CSP; forbid `innerHTML`, `outerHTML`, `insertAdjacentHTML`, dynamic scripts, and unsanitized URL sinks; render provider strings as text; validate sender and command allowlist. Do not declare content scripts, externally connectable messaging, `tabs`, `cookies`, `webRequest`, or `scripting`.
+- **KTD6 — least origins and network boundary:** Each exact HTTPS provider origin is `optional_host_permissions`, requested only on connection. Adapter allowlists own URL/path construction and reject message-supplied URLs. Every provider request uses HTTPS, `credentials: 'omit'`, `cache: 'no-store'`, a finite `AbortController` timeout, a streamed 2 MiB response-body cap, and redirect rejection (including cross-origin redirects).
+- **KTD7 — exact money:** Money is validated decimal string plus ISO currency; bounded `BigInt` scale arithmetic replaces `number`. No decimal runtime library without approval.
+- **KTD8 — UTC, interval, and metric-family invariants:** Period calculations use R8 half-open UTC intervals. Aggregation requires compatible scope/currency/metric family and fully attributable report intervals. Provider-reported balances, calibrated remaining balances, official period spend, and estimates remain distinct.
+- **KTD9 — calibrated remaining algorithm and report identity:** A calibration stores `enteredBalance`, `synchronizedAt`, ISO currency, provider identity, validated account scope, and any unresolved initial-coverage gap. A report anchor is keyed by stable `(provider, accountScope, report kind/dimensions, nominal [bucketStart,bucketEnd), currency)`; its actual observed `[coverageStart,coverageEnd)` and provisional/final provenance are separate fields. A newer response for the same key **replaces** that anchor (for example, a current-day provisional bucket becoming complete), never appends an overlapping second anchor. Aggregation rejects overlapping anchors for the same metric/dimension lineage and never combines a provider summary with dimensions that it already summarizes; it selects either the summary or a proven disjoint dimension set. On every refresh, deduction is recomputed from current anchors wholly within the eligible post-calibration interval; no refresh appends a deduction. An anchor overlapping calibration start or an incompatible period is excluded and creates/retains Partial coverage. Later complete anchors never erase that gap; only recalibration at a verifiable boundary or confirmed exact finer-grained coverage can resolve it. A changed account scope invalidates the old calibration and anchors. This is a local derived estimate, not fetched official balance.
+- **KTD10 — versioned schema and atomic generations:** v1 fails closed for unknown schema versions and ships neither generic migration runner nor journal. Password change writes a complete candidate generation, read/decrypt-verifies it, then replaces one authoritative commit marker. Recovery keeps last committed generation, ignores incomplete candidates, and removes old data only after durable commit; each interruption point is tested.
+- **KTD11 — cancellation and serial mutation:** Per-vault/provider credential generation plus `AbortController` make Lock, Reset, delete, replacement, and password change serial mutations. They invalidate before state change; completion must compare all relevant generations/account scope before state/UI write. Aborting is best-effort only; generation checks are the final guard.
+- **KTD12 — canonical fixture parity:** `provider-contract-fixtures/` is one versioned, sanitized source. Swift and TypeScript test builds copy/generate their own test resources and CI verifies hash/version parity. No runtime component reads fixtures or shares runtime code.
+- **KTD13 — local production bundle:** ZIP bundles scripts/styles/icons/charts locally; no CDN, remote imports, WebAssembly download, `eval`, `new Function`, or source interpretation.
 
-### High-Level Technical Design
+### High-level design
 
 ```mermaid
 flowchart LR
-    P[Popup] -->|typed message| W[MV3 service worker]
-    D[Dashboard / Options] -->|typed message| W
+    P[Popup Today] -->|typed message| W[MV3 service worker]
+    D[Dashboard / Connections] -->|typed message| W
     W --> V[Vault service]
     W --> R[Refresh coordinator]
-    W --> N[Alert evaluator]
-    V --> L[(chrome.storage.local\nciphertext)]
-    V --> S[(chrome.storage.session\nsession key)]
-    R --> A[Provider adapters]
-    A -->|exact HTTPS origin| OAI[OpenAI]
-    A -->|exact HTTPS origin| ANT[Anthropic]
-    A -->|exact HTTPS origin| DS[DeepSeek]
-    A -->|exact HTTPS origin| OR[OpenRouter]
-    W --> C[Encrypted snapshot cache]
+    V --> L[(chrome.storage.local ciphertext)]
+    V --> S[(chrome.storage.session session key)]
+    R --> A[Fixed-origin adapters]
+    A --> OAI[OpenAI]
+    A --> ANT[Anthropic]
+    A --> DS[DeepSeek]
+    A --> OR[OpenRouter]
+    R --> C[Encrypted snapshots, anchors, checkpoints]
     C --> L
-    N -->|optional permission| CN[Chrome notifications]
-```
-
-```mermaid
-stateDiagram-v2
-    [*] --> Uninitialized: no vault
-    Uninitialized --> Locked: create vault
-    Locked --> Unlocked: correct password
-    Locked --> Locked: wrong password / tamper
-    Unlocked --> Locked: Lock / browser restart / disable
-    Unlocked --> Unlocked: worker eviction in same session
-    Unlocked --> Locked: atomic password change completes
-    Locked --> Uninitialized: destructive reset
 ```
 
 ```mermaid
 sequenceDiagram
-    participant T as Alarm / Popup / Manual trigger
+    participant T as Alarm / Popup / Manual
     participant W as Service worker
     participant V as Vault
-    participant P as Provider adapters
+    participant P as Provider adapter
     participant S as Encrypted storage
-    T->>W: refresh request
-    W->>W: coalesce and check cooldown
-    W->>V: request session key
-    alt locked
+    T->>W: refresh(generation)
+    W->>V: current session key + generation
+    alt locked or stale
         V-->>W: unavailable
         W-->>T: monitoring paused
-    else unlocked
-        V-->>W: key
-        par eligible providers
-            W->>P: fetch fixed endpoint
-            P-->>W: normalized snapshot or typed issue
+    else current
+        W->>P: fixed endpoint (AbortSignal)
+        P-->>W: normalized snapshot/anchor or issue
+        W->>W: compare vault, credential, account generations
+        alt still current
+            W->>W: upsert anchors; recompute derived values
+            W->>S: atomically write encrypted state
+        else late
+            W-->>T: discard with no state/UI write
         end
-        W->>W: merge last-good + provenance + backoff
-        W->>S: atomically write encrypted state
-        W-->>T: per-provider result
     end
 ```
 
-### Storage Contracts
+### Storage and UI contracts
 
-- `vault-meta-v1`: schema version, KDF algorithm/work factor, salt, verifier, migration marker.
-- `vault-data-v1`: authenticated encrypted credentials, snapshots, DeepSeek checkpoints, and notification state.
-- `provider-customization-v1`: ordered provider IDs and hidden IDs; contains no financial values.
-- `extension-settings-v1`: refresh preference, theme/accessibility preference, and notification toggle; no credentials.
-- Whole-object replacement plus a migration journal provides atomic password changes and schema migrations. Unknown future schema blocks safely and offers reset rather than mutating ciphertext.
+- `vault-meta-v1`: schema version, KDF algorithm/work factor, salt, verifier, authoritative generation marker.
+- `vault-data-v1`: encrypted credentials, snapshots, report anchors, DeepSeek checkpoints, and OpenAI/Anthropic calibrations.
+- `provider-customization-v1`: ordered and hidden provider IDs only.
+- `extension-settings-v1`: refresh/theme/accessibility preferences only.
+- No notification, alert, threshold, generic migration-journal, saved plaintext secret, or plaintext financial value exists in v1 storage. Ephemeral user-entry drafts are permitted only under R5/KTD4 and are not test canaries or diagnostics.
 
-### Provider Contract Mapping
-
-| Provider | Credential | Exact reporting behavior | MVP chart participation |
+| Surface | Content | Period behavior | Primary transition |
 |---|---|---|---|
-| OpenAI | Organization Admin API key | `/v1/organization/costs` and `/v1/organization/usage/completions`; independent pagination | Official period spend, tokens, models when coverage permits |
-| Anthropic | Console Admin API key | `/v1/organizations/cost_report` and `/v1/organizations/usage_report/messages`; cursor pagination | Official period spend, tokens, models; partial when Priority Tier is uncovered |
-| DeepSeek | Standard API key | `/user/balance`; local balance-delta estimator | Official balance; estimated spend labeled separately |
-| OpenRouter | Management API key | `/api/v1/credits`; remaining is total credits minus lifetime usage | Balance card only; no period spend sector |
+| Popup | lock/freshness, Today UTC aggregate, concise visible cards, Refresh | Today only; UTC interval and provenance visible | `Open dashboard` |
+| Full Dashboard | Yesterday/30 Days, currency-separated totals, coverage, details | UTC switcher; Partial/Unavailable instead of zero | Detail → Connections/Billing |
+| Connections | credential guidance, tested capabilities, calibration, replace/delete | no aggregate | successful save → detail |
+| Customize/Security | hide/show, Move up/down, Lock, password change, Reset | no period state | focus retained and position announced |
 
-### Sequencing and Gates
+| State | Visible value | Status/action |
+|---|---|---|
+| Uninitialized/no connections | no amount | `Connect a provider` |
+| Locked | all financial values masked | `Locked — unlock to refresh` / Unlock |
+| Initial loading | skeleton, never `$0.00` | polite completion announcement |
+| Refreshing | last good remains | duplicate refresh disabled |
+| Fresh | current value | updated time + coverage/provenance |
+| Partial/estimated | available portion only | explains excluded interval/estimate |
+| Outdated | last good remains | cause and Retry |
+| Unavailable capability | no value or chart sector | `Unavailable from this provider API`; optional provider documentation link |
+| Auth / permission error | last good when present | credential-specific recovery: replace credential or provider-permission help |
+| Rate limited | last good when present | `Outdated`, retry time from `Retry-After`/backoff |
+| Offline / timeout / malformed / 5xx | last good when present | `Outdated`, distinct cause and retry action when eligible |
 
-1. **Feasibility gate:** prove vault session behavior under worker eviction and prove each exact provider call from an unpacked extension using local, non-committed credentials. A failed provider is removed from MVP rather than mocked as connected.
-2. **Security/domain gate:** complete vault, exact decimal arithmetic, runtime validation, and leak tests before building connection UI.
-3. **Data gate:** provider fixtures, refresh state machine, encrypted cache, and provenance tests pass before aggregate visualization.
-4. **UX gate:** onboarding, popup, dashboard, customization, and alerts pass accessibility and error-state scenarios.
-5. **Release gate:** final ZIP passes manifest/CSP/secret scans, browser resilience E2E, privacy review, and private tester feedback before public submission.
+**State precedence:** `Locked` → mutation/security or auth/permission error → initial loading → refreshing → freshness/coverage. `Unavailable capability` is a terminal capability label, never an error. Rate-limit and transport/response failures retain their distinct cause alongside `Outdated`; coverage and provenance are orthogonal labels and remain visible. A mutation-in-progress masks/rejects its affected provider before a late result can surface.
 
-### System-Wide Impact
+### Provider mapping
 
-- Existing Swift code remains unchanged except optional shared documentation or sanitized fixture maintenance.
-- Provider behavior now has two implementations. Contract fixtures and requirement-level parity tests are the drift-control mechanism.
-- Chrome profiles and devices are intentionally isolated. There is no sync or migration from macOS Keychain.
-- Provider reporting API changes can break one adapter without blocking the others. The UI must preserve this isolation.
+| Provider | Credential | confirmed-candidate behavior | chart participation |
+|---|---|---|---|
+| OpenAI | Organization Admin API key | official organization cost/usage reports; same-scope calibrated remaining is derived from user entry and recomputed anchors | official period spend only |
+| Anthropic | Console Admin API key | official cost/usage reports; same-scope calibrated remaining is derived from user entry and recomputed anchors | official period spend only |
+| DeepSeek | Standard API key | official current balance plus interval observations | estimated spending only where R11 permits |
+| OpenRouter | Management API key | official remaining credits | balance card only |
 
-### Risks and Mitigations
+### Sequencing and gates
+
+1. **Feasibility:** prove MV3 session behavior and every claimed provider endpoint/scope/range/boundary/capability from an unpacked extension with local non-committed credentials. Record pass/fail capability matrix. Remove unsupported capabilities/providers.
+2. **Domain + pilot adapter:** establish exact money/UTC/calibration/cancellation contracts and one reporting provider with fixtures before generalized adapters.
+3. **Vault:** prove encrypted lifecycle, fail-closed schema, atomic password generations, and mutation races before routine refresh.
+4. **Refresh:** prove coalescing, cache, report-anchor upsert/recompute, backoff, scope guards, and DeepSeek intervals.
+5. **Early user gate:** complete one provider's actual connection-to-meaningful-value flow; obtain user approval before remaining adapters/full UI.
+6. **Release:** only the agreed product surface proceeds to remaining adapters, final UI, resilience, and Store work.
+
+### Risks and mitigations
 
 | Risk | Mitigation / release rule |
 |---|---|
-| Provider API accepts native requests but rejects extension-origin requests or requires unavailable billing scope | U1 executes real feasibility checks. Remove the provider from MVP if the documented path fails. |
-| User expects seamless background refresh after Chrome restart | Onboarding and locked UI state the unlock requirement. Never persist the session key. |
-| JS arithmetic changes financial totals | Use exact decimal-string arithmetic and cross-language golden fixtures. |
-| Worker eviction loses in-memory work | Persist checkpoints, make handlers idempotent, and force termination between E2E steps. |
-| Broad permissions delay or fail Store review | Optional exact origins, no content scripts, documented permission-to-feature mapping. |
-| Secrets leak to storage, DOM, logs, errors, source maps, or fixtures | Canary scans, masked fields, ephemeral drafts, production bundle audit, no request/response logging. |
-| DeepSeek estimator misreads top-up/refund/expiry | Estimate only positive decreases, retain provenance, expose observation coverage, and never claim billing reconciliation. |
-| Store policy changes during implementation | Recheck official policy and listing requirements in U7 immediately before submission. |
+| Provider endpoint/scope rejects extension origin | U1 real feasibility; remove provider/capability if failed. |
+| Arbitrary calibration falls inside aggregate report | Exclude overlap, mark partial, never infer a split; user may recalibrate on a report boundary. |
+| Provider revises reporting values | Upsert anchored report identity and recompute, never append/deduct refresh deltas. |
+| Credential change switches account | Validate scope; discard prior account lineage and require new calibration. |
+| Worker callback races destructive action | Abort plus serialized generation/account checks; race E2E required. |
+| User expects local-day or real-time values | UI says UTC and periodic; no local conversion/claim. |
+| JS changes totals | Exact decimal strings plus canonical fixtures. |
+| Secrets/injection leak | strict CSP/text-only tests, typed sender checks, canary scans, ephemeral drafts. |
+| DeepSeek estimator misreads top-up/refund/expiry | bounded observations, explicit Unallocated estimate, no allocation. |
+| Store policy drifts | recheck official policy in U8 before submission. |
 
-### Sources and Research Breadcrumbs
+### Sources and research breadcrumbs
 
 #### Repository
 
-- `LLMSpendMonitor/Domain/Money.swift` — currency invariants to port without floating-point arithmetic.
-- `LLMSpendMonitor/Domain/ProviderSnapshot.swift` and `LLMSpendMonitor/Domain/ProviderCapability.swift` — capability, provenance, coverage, and validation semantics.
-- `LLMSpendMonitor/Providers/ProviderClient.swift` and `LLMSpendMonitor/Providers/ProviderRegistry.swift` — provider contract and credential guidance.
-- `LLMSpendMonitor/Providers/OpenAI/OpenAIProvider.swift`, `LLMSpendMonitor/Providers/Anthropic/AnthropicProvider.swift`, `LLMSpendMonitor/Providers/DeepSeek/DeepSeekProvider.swift`, `LLMSpendMonitor/Providers/OpenRouter/OpenRouterProvider.swift` — MVP endpoint behavior.
-- `LLMSpendMonitor/Services/RefreshCoordinator.swift`, `LLMSpendMonitor/Services/RefreshBackoffPolicy.swift`, and `LLMSpendMonitor/Services/ProviderTargetFactory.swift` — refresh, estimation, and reporting-window behavior.
-- `LLMSpendMonitor/Infrastructure/Networking/HTTPClient.swift` and `LLMSpendMonitor/Infrastructure/Persistence/SnapshotCache.swift` — origin, redirect, size, and schema constraints.
-- `LLMSpendMonitorTests/Fixtures/` and provider/service/security tests — sanitized golden cases to mirror.
+- `LLMSpendMonitor/Domain/Money.swift`, `ProviderSnapshot.swift`, and `ProviderCapability.swift` — decimal, capability, provenance, coverage semantics.
+- `LLMSpendMonitor/Providers/ProviderClient.swift`, `ProviderRegistry.swift`, and MVP provider implementations — candidate endpoint and credential guidance only.
+- `LLMSpendMonitor/Infrastructure/Persistence/PlatformBalanceStore.swift` — native checkpoint precedent (`enteredBalance`, `synchronizedAt`, `deductedSpend`, anchors); Chrome follows this plan's recompute/scope rules rather than copying native limitations.
+- `LLMSpendMonitor/Services/RefreshCoordinator.swift` and `RefreshBackoffPolicy.swift` — refresh/backoff precedent.
+- `LLMSpendMonitorTests/Fixtures/` and provider/service/security tests — inputs for canonical sanitized cross-platform fixtures.
 
 #### Official Chrome documentation
 
@@ -286,179 +265,188 @@ sequenceDiagram
 - [`chrome.storage` API and access levels](https://developer.chrome.com/docs/extensions/reference/api/storage)
 - [Extension privacy and user data](https://developer.chrome.com/docs/extensions/develop/security-privacy/user-privacy)
 - [Cross-origin network requests](https://developer.chrome.com/docs/extensions/develop/concepts/network-requests)
-- [`chrome.alarms`](https://developer.chrome.com/docs/extensions/reference/api/alarms) and [`chrome.notifications`](https://developer.chrome.com/docs/extensions/reference/api/notifications)
-- [Manifest V3 migration and remote hosted code](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+- [`chrome.alarms`](https://developer.chrome.com/docs/extensions/reference/api/alarms)
+- [Manifest V3 and remote hosted code](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
 - [Chrome Web Store user-data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)
 - [Prepare, publish, privacy, and review](https://developer.chrome.com/docs/webstore/prepare)
-- [Puppeteer extension testing](https://developer.chrome.com/docs/extensions/how-to/test/puppeteer) and [service-worker termination testing](https://developer.chrome.com/docs/extensions/how-to/test/test-serviceworker-termination-with-puppeteer)
+- [Puppeteer extension and service-worker testing](https://developer.chrome.com/docs/extensions/how-to/test/puppeteer)
 
 ## Implementation Units
 
-### U1. Feasibility spike and extension workspace
+**`Files:` path base:** Unless marked `repo-root`, extension paths such as `package.json`, `package-lock.json`, `src/`, `tests/`, `public/`, `scripts/`, and extension `README.md` are relative to `chrome-extension/`; no package file belongs at repository root. `docs/`, `provider-contract-fixtures/`, repo-root `README.md`, and `.gitignore` are relative to repository root.
 
-**Goal:** Prove the standalone architecture before product UI work and establish a reproducible MV3 build.
+### U1. Feasibility and workspace
 
-**Requirements:** R1–R3, R18, R20.
+**Goal:** Prove the isolated MV3 architecture and exact feasible provider capability matrix before product work.
 
-**Files:** `chrome-extension/package.json`, `chrome-extension/package-lock.json`, `chrome-extension/tsconfig.json`, `chrome-extension/vite.config.ts`, `chrome-extension/eslint.config.js`, `chrome-extension/manifest.json`, `chrome-extension/src/background/service-worker.ts`, `chrome-extension/src/shared/messages.ts`, `chrome-extension/scripts/package-extension.mjs`, `chrome-extension/tests/integration/provider-origin-feasibility.test.ts`, `.gitignore`.
+**Requirements:** R1–R3, R5–R6, R8–R12, R18, R20.
 
-**Approach:** Create the isolated npm workspace with TypeScript and a multi-entry MV3 build. Set `minimum_chrome_version` to 120. Declare `storage` and `alarms`; keep notifications and the four exact origins optional. Implement a minimal typed worker message path. With user-owned credentials supplied only through local ignored environment/input, validate the documented reporting request for each provider from an unpacked build. Validate that a value in trusted session storage survives worker termination but disappears after full browser restart. Record sanitized response shapes, origin list, status, and date in `docs/research/chrome-provider-feasibility.md`; never record credentials or raw financial values.
+**Files:** `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `eslint.config.js`, `manifest.json`, `src/background/service-worker.ts`, `src/shared/messages.ts`, `scripts/package-extension.mjs`, `tests/integration/provider-origin-feasibility.test.ts`; repo-root `docs/research/chrome-provider-feasibility.md`, `.gitignore`.
 
-**Test scenarios:** ZIP root contains the manifest; unpacked extension loads without console errors; no provider call occurs before permission grant; denial is recoverable; each provider either passes with its exact credential or is explicitly removed from the MVP plan; forced worker termination preserves session state; full restart clears it.
+**Approach and acceptance:** Create isolated TypeScript MV3 build, `minimum_chrome_version: 120`, `storage`/`alarms`, exact optional provider origins, and no notifications. Benchmark PBKDF2 on declared minimum supported hardware, record sanitized device class/method/results and selected versioned minimum work factor, and pass only if it is approximately 250–500 ms without an automatic weaker-device downgrade. Using only local ignored user-owned credentials, validate every candidate endpoint, least-privileged scope, pagination, range, UTC granularity/boundary, actual observed-coverage semantics of current nominal buckets, account-scope identity availability, and metric from unpacked extension. Confirm trusted-session persistence across worker eviction and clearing at full restart. Sanitized matrix records pass/fail and confirmed subset; no raw values/credentials.
 
-**Verification:** `npm ci`, `npm run typecheck`, `npm run build`, `npm run package`, and the integration spike checklist pass. A human inspects `chrome://extensions` service-worker errors and the sanitized feasibility report.
+**Verification:** `npm ci`, typecheck, build, package, capability-matrix and KDF-benchmark evidence checklist, and human `chrome://extensions` worker inspection pass.
 
 **Dependencies:** None.
 
-### U2. Domain model, HTTP boundary, and provider adapters
+### U2. Domain model and pilot adapter
 
-**Goal:** Produce truthful normalized snapshots for the four feasible providers without exposing credentials or losing decimal precision.
+**Goal:** Implement exact normalized financial contracts and one feasibility-passed reporting provider (OpenAI if it passes U1, otherwise Anthropic) without generalized adapter work.
 
-**Requirements:** R2, R8–R13, R20.
+**Requirements:** R2, R8–R10, R13, R20.
 
-**Files:** `chrome-extension/src/domain/money.ts`, `chrome-extension/src/domain/provider.ts`, `chrome-extension/src/domain/snapshot.ts`, `chrome-extension/src/domain/errors.ts`, `chrome-extension/src/infrastructure/http-client.ts`, `chrome-extension/src/providers/registry.ts`, `chrome-extension/src/providers/openai.ts`, `chrome-extension/src/providers/anthropic.ts`, `chrome-extension/src/providers/deepseek.ts`, `chrome-extension/src/providers/openrouter.ts`, `chrome-extension/tests/fixtures/`, `chrome-extension/tests/unit/domain/`, `chrome-extension/tests/unit/providers/`.
+**Files:** `src/domain/money.ts`, `provider.ts`, `snapshot.ts`, `calibration.ts`, `interval.ts`, `errors.ts`, `src/infrastructure/http-client.ts`, `src/providers/registry.ts`, one pilot provider adapter, `provider-contract-fixtures/`, `tests/unit/domain/`, `tests/unit/providers/`.
 
-**Approach:** Port the capability/provenance/coverage contracts and runtime invariants. Implement exact decimal-string arithmetic with bounded scale. Build fixed-origin adapters and a fetch wrapper with HTTPS-only URLs, request timeout, 2 MiB response limit, no cache/credentials, redacted errors, and cross-origin redirect rejection. Port pagination, page caps, tolerant decimal decoding, Anthropic minor-unit conversion, DeepSeek multi-currency rules, and OpenRouter balance calculation. Use fake HTTP queues and sanitized fixtures.
+**Approach and acceptance:** Implement exact decimal/ISO, half-open UTC intervals, KTD6 fixed-origin fetch safeguards (HTTPS, omitted credentials/no-store cache, finite timeout, 2 MiB cap, redirect rejection), redacted typed errors, stable nominal-bucket report identity with separate actual coverage/provisional fields, account-scope validation, calibrated remaining recomputation, and fixtures. A report overlapping arbitrary calibration creates a persistent unresolved gap; revision or expanded current-day coverage replaces its same-key anchor; changed scope rejects old lineage. No extension runtime reads fixture files.
 
-**Test scenarios:** exact decimal operations and ISO validation; path/query/header construction; independent pagination; page-cap partial coverage; scientific zero; malformed/oversized payload; timeout/offline/401/403/429 mapping; redirect rejection; multi-currency DeepSeek; OpenRouter never yields a period bucket; canary secret absent from errors and serialized snapshots.
-
-**Verification:** `npm run test:unit -- domain providers` passes with branch coverage for every normalized error and provider capability.
+**Verification:** domain/provider unit tests cover decimals, ISO, paths/headers, HTTPS-only/fixed-origin request options, omitted credentials/no-store cache, timeout, 2 MiB cap, pagination/page caps, malformed/oversized/redirect/error handling, calibration overlap/gap persistence, revision upsert, same-nominal-bucket provisional-to-final replacement, overlapping-anchor rejection, summary-plus-dimension double-count rejection, scope change, and text-only provider strings.
 
 **Dependencies:** U1.
 
-### U3. Encrypted vault and persistent state
+### U3. Vault
 
-**Goal:** Store credentials and financial data safely across worker eviction and browser restarts while enforcing an explicit lock lifecycle.
+**Goal:** Protect credentials and all financial state with precise session and destructive-mutation lifecycle.
 
-**Requirements:** R4–R7, R15, R19.
+**Requirements:** R4–R7, R19.
 
-**Files:** `chrome-extension/src/security/crypto-envelope.ts`, `chrome-extension/src/security/vault.ts`, `chrome-extension/src/security/vault-migrations.ts`, `chrome-extension/src/infrastructure/protected-store.ts`, `chrome-extension/src/infrastructure/preferences-store.ts`, `chrome-extension/src/shared/storage-schema.ts`, `chrome-extension/tests/unit/security/`, `chrome-extension/tests/integration/vault-lifecycle.test.ts`.
+**Files:** `src/security/crypto-envelope.ts`, `vault.ts`, `src/infrastructure/protected-store.ts`, `preferences-store.ts`, `src/shared/storage-schema.ts`, `messages.ts`, `src/background/service-worker.ts`, `tests/unit/security/`, `tests/integration/vault-lifecycle.test.ts`.
 
-**Approach:** Implement PBKDF2-SHA-256 and AES-GCM with versioned parameters, random salt, and unique IVs. Restrict local and session storage access to trusted contexts. Encrypt credentials, snapshots, checkpoints, and alert state as one authenticated protected state. Implement create, unlock, lock, atomic password change, schema migration, provider delete, and destructive reset. UI messages receive presence/status only, never stored plaintext.
+**Approach and acceptance:** Implement KTD3–KTD5/KTD10/KTD11. Use versioned schema fail-closed; do not create migration framework/journal. Implement generation candidate → decrypt verification → authoritative marker for password change. Sender-validated worker handlers own create/unlock/lock/test/save/replace/delete/reset. Delete/reset revoke exact origins but report revocation failure separately. Abort and invalidate early on every destructive mutation.
 
-**Test scenarios:** round-trip; wrong password; tamper; IV uniqueness; worker eviction; full restart lock; manual lock; atomic password change interrupted before and after commit; unknown schema; provider delete isolation; reset; no plaintext canary in local/session storage, logs, errors, DOM-facing messages, or serialized fixtures.
+**Verification:** security/storage integration tests cover wrong password, tamper, IV uniqueness, restart/update/disable/manual lock, all password-change interruption points, unknown schema, permission deletion/revocation failure, no canary in storage/logs/returned messages, ephemeral-draft clearing at every R5 boundary, CSP ban/text-only sinks, and late-response races.
 
-**Verification:** `npm run test:unit -- security storage` and `npm run test:integration -- vault` pass; a raw storage inspection contains ciphertext but no canary.
+**Dependencies:** U1, U2 types.
 
-**Dependencies:** U1, U2 domain types.
+### U4. Refresh, encrypted cache, and reports
 
-### U4. Refresh coordinator, encrypted cache, and alerts
+**Goal:** Refresh the pilot truthfully, preserve last good data, and make report corrections/races deterministic.
 
-**Goal:** Keep provider data fresh on a best-effort schedule without misreporting failures or repeatedly notifying users.
+**Requirements:** R6–R14.
 
-**Requirements:** R6, R8, R11–R16.
+**Files:** `src/services/refresh-coordinator.ts`, `backoff-policy.ts`, `deepseek-estimator.ts`, `src/background/alarm-scheduler.ts`, `service-worker.ts`, `tests/unit/services/`, `tests/integration/refresh-lifecycle.test.ts`.
 
-**Files:** `chrome-extension/src/services/refresh-coordinator.ts`, `chrome-extension/src/services/backoff-policy.ts`, `chrome-extension/src/services/deepseek-estimator.ts`, `chrome-extension/src/services/alert-evaluator.ts`, `chrome-extension/src/background/alarm-scheduler.ts`, `chrome-extension/src/background/service-worker.ts`, `chrome-extension/tests/unit/services/`, `chrome-extension/tests/integration/refresh-lifecycle.test.ts`.
+**Approach and acceptance:** Worker coalesces triggers, uses provider cooldown/backoff/`Retry-After`, retains Outdated last-good state, replaces same-key report anchors rather than appending overlap, recomputes pilot calibrated balance, and guards each result by vault/credential/account generation. Implement DeepSeek interval contract though adapter arrives in U6. No alert evaluator, notification permission, or notification state.
 
-**Approach:** Make the service worker own all refreshes. Recreate alarms on install/startup/wake. Coalesce concurrent requests, run eligible providers independently, persist encrypted last-good state, reject results from stale credential generations, and add typed issues without replacing valid metrics. Use per-provider cadence, exponential backoff with jitter, and `Retry-After`. Derive DeepSeek estimates from consecutive balance checkpoints inside a rolling 30-day UTC window. Ask for notifications permission only on opt-in; deduplicate and rearm alert thresholds.
-
-**Test scenarios:** locked alarm performs no network call; concurrent triggers coalesce; one failure does not block others; last-good becomes Outdated; Retry-After and deterministic backoff; credential replacement rejects stale result; DeepSeek first point/decrease/top-up; missed alarm after sleep; permission denial; one-shot and rearmed alerts.
-
-**Verification:** `npm run test:unit -- services` and `npm run test:integration -- refresh` pass under fake clock and deterministic jitter.
+**Verification:** fake-clock tests cover locked no-network, coalescing, independent failure, last-good, backoff, report revision/current-day provisional-to-final replacement recomputation/no double deduction, initial calibration partial/gap persistence, overlapping-summary/dimension rejection, stale credential/scope result, cancellation after Lock/Reset/delete/password change, and DeepSeek first/decrease/top-up/unallocated including 30-Day-boundary exclusion logic.
 
 **Dependencies:** U2, U3.
 
-### U5. Onboarding, popup, dashboard, and customization
+### U5. Pilot UI and early user gate
 
-**Goal:** Deliver the complete user-facing flow with compact monitoring and explicit security/provenance states.
+**Goal:** Deliver one provider's usable connection-to-meaningful-value flow and validate simplicity with the user before expanding scope.
 
-**Requirements:** R3, R6–R17.
+**Requirements:** R3, R6–R10, R13–R17.
 
-**Files:** `chrome-extension/src/ui/styles/`, `chrome-extension/src/ui/components/`, `chrome-extension/src/ui/onboarding/`, `chrome-extension/src/ui/popup/`, `chrome-extension/src/ui/dashboard/`, `chrome-extension/src/ui/options/`, `chrome-extension/public/icons/`, `chrome-extension/tests/unit/ui/`, `chrome-extension/tests/e2e/user-flows.test.ts`.
+**Files:** `src/ui/styles/`, `components/`, `onboarding/`, `popup/`, minimal `dashboard/` and `connections/`, `public/icons/`, `tests/unit/ui/`, `tests/e2e/pilot-user-flow.test.ts`.
 
-**Approach:** Build native TypeScript DOM components and local CSS/SVG, preserving the Spender visual language without a runtime UI framework. The popup defaults to Today and shows lock, freshness, aggregate provenance, and concise provider cards. The full page owns vault creation/unlock, Connections, Yesterday/30 Days detail, provider-specific guidance, Billing/Dashboard links, hide/reorder, Security, and Notifications. Mask secrets, use ephemeral drafts, and clear them on save/close. Make labels, focus order, announcements, contrast, and reduced motion explicit.
+**Approach and acceptance:** Build native DOM/CSS/SVG flow for vault creation/unlock, pilot connection, exact permission, capability/UTC/coverage display, manual calibration, compact Today popup, and full-page detail. Include visible distinction between official spend, Calibrated remaining balance, and partial initial bucket. Enforce keyboard and text-only rendering. Conduct a structured user walkthrough: install → create/unlock → find correct credential → grant origin → test/save → first truthful value → understand coverage/recovery. Continue only on explicit approval or documented corrections; do not build remaining adapters/full dashboard first.
 
-**Test scenarios:** first run; no-recovery acknowledgement; host permission grant/denial; connect/test/save; replace without losing old value on failure; unlock and immediate cached render; period totals and partial coverage; OpenRouter balance-only presentation; DeepSeek Estimated label; manual refresh; hide/reorder persistence; keyboard and ChromeVox paths; notification opt-in; delete and reset confirmations.
-
-**Verification:** `npm run test:unit -- ui`, `npm run test:e2e -- user-flows`, automated accessibility checks, keyboard walkthrough, and visual inspection of popup plus full page in light/dark and high-contrast modes.
+**Verification:** pilot E2E/accessibility/visual browser review and recorded user-gate outcome meet acceptance. If rejected, return to the smallest preceding unit needed to resolve it.
 
 **Dependencies:** U3, U4.
 
-### U6. Resilience, security audit, and production packaging
+### U6. Remaining adapters and full UI
 
-**Goal:** Prove the final production bundle survives MV3 lifecycle events and contains no secret, remote code, or undeclared capability.
+**Goal:** Add feasibility-passed remaining providers and complete dashboard/customization without weakening the pilot contract.
 
-**Requirements:** R2, R4–R7, R14, R17–R20.
+**Requirements:** R8–R17, R20.
 
-**Files:** `chrome-extension/tests/e2e/resilience.test.ts`, `chrome-extension/tests/e2e/security.test.ts`, `chrome-extension/scripts/audit-bundle.mjs`, `chrome-extension/scripts/package-extension.mjs`, `chrome-extension/README.md`, root `README.md`, `.gitignore`.
+**Files:** remaining `src/providers/` adapters, `src/ui/dashboard/`, `options/`, provider detail components, `tests/fixtures/`, `tests/unit/providers/`, `tests/unit/ui/`, `tests/e2e/user-flows.test.ts`.
 
-**Approach:** Test the final unpacked production build with Puppeteer. Force service-worker termination between critical actions. Cover browser restart, sleep/wake, offline, auth errors, rate limits, 5xx, fetch timeout, corrupted storage, and extension upgrade/migration. Audit manifest permissions, CSP, remote URLs, source maps, dynamic evaluation, fixture/canary strings, and ZIP layout. Document local development and threat boundaries without documenting secrets.
+**Approach and acceptance:** Add the unbuilt OpenAI/Anthropic peer, DeepSeek, and OpenRouter only for U1-confirmed capability subsets. Complete Yesterday/30 Days UTC views, per-currency separation, provider cards, hide/show/reorder, Move up/down announcements, and details. Preserve balance/period/calibrated/estimate separation; do not add notifications.
 
-**Test scenarios:** AE1–AE12 on the production build; restart is locked; same-session worker restart recovers; no network while locked; migration is atomic; all error classes remain provider-isolated; package scan is clean; unpacked load has no console error.
+**Verification:** fixture, UI, E2E, keyboard/ChromeVox, and visual tests cover all AEs for supported providers, hidden/reordered cards, multiple currencies, partial intervals, OpenRouter balance-only, and DeepSeek unallocated estimate.
 
-**Verification:** Full Verification Contract passes and `dist/spender-chrome-extension-<version>.zip` is reproducible from a clean checkout.
+**Dependencies:** U5 approved early user gate.
 
-**Dependencies:** U1–U5.
+### U7. Resilience and production package
 
-### U7. Privacy, private test, and Chrome Web Store release
+**Goal:** Prove final bundle security and MV3 lifecycle correctness, especially destructive-action races.
 
-**Goal:** Submit an accurate, reviewable Store listing, validate with trusted users, and promote the same item to public distribution.
+**Requirements:** R2, R4–R8, R13–R18, R20.
 
-**Requirements:** R18–R20.
+**Files:** `tests/e2e/resilience.test.ts`, `tests/e2e/security.test.ts`, `scripts/audit-bundle.mjs`, `scripts/package-extension.mjs`, `README.md` (extension); repo-root `README.md`, `.gitignore`.
 
-**Files:** `docs/chrome-extension/privacy-policy.md`, `docs/chrome-extension/store-listing.md`, `docs/chrome-extension/release-checklist.md`, `chrome-extension/store-assets/`, `chrome-extension/CHANGELOG.md`.
+**Approach and acceptance:** Puppeteer tests final unpacked build through worker termination, restart, sleep/wake, offline/auth/429/5xx/timeout, corrupt storage, update/disable-enable, and every late response after Lock/Reset/delete/replacement/password change. Audit manifest, CSP, text-only sinks/provider strings, remote URLs, source maps, dynamic evaluation, fixture/canary strings, exact origins, and ZIP layout.
 
-**Approach:** Publish the privacy policy at a stable public URL, preferably GitHub Pages from the repository unless the user approves a different host. Create the 128 px icon, at least one 1280×800 screenshot, 440×280 small promo image, and concise listing copy. Complete the single-purpose, data-use, permission, host, remote-code, and Limited Use declarations. Confirm developer 2-Step Verification and pay the one-time dashboard registration fee. Upload the production ZIP as a private trusted-test release, collect actionable feedback, fix blockers through new versioned uploads, then switch the same item to public distribution.
-
-**Test scenarios:** every permission maps to a visible feature; policy matches runtime traffic and storage; screenshots match the shipped UI; install/update/uninstall work from the Store item; no duplicate beta listing; support and deletion instructions are reachable.
-
-**Verification:** Release checklist is signed off, private testers report no launch blocker, the submitted ZIP matches the audited hash, and the item is accepted for the chosen distribution stage. Public acceptance remains an external Google gate.
+**Verification:** full Verification Contract (except Store external gates) passes, package is reproducible from clean checkout, and no locked view shows financial amount or makes provider call.
 
 **Dependencies:** U6.
 
+### U8. Privacy, private test, and Store
+
+**Goal:** Submit an accurate reviewable listing after implementation evidence is complete.
+
+**Requirements:** R18–R20.
+
+**Files:** repo-root `docs/chrome-extension/privacy-policy.md`, `docs/chrome-extension/store-listing.md`, `docs/chrome-extension/release-checklist.md`; `store-assets/`, `CHANGELOG.md` (extension).
+
+**Approach and acceptance:** Publish policy at user-approved stable URL. Produce required icons/screenshots/promo image/listing and declarations matching actual local storage, direct origins, UTC limitations, calibrated-balance derivation, and deletion semantics. Upload audited ZIP to private trusted test, resolve blockers with new versioned uploads, then submit same item publicly. No notification disclosure because the feature is absent.
+
+**Verification:** signed checklist maps every permission to visible feature; policy/screenshots match shipped behavior; Store install/update/uninstall works; submitted ZIP hash equals audited artifact. Google acceptance is external.
+
+**Dependencies:** U7.
+
 ## Verification Contract
 
-Run all commands from `chrome-extension/` unless stated otherwise. U1 creates these scripts; later units may not weaken them without updating this plan's equivalent gate.
+Run from `chrome-extension/` unless noted. U1 creates scripts; later units may not weaken equivalent gates.
 
-| Gate | Command | Covers | Pass condition |
+| Gate | Command / evidence | Covers | Pass condition |
 |---|---|---|---|
-| Clean install | `npm ci` | U1–U7 | Lockfile installs with no unresolved dependency or critical audit finding |
-| Formatting/lint | `npm run lint` | U1–U7 | Exit 0; no ignored production directory |
-| Type safety | `npm run typecheck` | U1–U7 | Exit 0 under strict TypeScript settings |
-| Unit tests | `npm run test:unit` | U2–U5 | Domain, adapters, vault, refresh, alerts, and UI tests pass |
-| Integration tests | `npm run test:integration` | U1, U3, U4 | Permission, vault lifecycle, storage, and refresh tests pass without live secrets |
-| Production build | `npm run build` | U1–U7 | MV3 build completes with local assets only |
-| Browser E2E | `npm run test:e2e` | U3–U7 | Final unpacked build passes user flow, forced worker termination, restart, failure, and accessibility cases |
-| Bundle/security audit | `npm run audit:bundle` | U1–U7 | No remote code, broad permission, content script, dynamic evaluation, source-map secret, canary, or undeclared origin |
-| Reproducible package | `npm run package` | U1, U6, U7 | Versioned ZIP has root manifest and stable contents from a clean checkout |
-| macOS unit regression | `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ../LLMSpendMonitor.xcodeproj -scheme LLMSpendMonitor -destination 'platform=macOS' -derivedDataPath ../.build/DerivedData SWIFT_STRICT_CONCURRENCY=complete SWIFT_TREAT_WARNINGS_AS_ERRORS=YES test -only-testing:LLMSpendMonitorTests` | U2, U6 | Existing native domain/provider/service/security tests remain green |
-| Manual browser review | Load final unpacked build in `chrome://extensions` | U1, U5–U7 | Popup, full page, permissions, lock/restart, light/dark, keyboard, and provider errors match the Product Contract with no console error |
-| Store review checklist | Follow `docs/chrome-extension/release-checklist.md` | U7 | Policy, listing, assets, declarations, version, hash, privacy URL, and tester feedback are complete |
+| Clean install | `npm ci` | U1–U8 | lockfile installs without unresolved dependency/critical audit finding |
+| Lint | `npm run lint` | U1–U8 | exit 0; no ignored production directory |
+| Type safety | `npm run typecheck` | U1–U8 | strict TypeScript exit 0 |
+| Unit | `npm run test:unit` | U2–U6 | domain/adapters/vault/refresh/UI pass, including anchors and races |
+| Integration | `npm run test:integration` | U1–U4 | feasibility/vault/storage/refresh pass without live secrets |
+| Production build | `npm run build` | U1–U8 | MV3 build with local assets only |
+| Browser E2E | `npm run test:e2e` | U3–U7 | user flow, worker/restart, failures, destructive races, accessibility pass |
+| Bundle audit | `npm run audit:bundle` | U1–U8 | no remote code, broad permission, content script, dynamic eval, source-map saved secret or canary, undeclared origin, or notifications permission/state |
+| Package | `npm run package` | U1, U7–U8 | reproducible versioned ZIP with root manifest |
+| Native regression | `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ../LLMSpendMonitor.xcodeproj -scheme LLMSpendMonitor -destination 'platform=macOS' -derivedDataPath ../.build/DerivedData SWIFT_STRICT_CONCURRENCY=complete SWIFT_TREAT_WARNINGS_AS_ERRORS=YES test -only-testing:LLMSpendMonitorTests` | U2, U7 | existing native tests remain green |
+| Manual browser review | final unpacked build in `chrome://extensions` | U1, U5–U8 | popup/full page/permissions/lock/UTC labels/keyboard/provider errors match contract |
+| Early user gate | recorded U5 walkthrough | U5 | user approves simple connection and first-value experience, or corrections are resolved |
+| Store checklist | `docs/chrome-extension/release-checklist.md` | U8 | policy/listing/assets/declarations/hash/privacy URL/tester feedback complete |
 
-Live provider contract checks use developer-owned credentials outside source control. They are manual integration gates, not CI. Tests and logs must redact account IDs, costs, headers, bodies, and credentials. CI uses only sanitized fixtures.
+Live provider checks use developer-owned credentials outside source control. They are manual gates, not CI; tests/logs redact account IDs, costs, headers, bodies, and credentials. CI uses canonical sanitized fixtures only.
 
 ## Definition of Done
 
-### Global completion
+### Global
 
-- All requirements R1–R20 and acceptance examples AE1–AE12 are traced to passing units and verification evidence.
-- The four MVP providers have passed the U1 feasibility gate. Any failed provider has been removed from registry, permissions, UI, listing copy, and MVP claims rather than represented by a stub.
-- Persistent storage, logs, UI state, errors, test artifacts, build output, and ZIP contain no plaintext credential or canary.
-- Full Chrome restart locks and masks financial data; same-session worker eviction recovers; manual Lock stops refresh immediately.
-- Popup and full page expose only truthful capabilities, provenance, coverage, freshness, and provider-specific recovery actions.
-- The final production ZIP loads without errors and passes lint, typecheck, unit, integration, E2E, bundle audit, package, accessibility, and native regression gates.
-- Privacy Policy, Store disclosures, listing assets, and support/deletion instructions match actual behavior.
-- Trusted tester blockers are resolved and the audited version is submitted to Chrome Web Store. Public availability is complete only after Google accepts it.
-- Experimental, abandoned, duplicate, and debug-only code is removed. No live credential, feasibility output, local profile, or generated unpacked directory is committed.
+- R1–R20 and AE1–AE16 trace to passing implementation evidence.
+- Every MVP provider has U1-confirmed useful capability; failed providers/capabilities are removed from registry, permissions, UI, listing, and claims.
+- U5 early user gate approved the one-provider flow before U6 began.
+- Persistent storage, logs, returned UI view models, errors, test artifacts, build output, and ZIP contain no plaintext saved credential or canary. The only permitted UI plaintext secret is the user-entered short-lived connection/password draft defined by R5/KTD4; it is cleared at every stated lifecycle boundary and is never used as a test canary or logged.
+- Restart/update/disable-enable lock/mask values; same-session eviction recovers; every destructive mutation cancels/invalidates late results.
+- All UTC period totals use compatible fully attributable intervals; no FX or incompatible metric-family aggregation. Calibrated balances are derived, scoped, recomputed on report revision, and transparently partial where an arbitrary calibration cannot be exactly separated.
+- Final ZIP passes lint, typecheck, unit, integration, E2E, bundle audit, package, accessibility, visual/manual browser review, and native regression.
+- Policy, disclosures, assets, and support/deletion copy match actual behavior. Trusted-test blockers are resolved and audited artifact is submitted; public release awaits Google.
 
-### Per-unit completion
+### Per-unit
 
-- **U1:** The MV3 workspace builds, packages, requests only exact optional origins, and documents a pass/fail feasibility result for every proposed MVP provider.
-- **U2:** Normalized snapshots match sanitized provider fixtures with exact money arithmetic and fixed-origin network safety.
-- **U3:** Vault lifecycle and migrations fail closed and leak no plaintext across storage, messages, logs, or interruption paths.
-- **U4:** Refresh, estimation, last-good retention, cooldown, and alert deduplication pass deterministic lifecycle tests.
-- **U5:** First-run through routine monitoring is usable, truthful, keyboard complete, and visually inspected in supported appearance modes.
-- **U6:** The final bundle passes forced-eviction, restart, failure, security, CSP, manifest, and reproducibility audits.
-- **U7:** Privacy, listing, assets, private-test feedback, release hash, and distribution status are documented and verifiable.
+- **U1:** Workspace packages and documents pass/fail capability matrix with exact origins and no notifications.
+- **U2:** Pilot provider/domain honors money, UTC, anchor/revision, scope, calibration, and fixture contracts.
+- **U3:** Vault fails closed, password generation recovers atomically, and mutations do not leak or revive state.
+- **U4:** Refresh/cache/backoff/upsert/recompute/DeepSeek interval behavior is deterministic.
+- **U5:** One provider flow is accessible, truthful, visually inspected, and user-approved.
+- **U6:** Remaining confirmed adapters and full UI preserve all metric/state/accessibility contracts.
+- **U7:** Production bundle passes lifecycle, race, CSP/text-only, manifest, secret, and reproducibility audit.
+- **U8:** Privacy/listing/assets/private test/hash/distribution evidence is complete.
 
-## Appendix
+## Estimate and intentional limitations
 
-### Resource scenarios
+| Workstream | Developer days |
+|---|---:|
+| U1 feasibility/workspace | 3–5 |
+| U2 domain and pilot adapter | 4–6 |
+| U3 vault | 4–6 |
+| U4 refresh/cache | 3–5 |
+| U5 pilot UI and user gate | 4–6 |
+| U6 remaining adapters/full UI | 5–8 |
+| U7 resilience/package | 3–5 |
+| U8 privacy/Store | 3–5 |
+| **MVP total** | **29–46 developer days (about 232–368 hours)** |
 
-- **Lean owner-built MVP:** One senior developer does product, design, QA, and submission sequentially: 5–8 weeks plus external review.
-- **Two-person delivery:** One engineer plus part-time product/design/QA can compress elapsed time to about 4–6 weeks, but the engineering effort remains 25–40 developer days.
-- **Full parity immediately:** Not recommended. It increases provider-contract and Store disclosure risk before the vault and lifecycle model are proven.
+This is a **revised planning estimate**, not observed delivery duration: it increases the prior plan for calibrated-balance scope/recompute, the U5 early user gate, and destructive-action race/security coverage. One senior developer should expect roughly 6–9 calendar weeks plus Google review. Broader provider parity is a separate 10–20 day tranche after a new feasibility review.
 
-### Intentional security limitation
-
-The vault protects credentials and financial data from casual reading of the Chrome profile at rest. It does not protect against a compromised operating system, compromised Chrome process, malicious extension build/update, keylogger, or memory inspection while unlocked. The Privacy Policy and security documentation must state this boundary without claiming hardware-backed protection.
+The vault protects at-rest profile data from casual reading. It does not protect against a compromised OS/Chrome process, malicious extension build/update, keylogger, or unlocked-memory inspection. The policy must state this without claiming hardware-backed protection.
