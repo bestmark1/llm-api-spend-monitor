@@ -21,6 +21,7 @@ actor RefreshCoordinator {
     private var lastAttemptAt: [ProviderID: Date] = [:]
     private var consecutiveFailures: [ProviderID: Int] = [:]
     private var retryNotBefore: [ProviderID: Date] = [:]
+    private var revisions: [ProviderID: UInt64] = [:]
     private var inFlight: Task<Void, Never>?
 
     init(
@@ -58,7 +59,10 @@ actor RefreshCoordinator {
         let eligibleTargets = targets.filter { isEligible($0, for: trigger) }
         guard !eligibleTargets.isEmpty else { return snapshots }
 
-        let task = Task { await performRefresh(targets: eligibleTargets) }
+        let attemptRevisions = revisions
+        let task = Task {
+            await performRefresh(targets: eligibleTargets, attemptRevisions: attemptRevisions)
+        }
         inFlight = task
         await task.value
         inFlight = nil
@@ -66,6 +70,7 @@ actor RefreshCoordinator {
     }
 
     func purge(_ providerID: ProviderID) async {
+        revisions[providerID, default: 0] &+= 1
         snapshots.removeValue(forKey: providerID)
         lastAttemptAt.removeValue(forKey: providerID)
         consecutiveFailures.removeValue(forKey: providerID)
@@ -92,11 +97,21 @@ actor RefreshCoordinator {
         return now().timeIntervalSince(lastAttempt) >= target.minimumInterval
     }
 
-    private func performRefresh(targets: [ProviderRefreshTarget]) async {
+    private func performRefresh(
+        targets: [ProviderRefreshTarget],
+        attemptRevisions: [ProviderID: UInt64]
+    ) async {
         let attemptedAt = now()
         let outcomes = await Self.fetchOutcomes(for: targets)
 
         for outcome in outcomes {
+            // Recheck at publication, including failures buffered behind slower providers.
+            // purge can run while credential validation awaits, so check the revision last.
+            guard let target = targets.first(where: { $0.providerID == outcome.providerID }),
+                  await target.generationIsCurrent(target.generation),
+                  revisions[outcome.providerID, default: 0]
+                    == attemptRevisions[outcome.providerID, default: 0]
+            else { continue }
             switch outcome {
             case let .success(snapshot):
                 lastAttemptAt[snapshot.providerID] = attemptedAt

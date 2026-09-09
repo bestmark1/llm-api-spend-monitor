@@ -2,6 +2,56 @@ import XCTest
 @testable import LLMSpendMonitor
 
 final class RefreshCoordinatorTests: XCTestCase {
+    func testStaleFailureMustNotRestorePurgedProvider() async throws {
+        let cache = InMemorySnapshotCache()
+        let coordinator = RefreshCoordinator(cache: cache)
+        let target = ProviderRefreshTarget(
+            providerID: .openAI, generation: 1, minimumInterval: 0,
+            automaticRefreshEnabled: true,
+            fetch: { throw ProviderClientError.invalidCredential },
+            generationIsCurrent: { _ in false }
+        )
+        await coordinator.purge(.openAI)
+        let result = await coordinator.refresh(trigger: .manual, targets: [target])
+        XCTAssertNil(result[.openAI], "An obsolete credential failure must not restore Action needed")
+        let persisted = await cache.load()
+        XCTAssertNil(persisted[.openAI], "An obsolete credential failure must not persist")
+    }
+
+    func testDeletionAfterFastProviderCompletesMustSurviveSlowProvider() async throws {
+        for invalidatesCredential in [false, true] {
+        let cache = InMemorySnapshotCache()
+        let coordinator = RefreshCoordinator(cache: cache)
+        let didCheck = RefreshTestLatch()
+        let unblockSlow = RefreshTestLatch()
+        let generation = RefreshTestGenerationFlag()
+        let fastSnapshot = try makeSnapshot(providerID: .openAI, amount: "5.00")
+        let slowSnapshot = try makeSnapshot(providerID: .anthropic, amount: "1.00")
+        let fast = ProviderRefreshTarget(
+            providerID: .openAI, generation: 1, minimumInterval: 0,
+            automaticRefreshEnabled: true, fetch: { fastSnapshot },
+            generationIsCurrent: { _ in
+                let current = await generation.current
+                await didCheck.release()
+                return current
+            })
+        let slow = ProviderRefreshTarget(
+            providerID: .anthropic, generation: 1, minimumInterval: 0,
+            automaticRefreshEnabled: true,
+            fetch: { await unblockSlow.wait(); return slowSnapshot },
+            generationIsCurrent: { _ in true })
+        let running = Task { await coordinator.refresh(trigger: .manual, targets: [fast, slow]) }
+        await didCheck.wait()
+        if invalidatesCredential { await generation.invalidate() }
+        await coordinator.purge(.openAI)
+        await unblockSlow.release()
+        let snapshots = await running.value
+        XCTAssertNil(snapshots[.openAI], "Deleted provider restored from buffered successful response")
+        let persisted = await cache.load()
+        XCTAssertNil(persisted[.openAI], "Deleted provider persisted again")
+        }
+    }
+
     func testSimultaneousTriggersCoalesceIntoOneFetch() async throws {
         let cache = InMemorySnapshotCache()
         let coordinator = RefreshCoordinator(cache: cache, now: { Date(timeIntervalSince1970: 2_000_000_000) })
@@ -373,4 +423,23 @@ private actor InMemorySnapshotCache: SnapshotCaching {
     func remove(_ providerID: ProviderID) {
         snapshots.removeValue(forKey: providerID)
     }
+}
+
+private actor RefreshTestLatch {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+    func release() {
+        isOpen = true
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
+}
+private actor RefreshTestGenerationFlag {
+    private(set) var current = true
+    func invalidate() { current = false }
 }
