@@ -138,7 +138,8 @@ final class DashboardViewModel: ObservableObject {
                 snapshot.capabilities.contains(.officialCostHistory)
                     || snapshot.capabilities.contains(.estimatedCostHistory),
                 let coverage = snapshot.coverage,
-                coverage.completeness == .complete,
+                (coverage.completeness == .complete
+                    || snapshot.capabilities.contains(.estimatedCostHistory)),
                 coverage.start <= interval.start,
                 coverage.through >= interval.end
             else { return }
@@ -205,7 +206,9 @@ final class DashboardViewModel: ObservableObject {
         for providerID in snapshots.keys {
             guard let snapshot = completeTrackedCostSnapshot(for: providerID) else { continue }
             for bucket in snapshot.buckets {
-                guard let cost = trackedUSDCostMetric(in: bucket) else { continue }
+                guard let cost = trackedUSDCostMetric(in: bucket),
+                      bucket.end <= utcStartOfDay(for: bucket.start).addingTimeInterval(86_400)
+                else { continue }
                 totals[utcStartOfDay(for: bucket.start), default: 0] += cost.value.amount
             }
         }
@@ -426,12 +429,16 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private func completeTrackedCostSnapshot(for providerID: ProviderID) -> ProviderSnapshot? {
-        guard
-            let snapshot = snapshot(for: providerID),
-            Self.acceptsOfficialCost(snapshot.issue),
-            snapshot.coverage?.completeness == .complete,
-            snapshot.capabilities.contains(.officialCostHistory)
-                || snapshot.capabilities.contains(.estimatedCostHistory)
+        guard let snapshot = snapshot(for: providerID) else { return nil }
+        if snapshot.capabilities.contains(.estimatedCostHistory),
+           !snapshot.capabilities.contains(.officialCostHistory) {
+            // Include observed intervals even though they are not a complete cost report.
+            // The selected-period filter has already excluded boundary-crossing intervals.
+            return snapshots[providerID]?.issue == nil ? snapshot : nil
+        }
+        guard Self.acceptsOfficialCost(snapshot.issue),
+              snapshot.coverage?.completeness == .complete,
+              snapshot.capabilities.contains(.officialCostHistory)
         else { return nil }
         return snapshot
     }

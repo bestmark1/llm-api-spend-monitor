@@ -111,6 +111,23 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertTrue(snapshots[.openAI]?.buckets.isEmpty == true)
     }
 
+    func testDeepSeekFortyDayGapMustNotBecomeTodaysSpend() async throws {
+        let firstDate = Date(timeIntervalSince1970: 1_784_332_800)
+        let secondDate = firstDate.addingTimeInterval(40 * 86_400)
+        let coordinator = RefreshCoordinator(cache: InMemorySnapshotCache(), now: { secondDate })
+        let probe = SequencedFetchProbe(results: [
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "10.00", fetchedAt: firstDate)),
+            .success(try makeBalanceSnapshot(providerID: .deepSeek, amount: "5.00", fetchedAt: secondDate))
+        ])
+        let target = makeTarget(providerID: .deepSeek, fetch: { try await probe.fetch() })
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let result = await coordinator.refresh(trigger: .manual, targets: [target])
+        let snapshot = try XCTUnwrap(result[.deepSeek])
+        XCTAssertTrue(snapshot.buckets.isEmpty, "A 40-day unobserved delta is not a known daily expense")
+        XCTAssertNotEqual(snapshot.coverage?.completeness, .complete,
+                          "Two samples cannot establish complete 30-day spend coverage")
+    }
+
     func testDeepSeekBalanceDecreaseCreatesEstimatedDailySpendAndPersistsIt() async throws {
         let firstDate = Date(timeIntervalSince1970: 1_784_332_800)
         let secondDate = firstDate.addingTimeInterval(86_400)
@@ -130,11 +147,30 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertEqual(deepSeek.buckets.count, 1)
         XCTAssertEqual(deepSeek.buckets.first?.cost?.value.amount, Decimal(string: "1.70"))
         XCTAssertEqual(deepSeek.buckets.first?.cost?.provenance, .estimated)
-        XCTAssertEqual(deepSeek.buckets.first?.start, secondDate)
-        XCTAssertEqual(deepSeek.buckets.first?.end, secondDate.addingTimeInterval(86_400))
+        XCTAssertEqual(deepSeek.buckets.first?.start, firstDate)
+        XCTAssertEqual(deepSeek.buckets.first?.end, secondDate)
+        XCTAssertEqual(deepSeek.coverage?.completeness, .partial)
 
         let persisted = await cache.load()
         XCTAssertEqual(persisted[.deepSeek], deepSeek)
+    }
+
+    func testRepeatedBalanceTimestampDoesNotDuplicateEstimatedSpend() async throws {
+        let day = Date(timeIntervalSince1970: 1_784_332_800)
+        let coordinator = RefreshCoordinator(cache: InMemorySnapshotCache())
+        let first = try makeBalanceSnapshot(providerID: .deepSeek, amount: "10", fetchedAt: day)
+        let second = try makeBalanceSnapshot(providerID: .deepSeek, amount: "9", fetchedAt: day.addingTimeInterval(3600))
+        let probe = SequencedFetchProbe(results: [.success(first), .success(second), .success(second)])
+        let target = makeTarget(providerID: .deepSeek, fetch: { try await probe.fetch() })
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let initial = await coordinator.refresh(trigger: .manual, targets: [target])
+        let repeated = await coordinator.refresh(trigger: .manual, targets: [target])
+        XCTAssertEqual(repeated, initial)
+        let snapshot = try XCTUnwrap(repeated[.deepSeek])
+        let restored = try JSONDecoder().decode(ProviderSnapshot.self, from: JSONEncoder().encode(snapshot))
+        XCTAssertEqual(restored.buckets.first?.start, day)
+        XCTAssertEqual(restored.buckets.first?.end, day.addingTimeInterval(3600))
+        XCTAssertEqual(restored.buckets.first?.cost?.value.amount, 1)
     }
 
     func testDeepSeekTopUpDoesNotCreateSpendOrDiscardEarlierEstimate() async throws {

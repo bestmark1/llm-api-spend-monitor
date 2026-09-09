@@ -78,6 +78,37 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertFalse(model.isOfficialCostPartial)
     }
 
+    func testEstimatedIntervalsRespectPeriodAndDailyTrendBoundaries() async throws {
+        let day = Date(timeIntervalSince1970: 1_784_332_800)
+        let now = day.addingTimeInterval(12 * 3600)
+        let range = DashboardPeriod.thirtyDays.interval(containing: now)
+        let observations: [(Int, Int, Int)] = [(-10, -6, 3), (-6, 1, 2), (1, 2, 1)]
+        let buckets: [PeriodBucket] = try observations.map { observation in
+            let (start, end, amount) = observation
+            return PeriodBucket(start: day.addingTimeInterval(Double(start * 3600)),
+                         end: day.addingTimeInterval(Double(end * 3600)),
+                         cost: MoneyMetric(value: try Money(amount: Decimal(amount), currencyCode: "USD"),
+                                           provenance: .estimated))
+        }
+        let snapshot = try ProviderSnapshot(providerID: .deepSeek,
+            capabilities: [.balance, .estimatedCostHistory], fetchedAt: now,
+            coverage: ReportingCoverage(start: range.start, through: range.end, completeness: .partial),
+            buckets: buckets, balances: [], issue: nil)
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStub(cached: [.deepSeek: snapshot], refreshed: [:]),
+            targets: [], platformBalanceStore: DashboardPlatformBalanceStoreStub(), now: { now })
+        await model.loadCache()
+        model.selectedPeriod = .today
+        XCTAssertEqual(model.trackedUSDTotal.amount, 1)
+        XCTAssertEqual(model.menuBarUSDTotal.amount, 1)
+        model.selectedPeriod = .yesterday
+        XCTAssertEqual(model.trackedUSDTotal.amount, 3)
+        model.selectedPeriod = .thirtyDays
+        XCTAssertEqual(model.trackedUSDTotal.amount, 6)
+        XCTAssertEqual(model.trackedUSDDailySpend.map(\.amount.amount), [3, 1])
+        XCTAssertEqual(model.officialUSDTotal.amount, 0)
+    }
+
     func testTrackedSpendIncludesDeepSeekEstimatedBalanceDecrease() async throws {
         let now = Date(timeIntervalSince1970: 1_700_265_599)
         let interval = DashboardPeriod.today.interval(containing: now)

@@ -35,10 +35,14 @@ Gemini and Perplexity are currently hidden because their ordinary API keys do no
 
 DeepSeek's public API returns the current balance but not historical cost buckets. Spender therefore compares consecutive saved balance observations:
 
-- a decrease is recorded as estimated spend on the day of the newer observation;
+- a decrease is saved for the full interval between the two observations;
+- Today, Yesterday, and the daily chart include it only when that entire interval fits inside one UTC day;
+- 30 Days includes multi-day intervals only when they fit entirely within the selected window; missing observations are not treated as complete history;
 - an increase is treated as a top-up and is not counted as negative spend;
 - the estimate starts after Spender has saved its first balance observation;
 - usage between widely separated observations, grant expiry, or an intervening top-up can make the estimate differ from DeepSeek's Usage export.
+
+Existing daily estimates from older versions are retained, but cannot be redated without their original observation timestamps. These historical estimates are not retroactively corrected.
 
 For authoritative history, use the CSV export on the DeepSeek Usage page.
 
