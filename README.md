@@ -31,6 +31,12 @@ It connects directly to provider APIs, keeps credentials in macOS Keychain, and 
 
 Gemini and Perplexity are currently hidden because their ordinary API keys do not provide a practical account-wide spend report for this app. Spender does not present key validation as billing integration.
 
+### Cost reports and token-report failures
+
+A failed or incomplete token report no longer discards a received OpenAI or Anthropic cost report. Missing token totals are omitted, not displayed as zero. OpenAI's complete cost report remains eligible for totals and balance deductions; token-report rate limits still delay retries.
+
+Anthropic remains conservative: when usage scope cannot be checked, or Priority Tier usage is detected, its received costs are retained but marked partial and excluded from automatic balance deductions. The Cost API does not include Priority Tier charges. See [Anthropic's documented scope](https://platform.claude.com/docs/en/manage-claude/usage-cost-api).
+
 ### DeepSeek accuracy
 
 DeepSeek's public API returns the current balance but not historical cost buckets. Spender therefore compares consecutive saved balance observations:

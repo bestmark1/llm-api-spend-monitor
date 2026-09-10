@@ -117,6 +117,9 @@ actor RefreshCoordinator {
                 lastAttemptAt[snapshot.providerID] = attemptedAt
                 consecutiveFailures.removeValue(forKey: snapshot.providerID)
                 retryNotBefore.removeValue(forKey: snapshot.providerID)
+                if let delay = snapshot.retryAfterSeconds {
+                    retryNotBefore[snapshot.providerID] = now().addingTimeInterval(delay)
+                }
                 snapshots[snapshot.providerID] = Self.mergingLocalMetrics(
                     into: snapshot,
                     previous: snapshots[snapshot.providerID]
@@ -219,7 +222,8 @@ actor RefreshCoordinator {
             coverage: snapshot.coverage,
             buckets: snapshot.buckets,
             balances: snapshot.balances,
-            issue: issue
+            issue: issue,
+            retryAfterSeconds: snapshot.retryAfterSeconds
         )) ?? snapshot
     }
 

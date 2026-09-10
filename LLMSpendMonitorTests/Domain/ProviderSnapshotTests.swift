@@ -5,6 +5,14 @@ final class ProviderSnapshotTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_784_102_400)
     private let end = Date(timeIntervalSince1970: 1_784_188_800)
 
+    func testSnapshotRejectsInvalidRetryAfter() {
+        for delay in [-1.0, Double.infinity, Double.nan] {
+            XCTAssertThrowsError(try ProviderSnapshot(providerID: .openAI, capabilities: [],
+                fetchedAt: end, coverage: nil, buckets: [], balances: [],
+                issue: .usageUnavailable, retryAfterSeconds: delay))
+        }
+    }
+
     func testFullProviderSnapshotPreservesExactOfficialMetrics() throws {
         let cost = MoneyMetric(
             value: try Money(amount: Decimal(string: "1.23456789000000000000000000000")!, currencyCode: "USD"),

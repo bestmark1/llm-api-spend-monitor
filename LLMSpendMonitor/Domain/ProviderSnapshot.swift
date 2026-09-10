@@ -67,6 +67,7 @@ struct ReportingCoverage: Codable, Equatable, Sendable {
 enum ProviderIssue: String, Codable, Equatable, Sendable {
     case authentication
     case balanceUnavailable
+    case usageUnavailable
     case insufficientPermissions
     case rateLimited
     case offline
@@ -85,6 +86,7 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
         case nonOfficialProviderTokens
         case invalidCoverage
         case invalidBucket
+        case invalidRetryAfter
     }
 
     let providerID: ProviderID
@@ -94,6 +96,7 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
     let buckets: [PeriodBucket]
     let balances: [ProviderBalance]
     let issue: ProviderIssue?
+    let retryAfterSeconds: TimeInterval?
 
     init(
         providerID: ProviderID,
@@ -102,8 +105,12 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
         coverage: ReportingCoverage?,
         buckets: [PeriodBucket],
         balances: [ProviderBalance],
-        issue: ProviderIssue?
+        issue: ProviderIssue?,
+        retryAfterSeconds: TimeInterval? = nil
     ) throws {
+        if let retryAfterSeconds, !retryAfterSeconds.isFinite || retryAfterSeconds < 0 {
+            throw ValidationError.invalidRetryAfter
+        }
         let requiredCapabilities = Self.requiredCapabilities(for: buckets, balances: balances)
         if let missingCapability = requiredCapabilities
             .subtracting(capabilities)
@@ -150,6 +157,7 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
         self.buckets = buckets
         self.balances = balances
         self.issue = issue
+        self.retryAfterSeconds = retryAfterSeconds
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -160,6 +168,7 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
         case buckets
         case balances
         case issue
+        case retryAfterSeconds
     }
 
     init(from decoder: Decoder) throws {
@@ -171,7 +180,8 @@ struct ProviderSnapshot: Codable, Equatable, Sendable {
             coverage: container.decodeIfPresent(ReportingCoverage.self, forKey: .coverage),
             buckets: container.decode([PeriodBucket].self, forKey: .buckets),
             balances: container.decode([ProviderBalance].self, forKey: .balances),
-            issue: container.decodeIfPresent(ProviderIssue.self, forKey: .issue)
+            issue: container.decodeIfPresent(ProviderIssue.self, forKey: .issue),
+            retryAfterSeconds: container.decodeIfPresent(TimeInterval.self, forKey: .retryAfterSeconds)
         )
     }
 

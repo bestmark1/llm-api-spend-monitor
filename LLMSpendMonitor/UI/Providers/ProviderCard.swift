@@ -606,7 +606,7 @@ struct ProviderCard: View {
             return ("Balance unavailable", "exclamationmark.triangle.fill", .orange)
         case .noSpendingLimit:
             return ("No limit", "checkmark.circle.fill", .green)
-        case .partialData:
+        case .partialData, .usageUnavailable:
             return ("Partial", "circle.lefthalf.filled", .orange)
         case .rateLimited, .offline, .malformedResponse, .providerUnavailable:
             return ("Cached", "clock.badge.exclamationmark", .orange)
@@ -686,6 +686,7 @@ struct ProviderCard: View {
         switch issue {
         case .authentication: "Check credential"
         case .balanceUnavailable: "Balance unavailable"
+        case .usageUnavailable: "Token report unavailable"
         case .insufficientPermissions: "Insufficient permissions"
         case .rateLimited: "Rate limited"
         case .offline: "Offline"
@@ -702,6 +703,7 @@ struct ProviderCard: View {
         switch issue {
         case .authentication: "The saved credential was rejected. Replace it in Connections."
         case .balanceUnavailable: "The provider account balance is temporarily unavailable."
+        case .usageUnavailable: "Token metrics are unavailable. The received cost report is preserved."
         case .insufficientPermissions: "The saved credential needs additional permissions."
         case .rateLimited: "The provider is rate limiting requests. Try again later."
         case .offline: "The provider could not be reached. Check your connection."

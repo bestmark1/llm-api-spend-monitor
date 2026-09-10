@@ -272,6 +272,24 @@ final class RefreshCoordinatorTests: XCTestCase {
         XCTAssertEqual(callsAfterRetryAfter, 2)
     }
 
+    func testUsageRetryAfterPreservesCostButBlocksRefreshUntilCooldown() async throws {
+        let clock = LockedTestClock(Date(timeIntervalSince1970: 2_000_000_000))
+        let coordinator = RefreshCoordinator(cache: InMemorySnapshotCache(), now: { clock.now })
+        let costs = try makeSnapshot(providerID: .openAI, amount: "4", retryAfterSeconds: 120)
+        let probe = FetchProbe(result: .success(costs))
+        let target = makeTarget(providerID: .openAI, probe: probe)
+        let snapshots = await coordinator.refresh(trigger: .manual, targets: [target])
+        XCTAssertEqual(snapshots[.openAI]?.buckets.first?.cost?.value.amount, 4)
+        clock.advance(by: 119)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let before = await probe.callCount
+        XCTAssertEqual(before, 1)
+        clock.advance(by: 1)
+        _ = await coordinator.refresh(trigger: .manual, targets: [target])
+        let after = await probe.callCount
+        XCTAssertEqual(after, 2)
+    }
+
     func testFailuresUseDeterministicExponentialBackoff() async throws {
         let clock = LockedTestClock(Date(timeIntervalSince1970: 2_000_000_000))
         let coordinator = RefreshCoordinator(
@@ -336,7 +354,7 @@ final class RefreshCoordinatorTests: XCTestCase {
         )
     }
 
-    private func makeSnapshot(providerID: ProviderID, amount: String) throws -> ProviderSnapshot {
+    private func makeSnapshot(providerID: ProviderID, amount: String, retryAfterSeconds: TimeInterval? = nil) throws -> ProviderSnapshot {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let end = start.addingTimeInterval(86_400)
         let cost = MoneyMetric(
@@ -350,7 +368,8 @@ final class RefreshCoordinatorTests: XCTestCase {
             coverage: ReportingCoverage(start: start, through: end, completeness: .complete),
             buckets: [PeriodBucket(start: start, end: end, cost: cost)],
             balances: [],
-            issue: nil
+            issue: retryAfterSeconds == nil ? nil : .usageUnavailable,
+            retryAfterSeconds: retryAfterSeconds
         )
     }
 

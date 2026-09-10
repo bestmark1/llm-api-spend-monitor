@@ -1,8 +1,41 @@
 import XCTest
+import SwiftUI
 @testable import LLMSpendMonitor
 
 @MainActor
 final class MenuBarShellTests: XCTestCase {
+    func testCostOnlyProviderCardRendersInBothAppearances() throws {
+        let suite = "Spender.RenderTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: "provider.card.openai.expanded")
+        let day = Date(timeIntervalSince1970: 1_784_332_800)
+        let cost = MoneyMetric(value: try Money(amount: Decimal(string: "4.25")!, currencyCode: "USD"),
+                               provenance: .official)
+        let snapshot = try ProviderSnapshot(providerID: .openAI,
+            capabilities: [.officialCostHistory], fetchedAt: day.addingTimeInterval(3600),
+            coverage: ReportingCoverage(start: day, through: day.addingTimeInterval(86_400), completeness: .complete),
+            buckets: [PeriodBucket(start: day, end: day.addingTimeInterval(86_400), cost: cost)],
+            balances: [], issue: .usageUnavailable)
+        for scheme in [ColorScheme.light, .dark] {
+            let content = ProviderCard(metadata: try XCTUnwrap(ProviderRegistry.metadata(for: .openAI)),
+                                       snapshot: snapshot)
+                .defaultAppStorage(defaults)
+                .padding(16)
+                .frame(width: 420)
+                .background(scheme == .dark ? Color.black : Color.white)
+                .environment(\.colorScheme, scheme)
+            let renderer = ImageRenderer(content: content)
+            renderer.scale = 2
+            let rendered = try XCTUnwrap(renderer.nsImage)
+            XCTAssertGreaterThan(rendered.size.height, 100)
+            let attachment = XCTAttachment(image: rendered)
+            attachment.name = "Cost report without tokens - \(scheme)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
     func testApplicationIsConfiguredAsDocklessAgent() {
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "LSUIElement") as? Bool, true)
     }

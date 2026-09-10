@@ -258,7 +258,8 @@ final class DashboardViewModel: ObservableObject {
                 $0.start >= interval.start && $0.end <= interval.end
             },
             balances: source.balances,
-            issue: issue
+            issue: issue,
+            retryAfterSeconds: source.retryAfterSeconds
         )
     }
 
@@ -444,13 +445,13 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private static func acceptsOfficialCost(_ issue: ProviderIssue?) -> Bool {
-        issue == nil || issue == .balanceUnavailable
+        issue == nil || issue == .balanceUnavailable || issue == .usageUnavailable
     }
 
     private func hasCompleteCurrentCostCoverage(for providerID: ProviderID) -> Bool {
         guard
             let snapshot = snapshots[providerID],
-            snapshot.issue == nil,
+            Self.acceptsOfficialCost(snapshot.issue),
             snapshot.capabilities.contains(.officialCostHistory),
             let coverage = snapshot.coverage,
             coverage.completeness == .complete
@@ -484,7 +485,7 @@ final class DashboardViewModel: ObservableObject {
     ) -> PlatformBalanceCheckpoint {
         guard
             snapshot.providerID == checkpoint.providerID,
-            snapshot.issue == nil,
+            Self.acceptsOfficialCost(snapshot.issue),
             snapshot.coverage?.completeness == .complete,
             snapshot.capabilities.contains(.officialCostHistory)
         else { return checkpoint }
@@ -527,7 +528,7 @@ final class DashboardViewModel: ObservableObject {
     ) -> [PlatformBalanceCostAnchor] {
         guard
             let snapshot,
-            snapshot.issue == nil,
+            Self.acceptsOfficialCost(snapshot.issue),
             snapshot.coverage?.completeness == .complete
         else { return [] }
 
@@ -553,7 +554,7 @@ final class DashboardViewModel: ObservableObject {
         var anchors = officialCostAnchors(in: snapshot, currencyCode: currencyCode)
         guard
             let snapshot,
-            snapshot.issue == nil,
+            Self.acceptsOfficialCost(snapshot.issue),
             snapshot.capabilities.contains(.officialCostHistory),
             let coverage = snapshot.coverage,
             coverage.completeness == .complete

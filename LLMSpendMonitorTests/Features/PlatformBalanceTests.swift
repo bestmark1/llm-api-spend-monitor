@@ -236,6 +236,24 @@ final class PlatformBalanceTests: XCTestCase {
         XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 98)
     }
 
+    func testUsageOutageDoesNotStopCostDeductionOrDoubleChargeOnRecovery() async throws {
+        let initial = try makeSnapshot(firstDay: "15")
+        let outage = try makeSnapshot(firstDay: "17", issue: .usageUnavailable)
+        let recovered = try makeSnapshot(firstDay: "17")
+        let source = SequencedDashboardDataSourceForBalance(cached: [.openAI: initial],
+            refreshes: [[.openAI: initial], [.openAI: outage], [.openAI: recovered]])
+        let model = DashboardViewModel(dataSource: source, targets: [],
+            platformBalanceStore: InMemoryPlatformBalanceStore(), now: { platformBalanceSyncDate })
+        await model.loadCache()
+        let synchronized = await model.synchronizePlatformBalance(providerID: .openAI,
+            balance: try Money(amount: 100, currencyCode: "USD"))
+        XCTAssertTrue(synchronized)
+        await model.refresh(trigger: .manual)
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 98)
+        await model.refresh(trigger: .manual)
+        XCTAssertEqual(model.platformBalance(for: .openAI)?.remaining.amount, 98)
+    }
+
     func testIncompleteReportsDoNotChangeTrackedBalance() async throws {
         let initial = try makeSnapshot(firstDay: "15.00")
         let partial = try makeSnapshot(firstDay: "25.00", completeness: .partial)
@@ -364,7 +382,8 @@ final class PlatformBalanceTests: XCTestCase {
         providerID: ProviderID = .openAI,
         firstDay: String,
         secondDay: String? = nil,
-        completeness: ReportingCoverage.Completeness = .complete
+        completeness: ReportingCoverage.Completeness = .complete,
+        issue: ProviderIssue? = nil
     ) throws -> ProviderSnapshot {
         let start = platformBalanceDayStart
         var buckets = [
@@ -384,7 +403,7 @@ final class PlatformBalanceTests: XCTestCase {
             ),
             buckets: buckets,
             balances: [],
-            issue: completeness == .complete ? nil : .partialData
+            issue: completeness == .complete ? issue : .partialData
         )
     }
 

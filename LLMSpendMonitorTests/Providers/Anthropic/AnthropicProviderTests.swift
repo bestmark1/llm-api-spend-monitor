@@ -2,6 +2,45 @@ import XCTest
 @testable import LLMSpendMonitor
 
 final class AnthropicProviderTests: XCTestCase {
+    func testMalformedUsageCannotDiscardCosts() async throws {
+        let original = String(decoding: fixture("usage-page-2"), as: UTF8.self)
+        let malformed = [
+            original.replacingOccurrences(of: "\"output_tokens\": 30", with: "\"output_tokens\": -1"),
+            original.replacingOccurrences(of: "2026-07-12T00:00:00Z", with: "2026-07-13T00:00:00Z")
+        ]
+        for body in malformed {
+            let client = AnthropicHTTPClientQueue(responses: [
+                .success(response(fixture: "cost-page-2")),
+                .success(HTTPResponse(statusCode: 200, headers: [:], body: Data(body.utf8)))
+            ])
+            let provider = AnthropicProvider(httpClient: client, now: { Self.interval.end })
+            let snapshot = try await provider.fetch(Self.fullRequest, credential: "fake-admin-key")
+            XCTAssertEqual(snapshot.buckets.compactMap(\.cost).map(\.value.amount), [Decimal(string: "0.25")!])
+            XCTAssertTrue(snapshot.buckets.compactMap(\.tokenUsage).isEmpty)
+            XCTAssertEqual(snapshot.issue, .usageUnavailable)
+        }
+    }
+
+    func testUsageFailurePreservesSuccessfulCostReport() async throws {
+        for status in [403, 429, 503] {
+            let client = AnthropicHTTPClientQueue(responses: [
+                .success(response(fixture: "cost-page")),
+                .success(response(fixture: "cost-page-2")),
+                .failure(HTTPClientError.httpStatus(HTTPResponse(
+                    statusCode: status, headers: ["retry-after": "120"], body: Data())))
+            ])
+            let provider = AnthropicProvider(httpClient: client, now: { Self.interval.end })
+            let snapshot = try await provider.fetch(Self.fullRequest, credential: "fake-admin-key")
+            XCTAssertFalse(snapshot.buckets.compactMap(\.cost).isEmpty)
+            XCTAssertTrue(snapshot.buckets.compactMap(\.tokenUsage).isEmpty)
+            XCTAssertEqual(snapshot.issue, .usageUnavailable)
+            XCTAssertEqual(snapshot.retryAfterSeconds, status == 429 ? 120 : nil)
+            let restored = try JSONDecoder().decode(ProviderSnapshot.self, from: JSONEncoder().encode(snapshot))
+            XCTAssertEqual(restored, snapshot)
+            XCTAssertEqual(snapshot.coverage?.completeness, .partial)
+        }
+    }
+
     func testFetchPaginatesAndConvertsFractionalCentsExactly() async throws {
         let client = AnthropicHTTPClientQueue(responses: [
             .success(response(fixture: "cost-page")),

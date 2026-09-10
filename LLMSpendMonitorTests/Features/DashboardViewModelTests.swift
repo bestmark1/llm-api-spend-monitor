@@ -165,6 +165,19 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(model.officialUSDTotal.amount, 0)
     }
 
+    func testAggregateIncludesCompleteCostsWithoutUsage() async throws {
+        let snapshot = try makeCostSnapshot(providerID: .openAI, amount: "4.00", issue: .usageUnavailable)
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStub(cached: [.openAI: snapshot], refreshed: [:]),
+            targets: [], platformBalanceStore: DashboardPlatformBalanceStoreStub(),
+            now: { snapshot.coverage!.through.addingTimeInterval(-1) })
+        await model.loadCache()
+        XCTAssertEqual(model.officialUSDTotal.amount, 4)
+        XCTAssertEqual(model.trackedUSDTotal.amount, 4)
+        XCTAssertEqual(model.menuBarUSDTotal.amount, 4)
+        XCTAssertFalse(model.isOfficialCostPartial)
+    }
+
     func testAggregateIncludesCompleteOfficialCostWhenOnlyBalanceIsUnavailable() async throws {
         let snapshot = try makeCostSnapshot(
             providerID: .qwen,

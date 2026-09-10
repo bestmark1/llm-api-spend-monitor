@@ -36,12 +36,37 @@ struct OpenAIProvider: ProviderClient, Sendable {
             credential: credential,
             pageLimit: pageLimit
         )
-        let usageResult = try await fetchUsage(
-            interval: interval,
-            credential: credential,
-            pageLimit: pageLimit
-        )
-        let isComplete = costResult.isComplete && usageResult.isComplete
+        let usageResult: PageResult<UsageBucket>?
+        var retryAfterSeconds: TimeInterval?
+        do {
+            let candidate = try await fetchUsage(
+                interval: interval, credential: credential, pageLimit: pageLimit
+            )
+            // Validate usage independently so malformed metrics cannot discard valid costs.
+            _ = try ProviderSnapshot(
+                providerID: providerID,
+                capabilities: capabilities,
+                fetchedAt: now(),
+                coverage: ReportingCoverage(
+                    start: interval.start,
+                    through: interval.end,
+                    completeness: candidate.isComplete ? .complete : .partial
+                ),
+                buckets: try Self.makeBuckets(costs: [:], usage: candidate.buckets),
+                balances: [],
+                issue: nil
+            )
+            usageResult = candidate
+        } catch {
+            usageResult = nil
+            if case let ProviderClientError.rateLimited(retryAfter) = error {
+                retryAfterSeconds = retryAfter.flatMap { $0.isFinite ? max(0, $0) : nil } ?? 30
+            }
+        }
+        let usageComplete = usageResult?.isComplete == true
+        let isComplete = costResult.isComplete
+        let issue: ProviderIssue? = !isComplete ? .partialData
+            : (usageComplete ? nil : .usageUnavailable)
 
         do {
             return try ProviderSnapshot(
@@ -55,10 +80,11 @@ struct OpenAIProvider: ProviderClient, Sendable {
                 ),
                 buckets: try Self.makeBuckets(
                     costs: costResult.buckets,
-                    usage: usageResult.buckets
+                    usage: usageComplete ? (usageResult?.buckets ?? [:]) : [:]
                 ),
                 balances: [],
-                issue: isComplete ? nil : .partialData
+                issue: issue,
+                retryAfterSeconds: retryAfterSeconds
             )
         } catch let error as ProviderClientError {
             throw error
