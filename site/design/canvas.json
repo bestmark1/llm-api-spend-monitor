@@ -1,0 +1,41 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Desktop — full page",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 5750,
+      "expand": "fill"
+    },
+    {
+      "file": "Mobile.dc.html",
+      "title": "Mobile 390 — top of page",
+      "x": 1600,
+      "y": 0,
+      "w": 390,
+      "h": 3060
+    },
+    {
+      "file": "Comparison.dc.html",
+      "title": "Comparison band — standalone view (now embedded in the page)",
+      "x": 1600,
+      "y": 3200,
+      "w": 1120,
+      "h": 600
+    }
+  ],
+  "annotations": [
+    {
+      "id": "placeholders",
+      "x": 0,
+      "y": -190,
+      "w": 520,
+      "text": "Version 0.1.0, \"macOS 14 or later\" and the MIT licence are real project values.\n\nStill open: no .dmg in GitHub Releases yet, and distribution outside the App Store needs an Apple Developer Program membership ($99/year) for Developer ID signing and notarisation.\n\nPalette and icon are lifted from Spender.icns. The purple in the app screenshots is the user's macOS accent colour, not a brand colour."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

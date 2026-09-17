@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap">
+  <style>
+    :root {
+      --brand: #3974CD;
+      --brand-light: #548AE2;
+      --brand-deep: #214E95;
+      --brand-violet: #55509A;
+      --ink: #242324;
+      --ink-2: #757476;
+      --ink-3: #A2A0A4;
+      --teal: #58C0CD;
+      --indigo: #5F55EC;
+      --hair: #DEDADF;
+      --display: "Bricolage Grotesque", "Helvetica Neue", -apple-system, sans-serif;
+      --sans: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; }
+    h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.026em; }
+    p { margin: 0; }
+    .eyebrow {
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 600; color: var(--ink-2);
+      background: var(--hair); border-radius: 999px; padding: 3px 10px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .card {
+      border-radius: 18px; padding: 32px 34px 34px; height: 100%;
+      display: flex; flex-direction: column;
+    }
+    .card-muted {
+      background: rgba(255, 255, 255, 0.42);
+      border: 0.8px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 4px 12px rgba(36, 35, 36, 0.04);
+    }
+    .card-ours {
+      background: rgba(255, 255, 255, 0.72);
+      border: 0.8px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 14px 34px rgba(33, 78, 149, 0.16);
+    }
+    .split {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--hair);
+    }
+  </style>
+</helmet>
+
+<div style="width: 1120px; padding: 56px 64px 60px;
+    background:
+      radial-gradient(760px 420px at 88% 0%, rgba(84, 138, 226, 0.22), transparent 62%),
+      radial-gradient(600px 400px at 2% 100%, rgba(85, 80, 154, 0.14), transparent 60%),
+      #F5F4F8;">
+
+  <div class="eyebrow">The same thirty days</div>
+  <h2 style="font-size: 38px; line-height: 1.1; margin-top: 16px; max-width: 700px;">
+    One number, or the truth about that number.
+  </h2>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 36px;">
+
+    <div class="card card-muted">
+      <p style="font-size: 13px; font-weight: 650; color: var(--ink-3); letter-spacing: 0.01em;">
+        A typical spend dashboard
+      </p>
+      <p style="margin-top: 22px; font-size: 14px; color: var(--ink-3);">Total spend</p>
+      <p class="num" style="margin-top: 4px; font-size: 52px; font-weight: 700; color: var(--ink-2); letter-spacing: -0.03em;">
+        $78.21
+      </p>
+      <p style="margin-top: auto; padding-top: 30px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+        One confident figure. No way to tell which part a provider actually reported,
+        which part was inferred, and which provider said nothing at all.
+      </p>
+    </div>
+
+    <div class="card card-ours">
+      <p style="font-size: 13px; font-weight: 650; color: var(--brand); letter-spacing: 0.01em;">
+        Spender
+      </p>
+
+      <div style="margin-top: 20px;">
+        <div class="split">
+          <span class="chip"><span class="dot" style="background: var(--teal);"></span>Official</span>
+          <span class="num" style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em;">$71.64</span>
+        </div>
+        <div class="split">
+          <span class="chip"><span class="dot" style="background: var(--indigo);"></span>Estimated</span>
+          <span class="num" style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink-2);">$6.57</span>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-top: 16px;">
+          <span style="font-size: 14px; color: var(--ink-3);">Tracked spend</span>
+          <span class="num" style="font-size: 30px; font-weight: 750; letter-spacing: -0.03em;">$78.21</span>
+        </div>
+      </div>
+
+      <p style="margin-top: auto; padding-top: 26px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+        The same total, taken apart. <span class="num">$71.64</span> came from OpenAI and
+        Anthropic billing APIs. <span class="num">$6.57</span> is DeepSeek, derived from
+        balance decreases because DeepSeek publishes no cost history — and it never joins
+        the official figure.
+      </p>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

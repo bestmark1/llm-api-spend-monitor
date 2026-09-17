@@ -1,0 +1,87 @@
+name: Check provider links
+
+# Provider consoles get renamed and moved without notice — Moonshot's platform
+# became platform.kimi.ai, for example. This walks every external URL in the
+# provider registry once a week and opens an issue when one stops resolving to
+# itself, so a stale link is found here rather than by a user.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe every registry URL
+        id: probe
+        run: |
+          set -uo pipefail
+          registry="LLMSpendMonitor/Providers/ProviderRegistry.swift"
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
+          report="$RUNNER_TEMP/report.md"
+          : > "$report"
+
+          grep -ohE '"https://[^"]+"' "$registry" | tr -d '"' | sort -u > "$RUNNER_TEMP/urls.txt"
+          echo "Checking $(wc -l < "$RUNNER_TEMP/urls.txt") URLs"
+
+          while read -r url; do
+            [ -z "$url" ] && continue
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -m 20 -A "$UA" "$url" || echo 000)
+            target=$(curl -sS -o /dev/null -w '%{redirect_url}' -m 20 -A "$UA" "$url" || echo '')
+            echo "$code  $url"
+
+            case "$code" in
+              2*)
+                ;;
+              401|403|405|429)
+                # Bot protection, not a dead link: OpenAI, xAI, Perplexity and
+                # several status pages refuse plain HTTP clients but open fine in
+                # a browser. Treated as inconclusive rather than reported.
+                ;;
+              3*)
+                # A redirect to a sign-in page is normal for consoles behind auth.
+                # Only a redirect that leaves the original host means the link moved.
+                host=$(printf '%s' "$url" | awk -F/ '{print $3}')
+                dest=$(printf '%s' "$target" | awk -F/ '{print $3}')
+                if [ -n "$dest" ] && [ "$host" != "$dest" ] \
+                   && ! printf '%s' "$target" | grep -qiE 'login|sign-?in|auth|account'; then
+                  echo "- \`$url\` → **$code** → \`$target\` (moved to a different host)" >> "$report"
+                fi
+                ;;
+              *)
+                echo "- \`$url\` → **$code**" >> "$report"
+                ;;
+            esac
+          done < "$RUNNER_TEMP/urls.txt"
+
+          if [ -s "$report" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "report<<REPORT_EOF"
+              cat "$report"
+              echo "REPORT_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open an issue for stale links
+        if: steps.probe.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPORT: ${{ steps.probe.outputs.report }}
+        run: |
+          body=$(printf '%s\n\n%s\n' \
+            "Links in \`LLMSpendMonitor/Providers/ProviderRegistry.swift\` no longer resolve to themselves. These are shown to users on provider cards, so a dead one is a user-facing defect." \
+            "$REPORT")
+          gh issue create \
+            --title "Stale provider links detected" \
+            --body "$body"

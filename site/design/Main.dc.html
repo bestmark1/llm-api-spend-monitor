@@ -1,0 +1,548 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap">
+  <style>
+    :root {
+      --brand: #3974CD;
+      --brand-light: #548AE2;
+      --brand-deep: #214E95;
+      --brand-violet: #55509A;
+      --ink: #242324;
+      --ink-2: #757476;
+      --ink-3: #A2A0A4;
+      --teal: #58C0CD;
+      --orange: #F09343;
+      --indigo: #5F55EC;
+      --green: #65C466;
+      --grey: #8E8E93;
+      --hair: #DEDADF;
+      --radius: 18px;
+      --display: "Bricolage Grotesque", "Helvetica Neue", -apple-system, sans-serif;
+      --sans: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { color: var(--brand-deep); }
+    h1, h2, h3 {
+      margin: 0; font-family: var(--display); font-weight: 800;
+      letter-spacing: -0.026em; text-wrap: balance;
+    }
+    p { margin: 0; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 64px; }
+    .wordmark {
+      font-family: var(--display); font-weight: 800; font-size: 21px;
+      letter-spacing: -0.03em;
+      background: linear-gradient(104deg, var(--brand-light) 0%, var(--brand) 46%, var(--brand-violet) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .eyebrow {
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--ink-3);
+    }
+    .lede { font-size: 19px; line-height: 1.6; color: var(--ink-2); }
+    .glass {
+      background: rgba(255, 255, 255, 0.58);
+      border: 0.8px solid rgba(255, 255, 255, 0.86);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 18px rgba(33, 78, 149, 0.07), 0 1px 2px rgba(36, 35, 36, 0.04);
+      backdrop-filter: blur(24px) saturate(160%);
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; color: var(--ink-2);
+      background: var(--hair); border-radius: 999px; padding: 4px 11px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: linear-gradient(140deg, var(--brand-light) 0%, var(--brand) 55%, var(--brand-deep) 100%);
+      color: #FFF; font-size: 15px; font-weight: 600;
+      padding: 13px 22px; border-radius: 13px;
+      box-shadow: 0 8px 20px rgba(33, 78, 149, 0.30);
+    }
+    .btn:hover { color: #FFF; box-shadow: 0 10px 26px rgba(33, 78, 149, 0.38); }
+    .btn .arrow { width: 0; opacity: 0; transform: translateX(-6px); transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+    .btn:hover .arrow { width: 15px; opacity: 1; transform: translateX(0); }
+    .row { display: flex; align-items: center; gap: 80px; flex-wrap: wrap; }
+    .shot { border-radius: 22px; display: block; width: 100%; max-width: 100%; }
+    .tilt-l {
+      transform: perspective(1900px) rotateY(13deg) rotateX(4deg) rotateZ(-1.2deg);
+      filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));
+    }
+    .tilt-r {
+      transform: perspective(1900px) rotateY(-13deg) rotateX(4deg) rotateZ(1.2deg);
+      filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));
+    }
+    .stage { perspective: 1900px; transform-style: preserve-3d; }
+    .stage .shot, .stage .note { transform-style: preserve-3d; }
+    .in-plane { transform: rotateY(-13deg) rotateX(4deg) rotateZ(1.2deg); }
+    .note {
+      position: absolute; display: flex; align-items: center; gap: 9px;
+      font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 0.8px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 28px rgba(33, 78, 149, 0.18);
+      backdrop-filter: blur(18px);
+      transform: rotateY(-13deg) rotateX(4deg) rotateZ(1.2deg) translateZ(56px);
+    }
+    .state {
+      display: flex; align-items: flex-start; gap: 13px;
+      padding: 15px 0; border-bottom: 1px solid var(--hair);
+    }
+    .state:last-child { border-bottom: 0; }
+    .state-badge {
+      display: inline-flex; align-items: center; gap: 7px; flex: none;
+      font-size: 13px; font-weight: 650; border-radius: 999px; padding: 5px 12px;
+      white-space: nowrap;
+    }
+  </style>
+</helmet>
+
+<div style="background:
+    radial-gradient(1100px 620px at 84% -8%, rgba(84, 138, 226, 0.24), transparent 62%),
+    radial-gradient(900px 560px at 2% 20%, rgba(85, 80, 154, 0.15), transparent 60%),
+    radial-gradient(720px 500px at 98% 62%, rgba(88, 192, 205, 0.12), transparent 58%),
+    #F2EFF4;">
+
+  <!-- Nav -->
+  <div class="wrap" style="display: flex; align-items: center; justify-content: space-between; padding-top: 26px; padding-bottom: 26px;">
+    <div style="display: flex; align-items: center; gap: 11px;">
+      <img src="spender-icon-160.png" alt="Spender" style="width: 30px; height: 30px; display: block;">
+      <span class="wordmark">Spender</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500;">
+      <a href="#" style="color: var(--ink-2);">How it works</a>
+      <a href="#" style="color: var(--ink-2);">Providers</a>
+      <a href="https://github.com/bestmark1/llm-api-spend-monitor" style="color: var(--ink-2);">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="wrap" style="padding-top: 56px; padding-bottom: 96px;">
+    <div class="row" style="align-items: flex-start;">
+      <div style="flex: 1 1 380px; min-width: 300px; max-width: 560px; padding-top: 30px;">
+        <div class="eyebrow">Menu bar · macOS</div>
+        <h1 style="font-size: 62px; line-height: 1.02; margin-top: 20px; color: #242324;">
+          Every LLM API bill, in one menu&nbsp;bar panel.
+        </h1>
+        <p class="lede" style="margin-top: 24px;">
+          Pay for several model APIs out of your own pocket and your spend lives in a
+          different console for each one. Spender reads it straight from OpenAI,
+          Anthropic, DeepSeek, xAI and the rest — no account, no backend, keys in the
+          macOS Keychain.
+        </p>
+        <div style="display: flex; align-items: center; gap: 22px; margin-top: 36px;">
+          <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor/releases">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M16.3 12.7c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.8.9s-2-.9-3.2-.9c-1.7 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.8 2.2-1.2 3-2.4c.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-3.8zM14 5.4c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"></path>
+            </svg>
+            Download for Mac
+            <svg class="arrow" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4"></path>
+            </svg>
+          </a>
+        </div>
+        <p class="num" style="margin-top: 18px; font-size: 13px; color: var(--ink-3);">
+          macOS 14 or later · v0.1.0 · free · MIT
+        </p>
+      </div>
+
+      <div class="stage" style="flex: 1 1 360px; min-width: 260px; max-width: 470px; position: relative;">
+        <img class="shot in-plane" style="filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));" src="panel-today-520.webp" alt="Spender menu bar panel showing today's tracked spend across three providers">
+        <div class="note" style="top: 44.7%; left: -7%;">
+          <span class="dot" style="background: var(--teal);"></span>
+          Official
+        </div>
+        <div class="note" style="top: 61.7%; right: -5.5%;">
+          <span class="dot" style="background: var(--indigo);"></span>
+          Estimated
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Provenance strip -->
+  <div class="wrap" style="padding-bottom: 104px;">
+    <p class="eyebrow" style="margin-bottom: 22px;">Where the number came from</p>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+      <div class="glass" style="padding: 22px 22px 24px; box-shadow: 0 22px 46px -22px rgba(88, 192, 205, 0.42), 0 8px 18px rgba(33, 78, 149, 0.07);">
+        <span class="chip"><span class="dot" style="background: var(--teal);"></span>Official</span>
+        <p style="margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+          A cost figure returned by the provider's own billing API. OpenAI, Anthropic and
+          xAI report cost; OpenAI and Anthropic add tokens and a model breakdown, xAI adds
+          models. Cost — not balance.
+        </p>
+      </div>
+      <div class="glass" style="padding: 22px 22px 24px; box-shadow: 0 22px 46px -22px rgba(95, 85, 236, 0.32), 0 8px 18px rgba(33, 78, 149, 0.07);">
+        <span class="chip"><span class="dot" style="background: var(--indigo);"></span>Estimated</span>
+        <p style="margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+          Derived, and labelled as such. DeepSeek publishes no cost history, so Spender
+          computes spend from saved balance decreases — and says so on the card.
+        </p>
+      </div>
+      <div class="glass" style="padding: 22px 22px 24px;">
+        <span class="chip"><span style="font-family: var(--mono); font-size: 15px; line-height: 1;">—</span>Unavailable</span>
+        <p style="margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+          No report, no number. A metric a provider does not expose is left blank —
+          never rounded down to <span class="num">$0.00</span>.
+        </p>
+      </div>
+      <div class="glass" style="padding: 22px 22px 24px;">
+        <span class="chip"><span class="dot" style="background: var(--ink-3);"></span>Calibrated by you</span>
+        <p style="margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+          No provider reports a remaining balance for OpenAI or Anthropic. You enter it
+          once from Billing, and Spender deducts official spend from your number — not
+          its own guess.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison band -->
+  <div style="border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);">
+    <div class="wrap" style="padding-top: 78px; padding-bottom: 82px;">
+      <div class="eyebrow">The same thirty days</div>
+      <h2 style="font-size: 46px; line-height: 1.08; margin-top: 16px; max-width: 700px;">
+        A missing report is not a zero.
+      </h2>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 38px;">
+        <div style="border-radius: var(--radius); padding: 30px 32px 32px;
+                    background: rgba(255, 255, 255, 0.40);
+                    border: 0.8px solid rgba(255, 255, 255, 0.7);
+                    display: flex; flex-direction: column;">
+          <p style="font-size: 13px; font-weight: 650; color: var(--ink-3);">A typical spend dashboard</p>
+          <p style="margin-top: 20px; font-size: 14px; color: var(--ink-3);">Total spend</p>
+          <p class="num" style="margin-top: 4px; font-size: 50px; font-weight: 700; color: var(--ink-2); letter-spacing: -0.03em;">$78.21</p>
+          <div style="margin-top: 22px; border: 1px dashed rgba(117, 116, 118, 0.32); border-radius: 12px;
+                      padding: 20px 18px; display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;">
+              <span style="font-size: 14px; color: var(--ink-3);">Where it came from</span>
+              <span class="num" style="font-size: 20px; color: var(--ink-3);">—</span>
+            </div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between;">
+              <span style="font-size: 14px; color: var(--ink-3);">Reported or inferred</span>
+              <span class="num" style="font-size: 20px; color: var(--ink-3);">—</span>
+            </div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between;">
+              <span style="font-size: 14px; color: var(--ink-3);">Providers that said nothing</span>
+              <span class="num" style="font-size: 20px; color: var(--ink-3);">—</span>
+            </div>
+          </div>
+          <p style="margin-top: 22px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+            One confident figure. No way to tell which part a provider actually reported,
+            which part was inferred, and which provider said nothing at all.
+          </p>
+        </div>
+
+        <div style="border-radius: var(--radius); padding: 30px 32px 32px;
+                    background: rgba(255, 255, 255, 0.74);
+                    border: 0.8px solid rgba(255, 255, 255, 0.92);
+                    box-shadow: 0 16px 38px rgba(33, 78, 149, 0.16);
+                    display: flex; flex-direction: column;">
+          <p style="font-size: 13px; font-weight: 650; color: var(--brand);">Spender</p>
+          <div style="margin-top: 18px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--hair);">
+              <span class="chip"><span class="dot" style="background: var(--teal);"></span>Official</span>
+              <span class="num" style="font-size: 25px; font-weight: 700; letter-spacing: -0.02em;">$71.64</span>
+            </div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--hair);">
+              <span class="chip"><span class="dot" style="background: var(--indigo);"></span>Estimated</span>
+              <span class="num" style="font-size: 25px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink-2);">$6.57</span>
+            </div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-top: 15px;">
+              <span style="font-size: 14px; color: var(--ink-3);">Tracked spend</span>
+              <span class="num" style="font-size: 29px; font-weight: 750; letter-spacing: -0.03em;">$78.21</span>
+            </div>
+          </div>
+          <p style="margin-top: auto; padding-top: 24px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
+            The same total, taken apart. <span class="num">$71.64</span> came from OpenAI and
+            Anthropic billing APIs. <span class="num">$6.57</span> is DeepSeek, derived from
+            balance decreases because DeepSeek publishes no cost history — and it never joins
+            the official figure.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proof -->
+  <div class="wrap" style="padding-top: 24px; padding-bottom: 60px;">
+    <div class="row">
+      <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
+        <img class="shot tilt-l" src="panel-deepseek-expanded-520.webp" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
+      </div>
+      <div style="flex: 1 1 380px; min-width: 300px; max-width: 520px;">
+        <div class="eyebrow">The idea</div>
+        <h2 style="font-size: 44px; line-height: 1.08; margin-top: 18px;">
+          It knows what it doesn't&nbsp;know.
+        </h2>
+        <p class="lede" style="margin-top: 22px;">
+          Every dashboard promises one clean total. To print it, they have to invent
+          the parts nobody reports.
+        </p>
+        <p class="lede" style="margin-top: 16px;">
+          Spender refuses. Where the number is derived it says <em>estimated</em>, shows
+          the method in one line, and keeps it out of the official total. You are the
+          kind of person who knows the difference between a zero and a missing value.
+          So is your spend tracker.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature: 30 days -->
+  <div class="wrap" style="padding-bottom: 128px;">
+    <div class="row">
+      <div style="flex: 1 1 380px; min-width: 300px; max-width: 500px;">
+        <div class="eyebrow">Thirty days</div>
+        <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
+          The source travels with the number.
+        </h2>
+        <p class="lede" style="margin-top: 20px;">
+          Per-provider totals carry their own badge, so a month's spend never blends
+          official reports with estimates behind a single figure.
+        </p>
+        <p class="lede" style="margin-top: 16px;">
+          The daily chart is drawn from the same buckets — no smoothing, no backfill of
+          days a provider never reported.
+        </p>
+      </div>
+      <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
+        <img class="shot tilt-r" src="panel-30days-520.webp" alt="Thirty day view with Official and Estimated badges beside each provider and a daily spend chart">
+      </div>
+    </div>
+  </div>
+
+  <!-- Providers -->
+  <div class="wrap" style="padding-top: 104px; padding-bottom: 112px;">
+    <div style="max-width: 620px;">
+      <div class="eyebrow">Providers</div>
+      <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
+        Every provider, and exactly what it will tell you.
+      </h2>
+      <p class="lede" style="margin-top: 20px;">
+        Billing APIs differ wildly. Rather than paper over that, Spender is explicit
+        about what it can read from each connection.
+      </p>
+    </div>
+
+    <div class="glass" style="margin-top: 36px; padding: 14px;">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: var(--teal);"></span>OpenAI
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: var(--orange);"></span>Anthropic
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: var(--indigo);"></span>DeepSeek
+            </span>
+            <span class="chip">Estimated</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Balance, plus spend derived from balance decreases</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: #8E8E93;"></span>xAI · Grok
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Prepaid balance, usage and model breakdown</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: #E9548E;"></span>Kimi
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Balance only</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: #9A57D6;"></span>Qwen
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Key validation; balance and billing only with read-only BSS credentials</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: #E0504A;"></span>Mistral AI
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Remaining monthly spending limit</p>
+        </div>
+        <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
+              <span class="dot" style="background: #5CC9A7;"></span>OpenRouter
+            </span>
+            <span class="chip">Official</span>
+          </div>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Remaining credits</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top: 20px; font-size: 14px; line-height: 1.6; color: var(--ink-3); max-width: 700px;">
+      Gemini and Perplexity are hidden on purpose: an ordinary API key gives no
+      account-wide spend report, and key validation is not billing integration.
+    </p>
+
+    <div class="glass" style="margin-top: 44px; padding: 20px 30px 24px;">
+      <p class="eyebrow">Three of the fourteen states a card can report</p>
+      <div class="state" style="margin-top: 4px;">
+        <span class="state-badge" style="background: rgba(101, 196, 102, 0.13); color: #37813A;">
+          <span class="dot" style="background: var(--green);"></span>Up to date
+        </span>
+        <p style="font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top: 4px;">
+          The latest provider data is available.
+        </p>
+      </div>
+      <div class="state">
+        <span class="state-badge" style="background: rgba(240, 147, 67, 0.16); color: #B35F12;">
+          <span class="dot" style="background: var(--orange);"></span>Incomplete report
+        </span>
+        <p style="font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top: 4px;">
+          The provider returned only part of the requested report.
+        </p>
+      </div>
+      <div class="state">
+        <span class="state-badge" style="background: rgba(142, 142, 147, 0.16); color: #5A5A5F;">
+          <span class="dot" style="background: var(--grey);"></span>Not connected
+        </span>
+        <p style="font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top: 4px;">
+          Connect this provider to load its available metrics.
+        </p>
+      </div>
+      <p style="margin-top: 16px; font-size: 14px; color: var(--ink-3);">
+        Wording taken from the app itself — these are the strings a card actually shows.
+      </p>
+    </div>
+  </div>
+
+  <!-- Principles -->
+  <div class="wrap" style="padding-bottom: 112px;">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px;">
+      <div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3974CD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2.5" y="4.5" width="19" height="13" rx="2"></rect>
+          <path d="M8 21h8M12 17.5V21"></path>
+        </svg>
+        <h3 style="font-size: 19px; font-weight: 700; margin-top: 16px;">Native SwiftUI</h3>
+        <p style="margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--ink-2);">
+          A fixed 420x640 panel that drops out of the menu bar — not a browser in a window.
+          Launches at login, refreshes in the background, and retains the last good
+          snapshot rather than blanking the card.
+        </p>
+      </div>
+      <div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3974CD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5.5 16.5a4 4 0 0 1 .6-7.96 5.5 5.5 0 0 1 10.6-1.2A4.4 4.4 0 0 1 18 16.5"></path>
+          <path d="M4 4l16 16"></path>
+        </svg>
+        <h3 style="font-size: 19px; font-weight: 700; margin-top: 16px;">No account, no backend</h3>
+        <p style="margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--ink-2);">
+          There is no Spender server to sign up for and no credential proxy in the middle.
+          The only requests it makes are to the provider APIs you connected yourself,
+          restricted to declared HTTPS origins.
+        </p>
+      </div>
+      <div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3974CD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="10.5" width="16" height="10" rx="2"></rect>
+          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path>
+        </svg>
+        <h3 style="font-size: 19px; font-weight: 700; margin-top: 16px;">Keys in the Keychain</h3>
+        <p style="margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--ink-2);">
+          An OpenAI Organization Admin key, an Anthropic Console Admin key, a team-scoped
+          xAI Management key — the narrowest read-only credential each provider supports,
+          held in the macOS Keychain. Never your inference keys.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closing CTA -->
+  <div class="wrap" style="padding-bottom: 104px;">
+    <div class="glass" style="padding: 52px 60px; display: flex; align-items: center; justify-content: space-between; gap: 48px;">
+      <div style="display: flex; align-items: center; gap: 26px;">
+        <img src="spender-icon-160.png" alt="" style="width: 64px; height: 64px; display: block; flex: none;">
+        <div>
+          <h2 style="font-size: 31px; line-height: 1.14;">Put the number in your menu bar.</h2>
+          <p class="num" style="margin-top: 12px; font-size: 13px; color: var(--ink-3);">
+            macOS 14 or later · v0.1.0 · free · MIT
+          </p>
+        </div>
+      </div>
+      <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor/releases">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16.3 12.7c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.8.9s-2-.9-3.2-.9c-1.7 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.8 2.2-1.2 3-2.4c.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-3.8zM14 5.4c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"></path>
+        </svg>
+        Download for Mac
+        <svg class="arrow" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8h10M9 4l4 4-4 4"></path>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top: 1px solid var(--hair);">
+    <div class="wrap" style="padding-top: 34px; padding-bottom: 46px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 9px;">
+          <img src="spender-icon-160.png" alt="" style="width: 20px; height: 20px; display: block;">
+          <span class="wordmark" style="font-size: 16px;">Spender</span>
+        </div>
+        <p style="margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--ink-3); max-width: 440px;">
+          © 2026 Spender. An independent project, not affiliated with any provider listed.
+        </p>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+        <p style="font-size: 14px; color: var(--ink-2);">
+          Built by <a href="https://github.com/bestmark1">bestmark1</a>
+        </p>
+        <div style="display: flex; gap: 22px; font-size: 14px; font-weight: 500;">
+          <a href="https://github.com/bestmark1/llm-api-spend-monitor">GitHub</a>
+          <a href="https://x.com/thesignalnow">X</a>
+          <a href="https://github.com/bestmark1/llm-api-spend-monitor/blob/main/LICENSE">MIT License</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
