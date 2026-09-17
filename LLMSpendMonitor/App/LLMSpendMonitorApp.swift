@@ -212,7 +212,7 @@ private struct SettingsRootView: View {
                 .disabled(notifications.isWorking)
                 .accessibilityIdentifier("settings.balanceNotifications")
 
-                Text("Warn once at 20% remaining and again at 5% for each balance calibration.")
+                Text("Warns at 20% and at 5% of the balance you last entered. Enter a new balance to start the warnings over.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -225,7 +225,10 @@ private struct SettingsRootView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440, height: 410)
+        // Width is fixed; height follows the form. A fixed height left a third of
+        // the window empty, which reads as something that failed to load.
+        .frame(width: 440)
+        .frame(minHeight: 220)
         .navigationTitle("Settings")
         .accessibilityIdentifier("settings.root")
         .task {

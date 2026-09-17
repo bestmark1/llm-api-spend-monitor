@@ -12,7 +12,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
         XCTAssertNotEqual(app.state, .notRunning)
         XCTAssertTrue(
-            app.staticTexts["Monitor your LLM API spend"].waitForExistence(timeout: 5),
+            app.staticTexts["Every API bill in one place."].waitForExistence(timeout: 5),
             "The first-launch onboarding panel should open automatically."
         )
     }

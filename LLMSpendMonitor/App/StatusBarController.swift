@@ -502,9 +502,21 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
     }
 
     private func positionPanel() {
+        // First run opens this panel by itself rather than from a click, so there is
+        // no status item to point at and nothing to point away from. Centre it.
+        guard requestedPanel.screen != "onboarding" else {
+            centerBelowMenuBar()
+            return
+        }
+
         guard
             let button = anchorProvider?(),
-            let buttonWindow = button.window
+            let buttonWindow = button.window,
+            // The status item takes its place in the menu bar a moment after launch.
+            // Until it does, its window sits at the origin with zero height, and
+            // anchoring to it asks for an origin off the bottom-left of the screen —
+            // which the clamp below then pins flush into the corner.
+            buttonWindow.frame.height > 0
         else {
             centerBelowMenuBar()
             return

@@ -21,8 +21,7 @@ struct DashboardRootView: View {
                 OnboardingView(
                     heightDidChange: { onboardingHeight = $0 },
                     skip: appState.skipOnboarding,
-                    connect: appState.showConnections,
-                    close: closePanel
+                    connect: appState.showConnections
                 )
             case .dashboard:
                 DashboardView(
@@ -105,40 +104,49 @@ private struct OnboardingView: View {
     let heightDidChange: (CGFloat) -> Void
     let skip: () -> Void
     let connect: () -> Void
-    let close: () -> Void
 
     @AccessibilityFocusState private var headingFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Spacer()
-                Button("Close", systemImage: "xmark", action: close)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("onboarding.close")
+            HStack(spacing: 12) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 56, height: 56)
+                    .accessibilityHidden(true)
+
+                Text("Spender")
+                    .font(.title2.bold())
+                    .accessibilityIdentifier("onboarding.appName")
             }
 
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 76, height: 76)
-                .accessibilityHidden(true)
-
-            Text("Monitor your LLM API spend")
+            Text("Every API bill in one place.")
                 .font(.title.bold())
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityFocused($headingFocused)
                 .accessibilityIdentifier("onboarding.heading")
 
-            Text("Connect providers to see official costs, tokens, and balances in one private menu bar utility.")
+            // The fear in the room is handing an API key with billing access to an
+            // unknown app, so the answer to it leads rather than trailing a sentence
+            // about something else. "Private" is an adjective; the Keychain and the
+            // absent server are the thing itself.
+            Text("Your keys stay in the macOS Keychain. No account, no server — Spender reads your spend straight from the providers, from this Mac.")
                 .foregroundStyle(.secondary)
+                // Without this the panel and the paragraph argue: a tight height
+                // proposal compresses the text to one line, that shorter layout is
+                // what gets measured, and the panel settles at a height where the
+                // sentence stays truncated. Claiming the full wrapped height ends
+                // the argument in the text's favour.
+                .fixedSize(horizontal: false, vertical: true)
 
             Button("Connect Provider", action: connect)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .accessibilityIdentifier("onboarding.connect")
 
+            // One exit, not two. The close button did the same job as Skip and only
+            // made the reader choose between them.
             Button("Skip for now", action: skip)
                 .buttonStyle(.link)
                 .accessibilityIdentifier("onboarding.skip")
