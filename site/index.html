@@ -160,12 +160,35 @@
       h1 { font-size: 34px !important; line-height: 1.08 !important; }
       h2 { font-size: 27px !important; }
       .lede { font-size: 17px; }
-      .provider-row { gap: 16px; }
-      .provider-mark { width: 21px; height: 21px; }
 
       /* The callouts are positioned as a percentage of the screenshot column.
          On a phone that column is narrow enough to push them off the edge. */
       .note { display: none !important; }
+
+      /* The wordmark and the nav links shared one row with space-between. At
+         375px "How it works" wrapped to two lines and sat 16px on top of the
+         product's own name. On a single-column page the scroll is the
+         navigation, so the section links stand down and GitHub — the only one
+         that leaves the page — stays. */
+      .nav-secondary { display: none; }
+
+      /* These eight marks answer the one question a phone visitor has — is my
+         provider here — and they answer it before anything else on the page.
+         At 21px they read as speckle. A grid rather than a wrapping flex row:
+         left to wrap, eight marks break 7 + 1 and the last one looks dropped. */
+      .provider-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        justify-items: center;
+        gap: 20px 12px;
+        margin-top: 30px;
+      }
+      .provider-mark { width: 30px; height: 30px; opacity: 0.8; }
+
+      /* The requirements line is four items long and lands a few pixels past the
+         column, which drops "· MIT" onto a line of its own. A point smaller and
+         it fits; the inline font-size is why this needs !important. */
+      .meta-line { font-size: 12px !important; letter-spacing: -0.01em; }
 
       /* The button does not wrap and its label is wider than a phone, so on a
          narrow screen it takes the column instead of widening the page. */
@@ -200,9 +223,9 @@
       <img src="assets/spender-icon-160.png" alt="Spender" style="width: 30px; height: 30px; display: block;">
       <span class="wordmark">Spender</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500;">
-      <a href="#" style="color: var(--ink-2);">How it works</a>
-      <a href="#" style="color: var(--ink-2);">Providers</a>
+    <div class="nav-links" style="display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500;">
+      <a class="nav-secondary" href="#how-it-works" style="color: var(--ink-2);">How it works</a>
+      <a class="nav-secondary" href="#providers" style="color: var(--ink-2);">Providers</a>
       <a href="https://github.com/bestmark1/llm-api-spend-monitor" style="color: var(--ink-2);">GitHub</a>
     </div>
   </div>
@@ -244,8 +267,8 @@
             </svg>
           </a>
         </div>
-        <p class="num" style="margin-top: 18px; font-size: 13px; color: var(--ink-3);">
-          macOS 14 or later · free · open source · MIT
+        <p class="num meta-line" style="margin-top: 18px; font-size: 13px; color: var(--ink-3);">
+          macOS 14 or later · free · open source ·&nbsp;MIT
         </p>
       </div>
 
@@ -301,7 +324,7 @@
   </div>
 
   <!-- Comparison band -->
-  <div style="border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);">
+  <div id="how-it-works" style="border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);">
     <div class="wrap" style="padding-top: 78px; padding-bottom: 82px;">
       <div class="eyebrow">The same thirty days</div>
       <h2 style="font-size: 46px; line-height: 1.08; margin-top: 16px; max-width: 700px;">
@@ -417,7 +440,7 @@
   </div>
 
   <!-- Providers -->
-  <div class="wrap" style="padding-top: 104px; padding-bottom: 112px;">
+  <div id="providers" class="wrap" style="padding-top: 104px; padding-bottom: 112px;">
     <div style="max-width: 620px;">
       <div class="eyebrow">Providers</div>
       <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
@@ -592,8 +615,8 @@
         <img src="assets/spender-icon-160.png" alt="" style="width: 64px; height: 64px; display: block; flex: none;">
         <div>
           <h2 style="font-size: 31px; line-height: 1.14;">Put the number in your menu bar.</h2>
-          <p class="num" style="margin-top: 12px; font-size: 13px; color: var(--ink-3);">
-            macOS 14 or later · free · open source · MIT
+          <p class="num meta-line" style="margin-top: 12px; font-size: 13px; color: var(--ink-3);">
+            macOS 14 or later · free · open source ·&nbsp;MIT
           </p>
         </div>
       </div>

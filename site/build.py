@@ -78,12 +78,35 @@ RESPONSIVE = """
       h1 { font-size: 34px !important; line-height: 1.08 !important; }
       h2 { font-size: 27px !important; }
       .lede { font-size: 17px; }
-      .provider-row { gap: 16px; }
-      .provider-mark { width: 21px; height: 21px; }
 
       /* The callouts are positioned as a percentage of the screenshot column.
          On a phone that column is narrow enough to push them off the edge. */
       .note { display: none !important; }
+
+      /* The wordmark and the nav links shared one row with space-between. At
+         375px "How it works" wrapped to two lines and sat 16px on top of the
+         product's own name. On a single-column page the scroll is the
+         navigation, so the section links stand down and GitHub — the only one
+         that leaves the page — stays. */
+      .nav-secondary { display: none; }
+
+      /* These eight marks answer the one question a phone visitor has — is my
+         provider here — and they answer it before anything else on the page.
+         At 21px they read as speckle. A grid rather than a wrapping flex row:
+         left to wrap, eight marks break 7 + 1 and the last one looks dropped. */
+      .provider-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        justify-items: center;
+        gap: 20px 12px;
+        margin-top: 30px;
+      }
+      .provider-mark { width: 30px; height: 30px; opacity: 0.8; }
+
+      /* The requirements line is four items long and lands a few pixels past the
+         column, which drops "· MIT" onto a line of its own. A point smaller and
+         it fits; the inline font-size is why this needs !important. */
+      .meta-line { font-size: 12px !important; letter-spacing: -0.01em; }
 
       /* The button does not wrap and its label is wider than a phone, so on a
          narrow screen it takes the column instead of widening the page. */
