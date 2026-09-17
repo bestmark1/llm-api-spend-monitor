@@ -15,6 +15,7 @@ It rewrites site/index.html in place and prints what it changed.
 """
 
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parent
@@ -47,6 +48,13 @@ GRID_CLASSES = [
 
 SCREENSHOTS = ("panel-today-520", "panel-30days-520", "panel-deepseek-expanded-520")
 
+# Section spacing is written inline on each `.wrap`, where a media query cannot
+# reach it. Rewriting it as custom properties lets the phone scale every section
+# by one factor instead of restating each number — and a section deliberately
+# set to 0 stays 0, because zero scaled is still zero.
+WRAP_TAG = re.compile(r'<div\b[^>]*class="wrap"[^>]*>')
+WRAP_PAD = re.compile(r'padding-(top|bottom):\s*(\d+)px')
+
 RESPONSIVE = """
     /* --- Grids lifted out of inline styles so media queries can reach them --- */
     .grid { display: grid; }
@@ -57,9 +65,17 @@ RESPONSIVE = """
 
     img { max-width: 100%; }
 
+    /* Section spacing comes from the artboard as --pad-top / --pad-bottom. */
+    .wrap { padding-top: var(--pad-top, 0); padding-bottom: var(--pad-bottom, 0); }
+
     /* --- Tablet --- */
     @media (max-width: 900px) {
-      .wrap { padding: 0 32px; }
+      .wrap {
+        padding-left: 32px;
+        padding-right: 32px;
+        padding-top: calc(var(--pad-top, 0px) * 0.75);
+        padding-bottom: calc(var(--pad-bottom, 0px) * 0.75);
+      }
       .row { gap: 44px; }
       .grid-provenance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid-principles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
@@ -69,7 +85,14 @@ RESPONSIVE = """
 
     /* --- Phone: one column throughout, following the Mobile 390 artboard --- */
     @media (max-width: 620px) {
-      .wrap { padding: 0 20px; }
+      .wrap { padding-left: 20px; padding-right: 20px; }
+      /* The desktop breathing room came over verbatim: 1192px of vertical
+         padding on a 375px screen, a screen and a half of nothing. Scaled
+         rather than replaced, so the proportions the design set survive. */
+      .wrap {
+        padding-top: calc(var(--pad-top, 0px) * 0.5);
+        padding-bottom: calc(var(--pad-bottom, 0px) * 0.5);
+      }
       .row { gap: 32px; }
       .grid-provenance,
       .grid-compare,
@@ -169,6 +192,16 @@ def main() -> None:
         if body.count(old) != 1:
             fail(f"grid markup changed, cannot rewrite: {old[:60]}…")
         body = body.replace(old, new)
+
+    def to_custom_properties(match: re.Match[str]) -> str:
+        return WRAP_PAD.sub(
+            lambda m: f"--pad-{m.group(1)}: {m.group(2)}px",
+            match.group(0),
+        )
+
+    body, wraps_rewritten = WRAP_TAG.subn(to_custom_properties, body)
+    if wraps_rewritten == 0:
+        fail("no .wrap sections found — section spacing would not scale")
 
     body = body.replace('src="spender-icon-160.png"', 'src="assets/spender-icon-160.png"')
     for shot in SCREENSHOTS:

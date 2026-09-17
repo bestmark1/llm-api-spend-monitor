@@ -139,9 +139,17 @@
 
     img { max-width: 100%; }
 
+    /* Section spacing comes from the artboard as --pad-top / --pad-bottom. */
+    .wrap { padding-top: var(--pad-top, 0); padding-bottom: var(--pad-bottom, 0); }
+
     /* --- Tablet --- */
     @media (max-width: 900px) {
-      .wrap { padding: 0 32px; }
+      .wrap {
+        padding-left: 32px;
+        padding-right: 32px;
+        padding-top: calc(var(--pad-top, 0px) * 0.75);
+        padding-bottom: calc(var(--pad-bottom, 0px) * 0.75);
+      }
       .row { gap: 44px; }
       .grid-provenance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid-principles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
@@ -151,7 +159,14 @@
 
     /* --- Phone: one column throughout, following the Mobile 390 artboard --- */
     @media (max-width: 620px) {
-      .wrap { padding: 0 20px; }
+      .wrap { padding-left: 20px; padding-right: 20px; }
+      /* The desktop breathing room came over verbatim: 1192px of vertical
+         padding on a 375px screen, a screen and a half of nothing. Scaled
+         rather than replaced, so the proportions the design set survive. */
+      .wrap {
+        padding-top: calc(var(--pad-top, 0px) * 0.5);
+        padding-bottom: calc(var(--pad-bottom, 0px) * 0.5);
+      }
       .row { gap: 32px; }
       .grid-provenance,
       .grid-compare,
@@ -218,7 +233,7 @@
     #F2EFF4;">
 
   <!-- Nav -->
-  <div class="wrap" style="display: flex; align-items: center; justify-content: space-between; padding-top: 26px; padding-bottom: 26px;">
+  <div class="wrap" style="display: flex; align-items: center; justify-content: space-between; --pad-top: 26px; --pad-bottom: 26px;">
     <div style="display: flex; align-items: center; gap: 11px;">
       <img src="assets/spender-icon-160.png" alt="Spender" style="width: 30px; height: 30px; display: block;">
       <span class="wordmark">Spender</span>
@@ -231,7 +246,7 @@
   </div>
 
   <!-- Hero -->
-  <div class="wrap" style="padding-top: 56px; padding-bottom: 96px;">
+  <div class="wrap" style="--pad-top: 56px; --pad-bottom: 96px;">
     <div class="row" style="align-items: flex-start;">
       <div style="flex: 1 1 380px; min-width: 300px; max-width: 560px; padding-top: 30px;">
         <div class="eyebrow">Menu bar · macOS</div>
@@ -287,7 +302,7 @@
   </div>
 
   <!-- Provenance strip -->
-  <div class="wrap" style="padding-bottom: 104px;">
+  <div class="wrap" style="--pad-bottom: 104px;">
     <p class="eyebrow" style="margin-bottom: 22px;">Where the number came from</p>
     <div class="grid grid-provenance">
       <div class="glass" style="padding: 22px 22px 24px; box-shadow: 0 22px 46px -22px rgba(88, 192, 205, 0.42), 0 8px 18px rgba(33, 78, 149, 0.07);">
@@ -325,7 +340,7 @@
 
   <!-- Comparison band -->
   <div id="how-it-works" style="border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);">
-    <div class="wrap" style="padding-top: 78px; padding-bottom: 82px;">
+    <div class="wrap" style="--pad-top: 78px; --pad-bottom: 82px;">
       <div class="eyebrow">The same thirty days</div>
       <h2 style="font-size: 46px; line-height: 1.08; margin-top: 16px; max-width: 700px;">
         A missing report is not a zero.
@@ -392,7 +407,7 @@
   </div>
 
   <!-- Proof -->
-  <div class="wrap" style="padding-top: 24px; padding-bottom: 60px;">
+  <div class="wrap" style="--pad-top: 24px; --pad-bottom: 60px;">
     <div class="row">
       <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
         <img class="shot tilt-l" src="assets/screenshots/panel-deepseek-expanded-520.webp" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
@@ -417,7 +432,7 @@
   </div>
 
   <!-- Feature: 30 days -->
-  <div class="wrap" style="padding-bottom: 128px;">
+  <div class="wrap" style="--pad-bottom: 128px;">
     <div class="row">
       <div style="flex: 1 1 380px; min-width: 300px; max-width: 500px;">
         <div class="eyebrow">Thirty days</div>
@@ -440,7 +455,7 @@
   </div>
 
   <!-- Providers -->
-  <div id="providers" class="wrap" style="padding-top: 104px; padding-bottom: 112px;">
+  <div id="providers" class="wrap" style="--pad-top: 104px; --pad-bottom: 112px;">
     <div style="max-width: 620px;">
       <div class="eyebrow">Providers</div>
       <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
@@ -567,7 +582,7 @@
   </div>
 
   <!-- Principles -->
-  <div class="wrap" style="padding-bottom: 112px;">
+  <div class="wrap" style="--pad-bottom: 112px;">
     <div class="grid grid-principles">
       <div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3974CD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -609,7 +624,7 @@
   </div>
 
   <!-- Closing CTA -->
-  <div class="wrap" style="padding-bottom: 104px;">
+  <div class="wrap" style="--pad-bottom: 104px;">
     <div class="glass cta-band" style="padding: 52px 60px; display: flex; align-items: center; justify-content: space-between; gap: 48px;">
       <div style="display: flex; align-items: center; gap: 26px;">
         <img src="assets/spender-icon-160.png" alt="" style="width: 64px; height: 64px; display: block; flex: none;">
@@ -634,7 +649,7 @@
 
   <!-- Footer -->
   <div style="border-top: 1px solid var(--hair);">
-    <div class="wrap" style="padding-top: 34px; padding-bottom: 46px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px;">
+    <div class="wrap" style="--pad-top: 34px; --pad-bottom: 46px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px;">
       <div>
         <div style="display: flex; align-items: center; gap: 9px;">
           <img src="assets/spender-icon-160.png" alt="" style="width: 20px; height: 20px; display: block;">
