@@ -48,6 +48,34 @@ final class ProviderRegistryTests: XCTestCase {
         XCTAssertEqual(openRouter.capabilities, [.balance])
     }
 
+    func testXAIHelpExplainsTeamScopedManagementKey() throws {
+        let xAI = try XCTUnwrap(ProviderRegistry.metadata(for: .xAI))
+        XCTAssertTrue(xAI.credentialHelp.contains("team-scoped"))
+        XCTAssertTrue(xAI.credentialHelp.contains("Management API key"))
+        XCTAssertTrue(xAI.credentialHelp.contains("Settings"))
+        XCTAssertTrue(xAI.credentialHelp.contains("Management Keys"))
+        XCTAssertTrue(xAI.credentialHelp.contains("different key from the inference API key"))
+        XCTAssertTrue(xAI.credentialHelp.contains("read access to billing"))
+        XCTAssertTrue(xAI.credentialHelp.contains("prepaid balance"))
+        XCTAssertTrue(xAI.credentialHelp.contains("daily USD usage"))
+    }
+
+    func testQWENHelpExplainsSeparateModelAndBillingCredentials() throws {
+        let qwen = try XCTUnwrap(ProviderRegistry.metadata(for: .qwen))
+        XCTAssertTrue(qwen.credentialHelp.contains("pay-as-you-go"))
+        XCTAssertTrue(qwen.credentialHelp.contains("API Host"))
+        XCTAssertTrue(qwen.credentialHelp.contains("same region"))
+        XCTAssertTrue(qwen.credentialHelp.contains("verify model access"))
+        XCTAssertTrue(qwen.credentialHelp.contains("Token Plan"))
+        XCTAssertTrue(qwen.credentialHelp.contains("Coding Plan"))
+        XCTAssertTrue(qwen.credentialHelp.contains("no billing access"))
+        XCTAssertTrue(qwen.credentialHelp.contains("separate RAM user AccessKey pair"))
+        XCTAssertTrue(qwen.credentialHelp.contains("bss:DescribeAcccount"))
+        XCTAssertTrue(qwen.credentialHelp.contains("bss:QueryAccountBill"))
+        XCTAssertFalse(qwen.credentialHelp.contains("product-filtered spend"))
+        XCTAssertFalse(qwen.credentialHelp.contains("Billing Details"))
+    }
+
     func testNoProviderStillPromisesAPlannedIntegration() {
         XCTAssertTrue(ProviderRegistry.all.allSatisfy {
             $0.integrationAvailability != .planned

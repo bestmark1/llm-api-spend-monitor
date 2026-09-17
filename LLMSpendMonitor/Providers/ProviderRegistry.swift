@@ -99,7 +99,7 @@ enum ProviderRegistry {
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
-            credentialHelp: "Use a pay-as-you-go Model Studio API key and its API Host. Token Plan keys are not supported. Read-only billing access provides account balance and Qwen spend.",
+            credentialHelp: "Use a pay-as-you-go Model Studio API key with its API Host from the same region to verify model access. Token Plan and Coding Plan keys are not supported. This key alone gives no billing access: money metrics need a separate RAM user AccessKey pair with read-only billing permissions bss:DescribeAcccount and bss:QueryAccountBill.",
             capabilities: [.balance, .credentialValidation, .officialCostHistory],
             externalLinks: [
                 link(.usage, "https://modelstudio.console.alibabacloud.com/?tab=dashboard#/model-usage"),
@@ -113,7 +113,7 @@ enum ProviderRegistry {
             id: .xAI,
             displayName: "xAI · Grok",
             systemImageName: "xmark",
-            credentialHelp: "Requires a team-scoped xAI Management API key with read access to billing. Spender reads the official prepaid balance and daily USD usage.",
+            credentialHelp: "Create a team-scoped xAI Management API key in xAI Console → Settings → Management Keys. It is a different key from the inference API key and needs read access to billing. Spender reads the official prepaid balance and daily USD usage.",
             capabilities: [.balance, .officialCostHistory, .modelBreakdown],
             externalLinks: [
                 link(.usage, "https://console.x.ai/team/default/usage"),

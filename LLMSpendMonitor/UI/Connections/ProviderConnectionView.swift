@@ -24,6 +24,36 @@ struct ProviderConnectionView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if viewModel.id == .qwen {
+                Link(
+                    "How to create a Model Studio API key",
+                    destination: URL(string: "https://help.aliyun.com/en/model-studio/get-api-key")!
+                )
+                .font(.caption)
+                .accessibilityIdentifier("connection.qwen.modelStudioGuide")
+
+                Link(
+                    "How to create a RAM AccessKey pair",
+                    destination: URL(string: "https://www.alibabacloud.com/help/en/ram/user-guide/create-an-accesskey-pair")!
+                )
+                .font(.caption)
+                .accessibilityIdentifier("connection.qwen.ramGuide")
+            }
+
+            if viewModel.id == .xAI {
+                Link(
+                    "How to create a Management API key",
+                    destination: URL(string: "https://docs.x.ai/developers/management-api-guide")!
+                )
+                .font(.caption)
+                .accessibilityIdentifier("connection.xai.managementKeyGuide")
+
+                Text("If IP restrictions are configured, allow the public IP used by this Mac. VPN or network changes may change it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if viewModel.requiresAPIEndpoint {
                 TextField("OpenAI-compatible Base URL", text: $viewModel.draftEndpoint)
                     .textFieldStyle(.roundedBorder)
@@ -95,7 +125,7 @@ struct ProviderConnectionView: View {
                         .foregroundStyle(billingStatusColor)
                 }
 
-                Text("Use a RAM AccessKey with bss:DescribeAcccount and bss:QueryAccountBill. The balance covers the whole Alibaba Cloud billing account; only pay-as-you-go charges are counted.")
+                Text("Create the AccessKey for a RAM user in the RAM console (Users → username → Credential → AccessKey). The secret is shown only once. The RAM user needs read-only billing permissions bss:DescribeAcccount and bss:QueryAccountBill — never the account key or full access. This version of Spender requires a QueryAccountBill ProductCode, but Alibaba publishes no reliable mapping from the User Center code to this request parameter — do not guess it. The balance covers the whole Alibaba Cloud account; billing spend may stay unavailable until the integration is updated.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
