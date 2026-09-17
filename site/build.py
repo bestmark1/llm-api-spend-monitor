@@ -141,6 +141,17 @@ RESPONSIVE = """
         padding: 14px 18px;
       }
 
+      /* The last desktop row still standing. Two columns of 146px and 149px
+         inside 335px broke every link in the right-hand one across two lines —
+         "MIT License" split in half. One column, left-aligned like everything
+         above it, and the links wrap as a row instead of a column of stumps. */
+      .site-footer { display: block !important; }
+      .site-footer-meta {
+        align-items: flex-start !important;
+        margin-top: 26px;
+      }
+      .site-footer-links { flex-wrap: wrap; gap: 18px !important; }
+
       /* 60px of side padding on a 335px column left the closing row no room to
          wrap, and it pushed the page sideways. */
       .cta-band {
