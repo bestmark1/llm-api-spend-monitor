@@ -38,6 +38,7 @@
 		A0000000000000000000011E /* RefreshCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000229 /* RefreshCoordinatorTests.swift */; };
 		A00000000000000000000120 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022B /* DashboardViewModelTests.swift */; };
 		A0000000000000000000011F /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022A /* DashboardViewModel.swift */; };
+		A00000000000000000000190 /* DemoDashboardDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000290 /* DemoDashboardDataSource.swift */; };
 		A00000000000000000000121 /* ProviderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022C /* ProviderCard.swift */; };
 		A00000000000000000000122 /* MetricRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022D /* MetricRow.swift */; };
 		A00000000000000000000123 /* HTTPClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022E /* HTTPClientTests.swift */; };
@@ -60,8 +61,6 @@
 		A00000000000000000000134 /* CustomizeProvidersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000023F /* CustomizeProvidersView.swift */; };
 		A00000000000000000000135 /* ProviderOrderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000240 /* ProviderOrderRow.swift */; };
 		A00000000000000000000136 /* PeriodPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000241 /* PeriodPicker.swift */; };
-		A00000000000000000000190 /* DemoDashboardDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000290 /* DemoDashboardDataSource.swift */; };
-		A00000000000000000000137 /* SpendDonutChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000242 /* SpendDonutChart.swift */; };
 		A00000000000000000000138 /* SpendTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000243 /* SpendTrendChart.swift */; };
 		A00000000000000000000139 /* SummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000244 /* SummaryCard.swift */; };
 		A0000000000000000000013A /* ProviderVisualStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000245 /* ProviderVisualStyle.swift */; };
@@ -71,6 +70,9 @@
 		A0000000000000000000013E /* BalanceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000249 /* BalanceNotificationService.swift */; };
 		A0000000000000000000013F /* BalanceNotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024A /* BalanceNotificationServiceTests.swift */; };
 		A00000000000000000000140 /* Spender.icns in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024B /* Spender.icns */; };
+		A00000000000000000000191 /* ProviderMarks.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000291 /* ProviderMarks.xcassets */; };
+		A00000000000000000000192 /* ProviderMarkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000292 /* ProviderMarkView.swift */; };
+		A00000000000000000000194 /* SpendCompositionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000294 /* SpendCompositionBar.swift */; };
 		A00000000000000000000141 /* ProviderEndpointStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024C /* ProviderEndpointStore.swift */; };
 		A00000000000000000000142 /* QwenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024D /* QwenProvider.swift */; };
 		A00000000000000000000143 /* QwenProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000024E /* QwenProviderTests.swift */; };
@@ -139,6 +141,7 @@
 		A00000000000000000000229 /* RefreshCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinatorTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000022B /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000022A /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000290 /* DemoDashboardDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDashboardDataSource.swift; sourceTree = "<group>"; };
 		A0000000000000000000022C /* ProviderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderCard.swift; sourceTree = "<group>"; };
 		A0000000000000000000022D /* MetricRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricRow.swift; sourceTree = "<group>"; };
 		A0000000000000000000022E /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
@@ -161,8 +164,6 @@
 		A0000000000000000000023F /* CustomizeProvidersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomizeProvidersView.swift; sourceTree = "<group>"; };
 		A00000000000000000000240 /* ProviderOrderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderOrderRow.swift; sourceTree = "<group>"; };
 		A00000000000000000000241 /* PeriodPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodPicker.swift; sourceTree = "<group>"; };
-		A00000000000000000000290 /* DemoDashboardDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDashboardDataSource.swift; sourceTree = "<group>"; };
-		A00000000000000000000242 /* SpendDonutChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendDonutChart.swift; sourceTree = "<group>"; };
 		A00000000000000000000243 /* SpendTrendChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendTrendChart.swift; sourceTree = "<group>"; };
 		A00000000000000000000244 /* SummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryCard.swift; sourceTree = "<group>"; };
 		A00000000000000000000245 /* ProviderVisualStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderVisualStyle.swift; sourceTree = "<group>"; };
@@ -172,6 +173,9 @@
 		A00000000000000000000249 /* BalanceNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceNotificationService.swift; sourceTree = "<group>"; };
 		A0000000000000000000024A /* BalanceNotificationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceNotificationServiceTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000024B /* Spender.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Spender.icns; sourceTree = "<group>"; };
+		A00000000000000000000291 /* ProviderMarks.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = ProviderMarks.xcassets; sourceTree = "<group>"; };
+		A00000000000000000000292 /* ProviderMarkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderMarkView.swift; sourceTree = "<group>"; };
+		A00000000000000000000294 /* SpendCompositionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendCompositionBar.swift; sourceTree = "<group>"; };
 		A0000000000000000000024C /* ProviderEndpointStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderEndpointStore.swift; sourceTree = "<group>"; };
 		A0000000000000000000024D /* QwenProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QwenProvider.swift; sourceTree = "<group>"; };
 		A0000000000000000000024E /* QwenProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QwenProviderTests.swift; sourceTree = "<group>"; };
@@ -249,7 +253,7 @@
 		};
 		A0000000000000000000070A /* Dashboard */ = {
 			isa = PBXGroup;
-			children = (A00000000000000000000205 /* DashboardRootView.swift */, A00000000000000000000241 /* PeriodPicker.swift */, A00000000000000000000242 /* SpendDonutChart.swift */, A00000000000000000000243 /* SpendTrendChart.swift */, A00000000000000000000244 /* SummaryCard.swift */);
+			children = (A00000000000000000000205 /* DashboardRootView.swift */, A00000000000000000000241 /* PeriodPicker.swift */, A00000000000000000000243 /* SpendTrendChart.swift */, A00000000000000000000244 /* SummaryCard.swift */, A00000000000000000000294 /* SpendCompositionBar.swift */);
 			path = Dashboard;
 			sourceTree = "<group>";
 		};
@@ -298,7 +302,7 @@
 		A00000000000000000000719 /* Services */ = {isa = PBXGroup; children = (A00000000000000000000227 /* RefreshTrigger.swift */, A00000000000000000000228 /* RefreshCoordinator.swift */, A00000000000000000000231 /* RefreshBackoffPolicy.swift */, A00000000000000000000235 /* ProviderTargetFactory.swift */, A00000000000000000000249 /* BalanceNotificationService.swift */); path = Services; sourceTree = "<group>"; };
 		A0000000000000000000071A /* Services */ = {isa = PBXGroup; children = (A00000000000000000000229 /* RefreshCoordinatorTests.swift */, A00000000000000000000234 /* ProviderTargetFactoryTests.swift */, A0000000000000000000024A /* BalanceNotificationServiceTests.swift */); path = Services; sourceTree = "<group>"; };
 		A0000000000000000000071B /* Dashboard */ = {isa = PBXGroup; children = (A0000000000000000000022A /* DashboardViewModel.swift */, A00000000000000000000290 /* DemoDashboardDataSource.swift */); path = Dashboard; sourceTree = "<group>"; };
-		A0000000000000000000071C /* Providers */ = {isa = PBXGroup; children = (A0000000000000000000022C /* ProviderCard.swift */, A0000000000000000000022D /* MetricRow.swift */, A00000000000000000000245 /* ProviderVisualStyle.swift */, A00000000000000000000248 /* PlatformBalanceEditor.swift */); path = Providers; sourceTree = "<group>"; };
+		A0000000000000000000071C /* Providers */ = {isa = PBXGroup; children = (A0000000000000000000022C /* ProviderCard.swift */, A0000000000000000000022D /* MetricRow.swift */, A00000000000000000000245 /* ProviderVisualStyle.swift */, A00000000000000000000248 /* PlatformBalanceEditor.swift */, A00000000000000000000292 /* ProviderMarkView.swift */); path = Providers; sourceTree = "<group>"; };
 		A0000000000000000000071D /* Networking */ = {isa = PBXGroup; children = (A0000000000000000000022F /* HTTPClient.swift */, A00000000000000000000230 /* URLSessionHTTPClient.swift */); path = Networking; sourceTree = "<group>"; };
 		A0000000000000000000071E /* OpenAI */ = {isa = PBXGroup; children = (A00000000000000000000232 /* OpenAIProviderTests.swift */); path = OpenAI; sourceTree = "<group>"; };
 		A0000000000000000000071F /* OpenAI */ = {isa = PBXGroup; children = (A00000000000000000000233 /* OpenAIProvider.swift */); path = OpenAI; sourceTree = "<group>"; };
@@ -321,7 +325,7 @@
 		A00000000000000000000726 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023C /* CustomizeViewModelTests.swift */); path = Customize; sourceTree = "<group>"; };
 		A00000000000000000000727 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023D /* CustomizeViewModel.swift */); path = Customize; sourceTree = "<group>"; };
 		A00000000000000000000728 /* Customize */ = {isa = PBXGroup; children = (A0000000000000000000023F /* CustomizeProvidersView.swift */, A00000000000000000000240 /* ProviderOrderRow.swift */); path = Customize; sourceTree = "<group>"; };
-		A00000000000000000000729 /* Resources */ = {isa = PBXGroup; children = (A0000000000000000000024B /* Spender.icns */); path = Resources; sourceTree = "<group>"; };
+		A00000000000000000000729 /* Resources */ = {isa = PBXGroup; children = (A0000000000000000000024B /* Spender.icns */, A00000000000000000000291 /* ProviderMarks.xcassets */); path = Resources; sourceTree = "<group>"; };
 		A00000000000000000000709 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -397,13 +401,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A00000000000000000000621 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000140 /* Spender.icns in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000621 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000140 /* Spender.icns in Resources */, A00000000000000000000191 /* ProviderMarks.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000622 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000623 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B, A0000000000000000000011C, A0000000000000000000011D, A0000000000000000000011F, A00000000000000000000190, A00000000000000000000121, A00000000000000000000122, A00000000000000000000124, A00000000000000000000125, A00000000000000000000126, A00000000000000000000128, A0000000000000000000012A, A0000000000000000000012C, A0000000000000000000012E, A00000000000000000000130, A00000000000000000000132, A00000000000000000000133, A00000000000000000000134, A00000000000000000000135, A00000000000000000000136, A00000000000000000000137, A00000000000000000000138, A00000000000000000000139, A0000000000000000000013A, A0000000000000000000013C, A0000000000000000000013D, A0000000000000000000013E, A00000000000000000000141, A00000000000000000000142, A00000000000000000000146, A00000000000000000000147, A00000000000000000000149, A0000000000000000000014B); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000611 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000101, A00000000000000000000102, A00000000000000000000103, A00000000000000000000104, A00000000000000000000105, A0000000000000000000010E, A0000000000000000000010F, A00000000000000000000110, A00000000000000000000111, A00000000000000000000112, A00000000000000000000113, A00000000000000000000114, A00000000000000000000115, A00000000000000000000116, A00000000000000000000118, A00000000000000000000119, A0000000000000000000011B, A0000000000000000000011C, A0000000000000000000011D, A0000000000000000000011F, A00000000000000000000194, A00000000000000000000192, A00000000000000000000190, A00000000000000000000121, A00000000000000000000122, A00000000000000000000124, A00000000000000000000125, A00000000000000000000126, A00000000000000000000128, A0000000000000000000012A, A0000000000000000000012C, A0000000000000000000012E, A00000000000000000000130, A00000000000000000000132, A00000000000000000000133, A00000000000000000000134, A00000000000000000000135, A00000000000000000000136, A00000000000000000000138, A00000000000000000000139, A0000000000000000000013A, A0000000000000000000013C, A0000000000000000000013D, A0000000000000000000013E, A00000000000000000000141, A00000000000000000000142, A00000000000000000000146, A00000000000000000000147, A00000000000000000000149, A0000000000000000000014B); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000612 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000106, A00000000000000000000108, A00000000000000000000109, A0000000000000000000010A, A0000000000000000000010B, A0000000000000000000010C, A00000000000000000000117, A0000000000000000000011A, A0000000000000000000011E, A00000000000000000000120, A00000000000000000000123, A00000000000000000000127, A00000000000000000000129, A0000000000000000000012B, A0000000000000000000012D, A0000000000000000000012F, A00000000000000000000131, A0000000000000000000013B, A0000000000000000000013F, A00000000000000000000143, A00000000000000000000144, A00000000000000000000145, A00000000000000000000148, A0000000000000000000014A); runOnlyForDeploymentPostprocessing = 0; };
 		A00000000000000000000613 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000107, A0000000000000000000010D); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */

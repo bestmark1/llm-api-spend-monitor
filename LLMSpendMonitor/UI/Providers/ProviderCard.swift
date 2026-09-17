@@ -297,15 +297,7 @@ struct ProviderCard: View {
             .accessibilityLabel("Drag \(metadata.displayName) to reorder")
             .accessibilityIdentifier("provider.\(metadata.id.rawValue).dragHandle")
 
-            Image(systemName: metadata.systemImageName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(ProviderVisualStyle.color(for: metadata.id))
-                .frame(width: 30, height: 30)
-                .background(
-                    ProviderVisualStyle.color(for: metadata.id).opacity(0.12),
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                )
-                .accessibilityHidden(true)
+            ProviderMarkView(metadata: metadata)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(metadata.displayName)

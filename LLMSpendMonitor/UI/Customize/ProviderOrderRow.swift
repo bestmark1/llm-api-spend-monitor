@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ProviderOrderRow: View {
@@ -40,11 +41,21 @@ struct ProviderOrderRow: View {
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
 
-            Image(systemName: item.metadata.systemImageName)
-                .font(.title3)
-                .frame(width: 24)
-                .foregroundStyle(item.isVisible ? .primary : .tertiary)
-                .accessibilityHidden(true)
+            Group {
+                if let assetName = item.metadata.markAssetName, NSImage(named: assetName) != nil {
+                    Image(assetName)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 17, height: 17)
+                } else {
+                    Image(systemName: item.metadata.systemImageName)
+                        .font(.title3)
+                }
+            }
+            .frame(width: 24)
+            .foregroundStyle(item.isVisible ? .primary : .tertiary)
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.metadata.displayName)

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum ProviderVisualStyle {
@@ -9,7 +10,12 @@ enum ProviderVisualStyle {
         case .deepSeek: .indigo
         case .kimi: .pink
         case .qwen: .purple
-        case .xAI: .gray
+        // xAI's mark is monochrome, and monochrome is also the safest slot left in a
+        // palette this full: it separates by lightness instead of hue, so it can never
+        // read as a twin of another provider. It has to invert per appearance —
+        // ink on the light card measures above 3:1, while the same ink on the dark
+        // card drops to 1.62:1 and reads as a hole in the ring.
+        case .xAI: .providerInk
         case .mistral: .red
         case .openRouter: .mint
         case .perplexity: .cyan
@@ -105,4 +111,15 @@ struct GlassSurface: View {
     private var borderOpacity: Double {
         colorScheme == .dark ? 0.24 : 0.48
     }
+}
+
+private extension Color {
+    static let providerInk = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            // Held back from pure white: at full brightness the monochrome segment
+            // outshouts every hue beside it. #E8E8ED is the dimmest step at which xAI
+            // still is not the palette's limiting pair for colour vision.
+            ? NSColor(srgbRed: 0.910, green: 0.910, blue: 0.929, alpha: 1)
+            : NSColor(srgbRed: 0.110, green: 0.110, blue: 0.118, alpha: 1)
+    })
 }

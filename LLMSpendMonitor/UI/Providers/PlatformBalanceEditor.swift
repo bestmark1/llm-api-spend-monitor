@@ -67,15 +67,7 @@ struct PlatformBalanceEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 10) {
-                Image(systemName: metadata.systemImageName)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(ProviderVisualStyle.color(for: metadata.id))
-                    .frame(width: 36, height: 36)
-                    .background(
-                        ProviderVisualStyle.color(for: metadata.id).opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    )
-                    .accessibilityHidden(true)
+                ProviderMarkView(metadata: metadata, size: 36, glyph: 19)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(currentBalance == nil ? "Add platform balance" : "Recalibrate platform balance")

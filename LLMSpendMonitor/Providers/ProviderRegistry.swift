@@ -10,6 +10,8 @@ struct ProviderMetadata: Identifiable, Equatable, Sendable {
     let id: ProviderID
     let displayName: String
     let systemImageName: String
+    /// Bundled provider mark in ProviderMarks.xcassets; nil falls back to the SF Symbol.
+    let markAssetName: String?
     let credentialHelp: String
     let capabilities: Set<ProviderCapability>
     let externalLinks: [ExternalLink]
@@ -25,6 +27,7 @@ enum ProviderRegistry {
             id: .openAI,
             displayName: "OpenAI",
             systemImageName: "circle.hexagongrid",
+            markAssetName: "mark.openai",
             credentialHelp: "Requires an Organization Admin API key for official usage and cost reports.",
             capabilities: [.officialCostHistory, .tokenUsage, .modelBreakdown],
             externalLinks: [
@@ -40,13 +43,14 @@ enum ProviderRegistry {
             id: .anthropic,
             displayName: "Anthropic",
             systemImageName: "sparkles",
+            markAssetName: "mark.anthropic",
             credentialHelp: "Requires a Console Admin API key for official usage and cost reports.",
             capabilities: [.officialCostHistory, .tokenUsage, .modelBreakdown],
             externalLinks: [
-                link(.usage, "https://console.anthropic.com/settings/usage"),
-                link(.billing, "https://console.anthropic.com/settings/billing"),
-                link(.dashboard, "https://console.anthropic.com"),
-                link(.status, "https://status.anthropic.com")
+                link(.usage, "https://platform.claude.com/settings/usage"),
+                link(.billing, "https://platform.claude.com/settings/billing"),
+                link(.dashboard, "https://platform.claude.com"),
+                link(.status, "https://status.claude.com")
             ],
             integrationAvailability: .available,
             isVisibleByDefault: true
@@ -55,6 +59,7 @@ enum ProviderRegistry {
             id: .gemini,
             displayName: "Gemini",
             systemImageName: "diamond",
+            markAssetName: "mark.gemini",
             credentialHelp: "Use any standard Gemini API key. Spender detects Free or Paid Tier automatically; read-only Google Cloud access adds official token and model usage.",
             capabilities: [.credentialValidation, .tokenUsage, .modelBreakdown],
             externalLinks: [
@@ -70,6 +75,7 @@ enum ProviderRegistry {
             id: .deepSeek,
             displayName: "DeepSeek",
             systemImageName: "wave.3.right.circle",
+            markAssetName: "mark.deepseek",
             credentialHelp: "A standard API key provides the official current balance. Spender estimates daily spend from saved balance decreases because DeepSeek does not expose cost history via API.",
             capabilities: [.balance, .estimatedCostHistory],
             externalLinks: [
@@ -85,12 +91,12 @@ enum ProviderRegistry {
             id: .kimi,
             displayName: "Kimi",
             systemImageName: "moon.stars",
+            markAssetName: "mark.kimi",
             credentialHelp: "A standard Moonshot API key provides the official current balance. Kimi does not expose aggregate spend history via API.",
             capabilities: [.balance],
             externalLinks: [
-                link(.usage, "https://platform.moonshot.ai/console/info-center/usage"),
-                link(.billing, "https://platform.moonshot.ai/console/info-center"),
-                link(.dashboard, "https://platform.moonshot.ai/console")
+                link(.billing, "https://platform.kimi.ai/console/account"),
+                link(.dashboard, "https://platform.kimi.ai/console")
             ],
             integrationAvailability: .available,
             isVisibleByDefault: false
@@ -99,6 +105,7 @@ enum ProviderRegistry {
             id: .qwen,
             displayName: "Qwen",
             systemImageName: "aqi.medium",
+            markAssetName: "mark.qwen",
             credentialHelp: "Use a pay-as-you-go Model Studio API key with its API Host from the same region to verify model access. Token Plan and Coding Plan keys are not supported. This key alone gives no billing access: money metrics need a separate RAM user AccessKey pair with read-only billing permissions bss:DescribeAcccount and bss:QueryAccountBill.",
             capabilities: [.balance, .credentialValidation, .officialCostHistory],
             externalLinks: [
@@ -113,6 +120,7 @@ enum ProviderRegistry {
             id: .xAI,
             displayName: "xAI · Grok",
             systemImageName: "xmark",
+            markAssetName: nil,
             credentialHelp: "Create a team-scoped xAI Management API key in xAI Console → Settings → Management Keys. It is a different key from the inference API key and needs read access to billing. Spender reads the official prepaid balance and daily USD usage.",
             capabilities: [.balance, .officialCostHistory, .modelBreakdown],
             externalLinks: [
@@ -128,6 +136,7 @@ enum ProviderRegistry {
             id: .mistral,
             displayName: "Mistral AI",
             systemImageName: "wind",
+            markAssetName: "mark.mistral",
             credentialHelp: "Requires a dedicated Enterprise Admin API key from Mistral Backoffice. A standard Studio API key cannot read financial data. Spender shows the official remaining monthly spending limit.",
             capabilities: [.balance],
             externalLinks: [
@@ -143,6 +152,7 @@ enum ProviderRegistry {
             id: .openRouter,
             displayName: "OpenRouter",
             systemImageName: "arrow.triangle.branch",
+            markAssetName: "mark.openrouter",
             credentialHelp: "Requires an OpenRouter Management API key to read the official account-wide remaining credits.",
             capabilities: [.balance],
             externalLinks: [
@@ -157,6 +167,7 @@ enum ProviderRegistry {
             id: .perplexity,
             displayName: "Perplexity",
             systemImageName: "network",
+            markAssetName: "mark.perplexity",
             credentialHelp: "Perplexity does not expose account-wide Sonar API balance or usage through a public API. A standard API key only reports the cost of each request made with that key, so Spender cannot reconstruct activity from other apps.",
             capabilities: [],
             externalLinks: [

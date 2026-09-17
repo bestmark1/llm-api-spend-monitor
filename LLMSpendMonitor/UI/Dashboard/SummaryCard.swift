@@ -9,45 +9,47 @@ struct SummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 5) {
-                        Text("Tracked spend")
-                            .font(.callout.weight(.medium))
-                        Image(systemName: "info.circle")
-                            .font(.caption)
-                            .help("Official provider reports plus clearly labeled estimates when an official spend API is unavailable.")
-                            .accessibilityLabel("About tracked spend")
-                    }
-                    .foregroundStyle(.secondary)
-                    Text(MetricFormatting.money(total))
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: decimalValue(total.amount)))
-                    if let provenanceSummary {
-                        Text(provenanceSummary)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("dashboard.summary.provenance")
-                    }
-                    if excludedProviderCount > 0 {
-                        Label(
-                            "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
-                            systemImage: "exclamationmark.circle.fill"
-                        )
-                        .foregroundStyle(.orange)
-                        .accessibilityIdentifier("dashboard.summary.partial")
-                    }
-                    if !showsDetails, !breakdown.isEmpty {
-                        compactProviderLegend
-                    }
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 5) {
+                    Text("Tracked spend")
+                        .font(.callout.weight(.medium))
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .help("Official provider reports plus clearly labeled estimates when an official spend API is unavailable.")
+                        .accessibilityLabel("About tracked spend")
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
+                .foregroundStyle(.secondary)
+                Text(MetricFormatting.money(total))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: decimalValue(total.amount)))
+                if let provenanceSummary {
+                    Text(provenanceSummary)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("dashboard.summary.provenance")
+                }
+                if excludedProviderCount > 0 {
+                    Label(
+                        "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
+                        systemImage: "exclamationmark.circle.fill"
+                    )
+                    .foregroundStyle(.orange)
+                    .accessibilityIdentifier("dashboard.summary.partial")
+                }
+                // The bar carries composition on both tabs. A ring answered the same
+                // question in a second shape, and part-to-whole reads more accurately
+                // from length on a shared baseline than from angle.
                 if !breakdown.isEmpty {
-                    SpendDonutChart(breakdown: breakdown)
+                SpendCompositionBar(breakdown: compactLegendItems)
+                    .padding(.top, 5)
+                }
+
+                if !showsDetails, !breakdown.isEmpty {
+                compactProviderLegend
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if showsDetails, !breakdown.isEmpty {
                 Divider()
@@ -81,7 +83,7 @@ struct SummaryCard: View {
 
     private var providerLegend: some View {
         VStack(spacing: 7) {
-            ForEach(breakdown) { summary in
+            ForEach(sortedBreakdown) { summary in
                 HStack(spacing: 8) {
                     Circle()
                         .fill(ProviderVisualStyle.color(for: summary.providerID))
@@ -105,20 +107,62 @@ struct SummaryCard: View {
     }
 
     private var compactProviderLegend: some View {
-        HStack(spacing: 12) {
-            ForEach(breakdown) { summary in
-                HStack(spacing: 5) {
+        // Names alone left the card's width carrying nothing and never answered the
+        // second question — how much each provider took. Amounts aligned to the right
+        // edge fill that width with the answer.
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(compactLegendItems) { summary in
+                HStack(spacing: 7) {
                     Circle()
                         .fill(ProviderVisualStyle.color(for: summary.providerID))
                         .frame(width: 7, height: 7)
                         .accessibilityHidden(true)
                     Text(providerName(summary.providerID))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 8)
+                    Text(compactAmount(summary))
+                        .fontWeight(.medium)
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
                 }
+                .help(summary.provenance == .estimated
+                    ? "Estimated from saved balance decreases for \(providerName(summary.providerID))"
+                    : "Official spend reported by \(providerName(summary.providerID))")
+            }
+
+            if compactLegendOverflow > 0 {
+                Text("+\(compactLegendOverflow) more")
             }
         }
         .font(.caption)
+        .minimumScaleFactor(0.85)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier("dashboard.compactProviderLegend")
+    }
+
+    /// A tilde marks a derived figure, the same way the provider card labels it.
+    private func compactAmount(_ summary: ProviderSpendSummary) -> String {
+        let money = MetricFormatting.money(summary.amount)
+        return summary.provenance == .estimated ? "~\(money)" : money
+    }
+
+    /// The header names only the biggest few providers; spelling out every one
+    /// stretched the column until the donut had nowhere left to sit. The full
+    /// list with amounts is one tab away, under 30 Days.
+    /// Largest first, everywhere the breakdown is drawn. Registry order put the
+    /// biggest provider third in the 30-day legend, which is the one place the
+    /// ranking is actually being read.
+    private var sortedBreakdown: [ProviderSpendSummary] {
+        breakdown.sorted { $0.amount.amount > $1.amount.amount }
+    }
+
+    private var compactLegendItems: [ProviderSpendSummary] {
+        Array(sortedBreakdown.prefix(4))
+    }
+
+    private var compactLegendOverflow: Int {
+        max(0, breakdown.count - compactLegendItems.count)
     }
 
     private var peakDailySpend: Money? {
