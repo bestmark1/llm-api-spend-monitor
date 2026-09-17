@@ -173,7 +173,6 @@ private struct DashboardView: View {
                             else { return false }
                             return moveProvider(draggedProviderID, provider.id)
                         }
-                        .help("Drag to reorder providers")
                     }
 
                     if providers.isEmpty {
