@@ -135,6 +135,7 @@ enum StatusBarMenuAction: Int, CaseIterable, Equatable {
     case customize
     case connections
     case settings
+    case about
     case quit
 
     var title: String {
@@ -142,12 +143,69 @@ enum StatusBarMenuAction: Int, CaseIterable, Equatable {
         case .customize: "Customize"
         case .connections: "Connections"
         case .settings: "Settings"
+        case .about: "About Spender"
         case .quit: "Quit Spender"
+        }
+    }
+
+    /// The same symbol the panel's own Options menu uses, so the two menus read
+    /// as one menu reached two ways rather than as two similar lists.
+    var symbolName: String {
+        switch self {
+        case .customize: "slider.horizontal.3"
+        case .connections: "key"
+        case .settings: "gearshape"
+        case .about: "info.circle"
+        case .quit: "power"
         }
     }
 
     var keyEquivalent: String {
         self == .quit ? "q" : ""
+    }
+}
+
+/// The standard macOS About panel, told the truth about this project.
+///
+/// A hand-built window would repeat what AppKit already draws from Info.plist —
+/// icon, name, version, build, copyright — so only the part AppKit cannot know
+/// is supplied: that the source is public and under which licence.
+enum AboutPanel {
+    static let repositoryURL = URL(string: "https://github.com/bestmark1/llm-api-spend-monitor")
+
+    @MainActor
+    static func present() {
+        // Spender is an accessory app and is usually not frontmost; without this
+        // the panel opens behind whatever the person was working in.
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [.credits: credits])
+    }
+
+    private static var credits: NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+
+        let credits = NSMutableAttributedString(
+            string: "Open source under the MIT licence.\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        if let repositoryURL {
+            credits.append(NSAttributedString(
+                string: "View the source on GitHub",
+                attributes: [.font: NSFont.systemFont(ofSize: 11), .link: repositoryURL]
+            ))
+        }
+
+        credits.addAttribute(
+            .paragraphStyle,
+            value: paragraph,
+            range: NSRange(location: 0, length: credits.length)
+        )
+        return credits
     }
 }
 
@@ -188,6 +246,10 @@ final class StatusBarInteractionController: NSObject {
                 action: #selector(performMenuItem(_:)),
                 keyEquivalent: action.keyEquivalent
             )
+            item.image = NSImage(
+                systemSymbolName: action.symbolName,
+                accessibilityDescription: nil
+            )
             item.target = self
             item.tag = action.rawValue
             item.isEnabled = true
@@ -211,6 +273,8 @@ final class StatusBarInteractionController: NSObject {
             panelPresenter.show()
         case .settings:
             openSettings()
+        case .about:
+            AboutPanel.present()
         case .quit:
             quitApplication()
         }

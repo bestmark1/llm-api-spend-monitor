@@ -255,20 +255,59 @@ private struct DashboardView: View {
             // 30 Days tab, so a frozen panel still fits everything it must.
             .frame(maxHeight: listCap)
 
-            Menu("Options", systemImage: "ellipsis.circle") {
-                Button("Customize", action: showCustomize)
-                    .accessibilityIdentifier("options.customize")
-                Button("Connections", action: showConnections)
-                    .accessibilityIdentifier("options.connections")
-                SettingsLink {
-                    Text("Settings")
+            Menu {
+                Button {
+                    showCustomize()
+                } label: {
+                    Label("Customize", systemImage: StatusBarMenuAction.customize.symbolName)
                 }
+                .accessibilityIdentifier("options.customize")
+
+                Button {
+                    showConnections()
+                } label: {
+                    Label("Connections", systemImage: StatusBarMenuAction.connections.symbolName)
+                }
+                .accessibilityIdentifier("options.connections")
+
+                SettingsLink {
+                    Label("Settings", systemImage: StatusBarMenuAction.settings.symbolName)
+                }
+
                 Divider()
-                Button("Quit Spender", action: quitApplication)
-                    .keyboardShortcut("q")
-                    .accessibilityIdentifier("options.quit")
+
+                Button {
+                    AboutPanel.present()
+                } label: {
+                    Label("About Spender", systemImage: StatusBarMenuAction.about.symbolName)
+                }
+                .accessibilityIdentifier("options.about")
+
+                Button {
+                    quitApplication()
+                } label: {
+                    Label("Quit Spender", systemImage: StatusBarMenuAction.quit.symbolName)
+                }
+                .keyboardShortcut("q")
+                .accessibilityIdentifier("options.quit")
+            } label: {
+                // A borderless menu gives no sign it can be pressed until the
+                // pointer is already on it. The capsule says so standing still.
+                HStack(spacing: 5) {
+                    Image(systemName: "ellipsis.circle")
+                    Text("Options")
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                }
+                .font(.callout)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 5)
+                .background(.quaternary, in: Capsule())
+                .contentShape(Capsule())
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
             .accessibilityIdentifier("options.menu")
             .measuringPanelPart("options")
         }
