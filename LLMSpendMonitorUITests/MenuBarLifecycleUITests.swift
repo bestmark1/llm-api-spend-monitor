@@ -56,11 +56,8 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testProviderCardCanExpandFromCompactSummary() {
-        let app = makeIsolatedApp()
-        app.launchArguments.append(contentsOf: [
-            "--dashboard-preview",
-            "--reset-provider-card-expansion"
-        ])
+        let app = makeIsolatedApp(demoData: true)
+        app.launchArguments.append("--dashboard-preview")
         app.launch()
 
         let disclosure = app.buttons["provider.openai.disclosure"]
@@ -79,15 +76,22 @@ final class MenuBarLifecycleUITests: XCTestCase {
         )
 
         app.terminate()
-        app.launchArguments = ["--dashboard-preview"]
+        // Assigning the array would drop --demo-data, and the relaunched app would read
+        // card expansion from the standard defaults instead of this test's suite — which
+        // is what made this assertion depend on whatever the machine happened to hold.
+        app.launchArguments = ["--dashboard-preview", "--demo-data"]
         app.launch()
 
         let restoredDisclosure = app.buttons["provider.openai.disclosure"]
         XCTAssertTrue(restoredDisclosure.waitForExistence(timeout: 5))
         XCTAssertEqual(restoredDisclosure.value as? String, "Expanded")
 
+        // The expanded OpenAI card pushes Anthropic below the panel, and the list only
+        // mounts the cards it can show. Scrolling it into the hierarchy is what the
+        // assertion is about — the stored expansion state, not what happens to fit.
         let untouchedDisclosure = app.buttons["provider.anthropic.disclosure"]
-        XCTAssertTrue(untouchedDisclosure.waitForExistence(timeout: 2))
+        scrollUntilPresent(untouchedDisclosure, in: app.scrollViews.firstMatch)
+        XCTAssertTrue(untouchedDisclosure.exists)
         XCTAssertEqual(untouchedDisclosure.value as? String, "Collapsed")
     }
 
@@ -103,9 +107,17 @@ final class MenuBarLifecycleUITests: XCTestCase {
     }
 
     func testThirtyDaySummaryShowsProvenanceAndTrend() {
-        let app = makeIsolatedApp()
+        let app = makeIsolatedApp(demoData: true)
         app.launchArguments.append("--dashboard-preview")
         app.launch()
+
+        // The panel sizes itself to its content, and its content arrives after the
+        // first refresh returns. Clicking before then resolves a control against a
+        // panel that is about to resize, and the click lands nowhere.
+        XCTAssertTrue(
+            app.descendants(matching: .any)["dashboard.compactProviderLegend"]
+                .waitForExistence(timeout: 5)
+        )
 
         let thirtyDays = app.descendants(matching: .any)["30 Days"]
         XCTAssertTrue(thirtyDays.waitForExistence(timeout: 5))
@@ -185,6 +197,22 @@ final class MenuBarLifecycleUITests: XCTestCase {
         add(screenshot)
     }
 
+    /// Scrolls down only until `element` is in the hierarchy, then stops.
+    ///
+    /// The dashboard mounts provider cards lazily, so a card below the fold is absent
+    /// rather than merely off-screen. Waiting for `isHittable` instead would keep
+    /// swiping past a card that is already present, unmounting it again.
+    private func scrollUntilPresent(
+        _ element: XCUIElement,
+        in container: XCUIElement,
+        attempts: Int = 10
+    ) {
+        for _ in 0..<attempts {
+            if element.exists { return }
+            container.swipeUp()
+        }
+    }
+
     private func scrollUntilVisible(
         _ element: XCUIElement,
         in container: XCUIElement,
@@ -195,15 +223,30 @@ final class MenuBarLifecycleUITests: XCTestCase {
         }
     }
 
-    private func makeIsolatedApp() -> XCUIApplication {
+    /// An app instance whose persistence is scoped to this test.
+    ///
+    /// `demoData` swaps the refresh coordinator for fixed fictional snapshots, so a
+    /// test that needs provider metrics gets them without a Keychain credential or a
+    /// network call. Without it the app has no snapshots on a machine with no
+    /// connected provider, and anything that renders from one is simply absent.
+    private func makeIsolatedApp(demoData: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
-        let suiteName = "com.bestmark.SpenderUITests.Balances.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)
-        defaults?.removePersistentDomain(forName: suiteName)
-        app.launchEnvironment["SPENDER_PLATFORM_BALANCE_SUITE"] = suiteName
+        let token = UUID().uuidString
+        let balanceSuite = "com.bestmark.SpenderUITests.Balances.\(token)"
+        let customizationSuite = "com.bestmark.SpenderUITests.Customization.\(token)"
+        let balanceDefaults = UserDefaults(suiteName: balanceSuite)
+        let customizationDefaults = UserDefaults(suiteName: customizationSuite)
+        balanceDefaults?.removePersistentDomain(forName: balanceSuite)
+        customizationDefaults?.removePersistentDomain(forName: customizationSuite)
+        app.launchEnvironment["SPENDER_PLATFORM_BALANCE_SUITE"] = balanceSuite
+        app.launchEnvironment["SPENDER_CUSTOMIZATION_SUITE"] = customizationSuite
+        if demoData {
+            app.launchArguments.append("--demo-data")
+        }
         addTeardownBlock {
             app.terminate()
-            defaults?.removePersistentDomain(forName: suiteName)
+            balanceDefaults?.removePersistentDomain(forName: balanceSuite)
+            customizationDefaults?.removePersistentDomain(forName: customizationSuite)
         }
         return app
     }

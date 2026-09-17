@@ -375,6 +375,19 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
 
     private let panel: MenuBarPanel
     private var outsideClickMonitor: GlobalMouseMonitor?
+    private var requestedPanel = MenuPanelRequest(
+        screen: "onboarding",
+        height: MenuPanelMetrics.defaultHeight,
+        isMeasured: false
+    )
+    /// True from the moment the panel opens until the person first touches it.
+    ///
+    /// The panel opens before the refresh has returned, so the height it can
+    /// measure at that instant is of an empty summary card. Content keeps
+    /// arriving for a few hundred milliseconds, and the panel follows it. The
+    /// first click or keypress ends that: from then on the height is whatever it
+    /// was, so nothing shifts under the pointer while it is being read.
+    private var isSettlingToContent = true
 
     var isVisible: Bool { panel.isVisible }
 
@@ -385,7 +398,12 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
         quitApplication: @escaping () -> Void
     ) {
         panel = MenuBarPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 640),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: MenuPanelMetrics.width,
+                height: MenuPanelMetrics.forcedHeight ?? MenuPanelMetrics.defaultHeight
+            ),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: true
@@ -405,9 +423,15 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
                 dashboardViewModel: dashboardViewModel,
                 settingsRequestRouter: settingsRequestRouter,
                 closePanel: { [weak self] in self?.hide() },
-                quitApplication: quitApplication
+                quitApplication: quitApplication,
+                panelRequestDidChange: { [weak self] request in
+                    self?.panelRequestChanged(request)
+                }
             )
         )
+        panel.userDidInteract = { [weak self] in
+            self?.isSettlingToContent = false
+        }
         outsideClickMonitor = GlobalMouseMonitor(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
@@ -419,6 +443,8 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
     }
 
     func show() {
+        isSettlingToContent = true
+        applyPanelHeight()
         positionPanel()
         NSApplication.shared.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
@@ -431,6 +457,48 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
 
     func toggle() {
         isVisible ? hide() : show()
+    }
+
+    /// Records what the current screen wants to be.
+    ///
+    /// An open panel keeps its height: growing or shrinking under the pointer
+    /// while someone reads it moves the Options button out from under them. Two
+    /// things are still allowed through — a different screen, which is a
+    /// different panel, and the first measured height after the panel opened on
+    /// a placeholder. Without the second, the panel would keep the guess until
+    /// the next time it was opened.
+    private func panelRequestChanged(_ request: MenuPanelRequest) {
+        let previousScreen = requestedPanel.screen
+        requestedPanel = request
+
+        guard panel.isVisible else { return }
+
+        if request.screen != previousScreen {
+            // A different screen is a different panel, and it settles afresh.
+            isSettlingToContent = true
+            applyPanelHeight()
+            return
+        }
+
+        guard isSettlingToContent, request.isMeasured else { return }
+        applyPanelHeight()
+    }
+
+    private func applyPanelHeight() {
+        let height = MenuPanelMetrics.forcedHeight
+            ?? MenuPanelMetrics.clamped(requestedPanel.height)
+        guard abs(panel.frame.height - height) > 0.5 else { return }
+        // AppKit keeps the bottom-left corner, so a panel that grew would push its
+        // own top up through the menu bar. Pin the top edge instead and let it
+        // grow downwards, the direction a panel hanging off the menu bar grows.
+        // Recomputing the position from the status item is not an option here:
+        // mid-resize that arithmetic can put the panel off-screen entirely.
+        let top = panel.frame.maxY
+        let left = panel.frame.minX
+        panel.setContentSize(NSSize(width: MenuPanelMetrics.width, height: height))
+        if panel.isVisible {
+            panel.setFrameTopLeftPoint(NSPoint(x: left, y: top))
+        }
     }
 
     private func positionPanel() {
@@ -498,4 +566,17 @@ final class MenuBarPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
+    /// Called the first time the person clicks or types into the open panel.
+    /// The presenter uses it to stop following the content's height.
+    var userDidInteract: (() -> Void)?
+
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown, .rightMouseDown, .keyDown:
+            userDidInteract?()
+        default:
+            break
+        }
+        super.sendEvent(event)
+    }
 }
