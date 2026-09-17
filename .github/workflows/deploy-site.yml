@@ -1,0 +1,64 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one midway: a cancelled deploy can
+# leave the site serving a half-published version.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rebuild the page from the artboard
+        run: python3 site/build.py
+
+      - name: Refuse to publish a page that has drifted from its source
+        run: |
+          if ! git diff --quiet -- site/index.html; then
+            echo "::error::site/index.html does not match design/Main.dc.html."
+            echo "Run 'python3 site/build.py' and commit the result."
+            git --no-pager diff -- site/index.html
+            exit 1
+          fi
+
+      - name: Collect what actually ships
+        run: |
+          mkdir -p _site
+          cp site/index.html _site/
+          cp -R site/assets _site/assets
+          # design/ holds the canvas artboards and the editor export — sources,
+          # not deliverables. They stay out of the published site.
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

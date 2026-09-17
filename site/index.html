@@ -1,13 +1,20 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spender — every LLM API bill in one macOS menu bar panel</title>
+<meta name="description" content="Spender is a free, open source macOS menu bar app that reads your LLM API spend straight from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the macOS Keychain; there is no account and no server.">
+<link rel="icon" href="assets/spender-icon-160.png" type="image/png">
+<link rel="canonical" href="https://bestmark1.github.io/llm-api-spend-monitor/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Spender — every LLM API bill in one macOS menu bar panel">
+<meta property="og:description" content="Free and open source. Reads official spend from your providers. Keys stay in the macOS Keychain — no account, no server.">
+<meta property="og:image" content="https://bestmark1.github.io/llm-api-spend-monitor/assets/screenshots/panel-today.png">
+<meta property="og:url" content="https://bestmark1.github.io/llm-api-spend-monitor/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap">
   <style>
     :root {
       --brand: #3974CD;
@@ -122,8 +129,65 @@
       opacity: 0.72;
     }
   </style>
-</helmet>
+<style>
+    /* --- Grids lifted out of inline styles so media queries can reach them --- */
+    .grid { display: grid; }
+    .grid-provenance  { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .grid-compare     { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 38px; }
+    .grid-capability  { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .grid-principles  { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px; }
 
+    img { max-width: 100%; }
+
+    /* --- Tablet --- */
+    @media (max-width: 900px) {
+      .wrap { padding: 0 32px; }
+      .row { gap: 44px; }
+      .grid-provenance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-principles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+      h1 { font-size: 46px !important; }
+      .cta-band { padding: 40px 36px !important; }
+    }
+
+    /* --- Phone: one column throughout, following the Mobile 390 artboard --- */
+    @media (max-width: 620px) {
+      .wrap { padding: 0 20px; }
+      .row { gap: 32px; }
+      .grid-provenance,
+      .grid-compare,
+      .grid-capability,
+      .grid-principles { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+      h1 { font-size: 34px !important; line-height: 1.08 !important; }
+      h2 { font-size: 27px !important; }
+      .lede { font-size: 17px; }
+      .provider-row { gap: 16px; }
+      .provider-mark { width: 21px; height: 21px; }
+
+      /* The callouts are positioned as a percentage of the screenshot column.
+         On a phone that column is narrow enough to push them off the edge. */
+      .note { display: none !important; }
+
+      /* The button does not wrap and its label is wider than a phone, so on a
+         narrow screen it takes the column instead of widening the page. */
+      .btn {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 14px 18px;
+      }
+
+      /* 60px of side padding on a 335px column left the closing row no room to
+         wrap, and it pushed the page sideways. */
+      .cta-band {
+        display: block !important;
+        padding: 30px 22px !important;
+      }
+      .cta-band > div { margin-bottom: 22px; }
+    }
+</style>
+</head>
+<body>
 <div style="background:
     radial-gradient(1100px 620px at 84% -8%, rgba(84, 138, 226, 0.24), transparent 62%),
     radial-gradient(900px 560px at 2% 20%, rgba(85, 80, 154, 0.15), transparent 60%),
@@ -133,7 +197,7 @@
   <!-- Nav -->
   <div class="wrap" style="display: flex; align-items: center; justify-content: space-between; padding-top: 26px; padding-bottom: 26px;">
     <div style="display: flex; align-items: center; gap: 11px;">
-      <img src="spender-icon-160.png" alt="Spender" style="width: 30px; height: 30px; display: block;">
+      <img src="assets/spender-icon-160.png" alt="Spender" style="width: 30px; height: 30px; display: block;">
       <span class="wordmark">Spender</span>
     </div>
     <div style="display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500;">
@@ -170,11 +234,11 @@
           <svg class="provider-mark" viewBox="0 0 24 24" role="img" aria-label="xAI"><title>xAI</title><path d="M6.469 8.776L16.512 23h-4.464L2.005 8.776H6.47zm-.004 7.9l2.233 3.164L6.467 23H2l4.465-6.324zM22 2.582V23h-3.659V7.764L22 2.582zM22 1l-9.952 14.095-2.233-3.163L17.533 1H22z"></path></svg>
         </div>
         <div style="display: flex; align-items: center; gap: 22px; margin-top: 36px;">
-          <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor/releases">
+          <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M16.3 12.7c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.8.9s-2-.9-3.2-.9c-1.7 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.8 2.2-1.2 3-2.4c.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-3.8zM14 5.4c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"></path>
             </svg>
-            Download for Mac
+            Watch for the first release
             <svg class="arrow" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 8h10M9 4l4 4-4 4"></path>
             </svg>
@@ -186,7 +250,7 @@
       </div>
 
       <div class="stage" style="flex: 1 1 360px; min-width: 260px; max-width: 470px; position: relative;">
-        <img class="shot in-plane" style="filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));" src="panel-today-520.webp" alt="Spender menu bar panel showing today's tracked spend across three providers">
+        <img class="shot in-plane" style="filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));" src="assets/screenshots/panel-today-520.webp" alt="Spender menu bar panel showing today's tracked spend across three providers">
         <div class="note" style="top: 44.7%; left: -7%;">
           <span class="dot" style="background: var(--teal);"></span>
           Official
@@ -202,7 +266,7 @@
   <!-- Provenance strip -->
   <div class="wrap" style="padding-bottom: 104px;">
     <p class="eyebrow" style="margin-bottom: 22px;">Where the number came from</p>
-    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+    <div class="grid grid-provenance">
       <div class="glass" style="padding: 22px 22px 24px; box-shadow: 0 22px 46px -22px rgba(88, 192, 205, 0.42), 0 8px 18px rgba(33, 78, 149, 0.07);">
         <span class="chip"><span class="dot" style="background: var(--teal);"></span>Official</span>
         <p style="margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2);">
@@ -244,7 +308,7 @@
         A missing report is not a zero.
       </h2>
 
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 38px;">
+      <div class="grid grid-compare">
         <div style="border-radius: var(--radius); padding: 30px 32px 32px;
                     background: rgba(255, 255, 255, 0.40);
                     border: 0.8px solid rgba(255, 255, 255, 0.7);
@@ -308,7 +372,7 @@
   <div class="wrap" style="padding-top: 24px; padding-bottom: 60px;">
     <div class="row">
       <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
-        <img class="shot tilt-l" src="panel-deepseek-expanded-520.webp" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
+        <img class="shot tilt-l" src="assets/screenshots/panel-deepseek-expanded-520.webp" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
       </div>
       <div style="flex: 1 1 380px; min-width: 300px; max-width: 520px;">
         <div class="eyebrow">The idea</div>
@@ -347,7 +411,7 @@
         </p>
       </div>
       <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
-        <img class="shot tilt-r" src="panel-30days-520.webp" alt="Thirty day view with Official and Estimated badges beside each provider and a daily spend chart">
+        <img class="shot tilt-r" src="assets/screenshots/panel-30days-520.webp" alt="Thirty day view with Official and Estimated badges beside each provider and a daily spend chart">
       </div>
     </div>
   </div>
@@ -366,7 +430,7 @@
     </div>
 
     <div class="glass" style="margin-top: 36px; padding: 14px;">
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+      <div class="grid grid-capability">
         <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
             <span style="display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px;">
@@ -481,7 +545,7 @@
 
   <!-- Principles -->
   <div class="wrap" style="padding-bottom: 112px;">
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px;">
+    <div class="grid grid-principles">
       <div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3974CD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="2.5" y="4.5" width="19" height="13" rx="2"></rect>
@@ -525,7 +589,7 @@
   <div class="wrap" style="padding-bottom: 104px;">
     <div class="glass cta-band" style="padding: 52px 60px; display: flex; align-items: center; justify-content: space-between; gap: 48px;">
       <div style="display: flex; align-items: center; gap: 26px;">
-        <img src="spender-icon-160.png" alt="" style="width: 64px; height: 64px; display: block; flex: none;">
+        <img src="assets/spender-icon-160.png" alt="" style="width: 64px; height: 64px; display: block; flex: none;">
         <div>
           <h2 style="font-size: 31px; line-height: 1.14;">Put the number in your menu bar.</h2>
           <p class="num" style="margin-top: 12px; font-size: 13px; color: var(--ink-3);">
@@ -533,11 +597,11 @@
           </p>
         </div>
       </div>
-      <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor/releases">
+      <a class="btn" href="https://github.com/bestmark1/llm-api-spend-monitor">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16.3 12.7c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.8.9s-2-.9-3.2-.9c-1.7 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.8 2.2-1.2 3-2.4c.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-3.8zM14 5.4c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"></path>
         </svg>
-        Download for Mac
+        Watch for the first release
         <svg class="arrow" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 8h10M9 4l4 4-4 4"></path>
         </svg>
@@ -550,7 +614,7 @@
     <div class="wrap" style="padding-top: 34px; padding-bottom: 46px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px;">
       <div>
         <div style="display: flex; align-items: center; gap: 9px;">
-          <img src="spender-icon-160.png" alt="" style="width: 20px; height: 20px; display: block;">
+          <img src="assets/spender-icon-160.png" alt="" style="width: 20px; height: 20px; display: block;">
           <span class="wordmark" style="font-size: 16px;">Spender</span>
         </div>
         <p style="margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--ink-3); max-width: 440px;">
@@ -571,6 +635,5 @@
   </div>
 
 </div>
-</x-dc>
 </body>
 </html>
