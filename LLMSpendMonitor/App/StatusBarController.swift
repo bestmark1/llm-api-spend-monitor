@@ -591,7 +591,7 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
         let panelSize = panel.frame.size
         let origin = NSPoint(
             x: buttonRectOnScreen.midX - panelSize.width / 2,
-            y: buttonRectOnScreen.minY - panelSize.height - 8
+            y: buttonRectOnScreen.minY - panelSize.height - MenuPanelMetrics.menuBarGap
         )
         panel.setFrameOrigin(constrainedOrigin(origin, size: panelSize, screen: buttonWindow.screen))
     }
@@ -601,7 +601,7 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
         let panelSize = panel.frame.size
         let origin = NSPoint(
             x: screen.visibleFrame.midX - panelSize.width / 2,
-            y: screen.visibleFrame.maxY - panelSize.height - 8
+            y: screen.visibleFrame.maxY - panelSize.height - MenuPanelMetrics.menuBarGap
         )
         panel.setFrameOrigin(origin)
     }

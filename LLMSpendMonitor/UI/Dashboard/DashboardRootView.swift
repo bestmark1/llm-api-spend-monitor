@@ -408,6 +408,11 @@ enum MenuPanelMetrics {
     /// Used before the dashboard has measured itself, and by every other screen.
     static let defaultHeight: CGFloat = 640
 
+    /// Distance from the bottom of the menu bar to the top of the panel. Flush:
+    /// the panel draws its own shadow, which reads as separation on its own, and
+    /// any gap on top of that detaches the panel from the icon it belongs to.
+    static let menuBarGap: CGFloat = 0
+
     /// The tallest the provider list is allowed to get, in whole cards. A fourth
     /// card is not shown half-cut at the panel edge: it is scrolled to.
     static let visibleProviderCap = 3
