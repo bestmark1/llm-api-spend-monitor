@@ -3,3 +3,6 @@
 DerivedData/
 *.xcuserstate
 xcuserdata/
+
+# Выгрузка редактора Claude Design: артефакт сборки, а не исходник канваса.
+site/design/spender-landing-page.html
