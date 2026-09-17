@@ -116,6 +116,27 @@ final class DashboardViewModel: ObservableObject {
         self.now = now
     }
 
+    /// Builds the view model the app launches with.
+    ///
+    /// A normal launch gets the real refresh coordinator. The screenshot demo
+    /// build gets fixed fictional snapshots instead, so the interface can be
+    /// photographed without real spend, balances, or credentials.
+    static func launchConfigured() -> DashboardViewModel {
+#if DEBUG
+        if DemoLaunch.isEnabled {
+            DemoLaunch.seedCustomizationPreferences()
+            DemoLaunch.seedPlatformBalances()
+            DemoLaunch.seedCardExpansion()
+            return DashboardViewModel(
+                dataSource: DemoDashboardDataSource(),
+                targets: [],
+                balanceNotifier: DemoBalanceNotifier()
+            )
+        }
+#endif
+        return DashboardViewModel()
+    }
+
     var officialUSDTotal: Money {
         let total = officialUSDBreakdown.reduce(into: Decimal.zero) { result, summary in
             result += summary.amount.amount

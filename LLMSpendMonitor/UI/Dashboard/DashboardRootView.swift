@@ -48,6 +48,7 @@ struct DashboardRootView: View {
             }
         }
         .frame(width: 420, height: 640)
+        .demoAppStorageIfNeeded()
         .background {
             GlassSurface(cornerRadius: 18, prominence: .panel)
         }
@@ -242,5 +243,22 @@ private struct DashboardHeaderButton: View {
             }
             .help(title)
             .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+private extension View {
+    /// Keeps the screenshot demo build from writing card-expansion state into
+    /// the installed app's preferences.
+    @ViewBuilder
+    func demoAppStorageIfNeeded() -> some View {
+#if DEBUG
+        if let defaults = DemoLaunch.defaults {
+            defaultAppStorage(defaults)
+        } else {
+            self
+        }
+#else
+        self
+#endif
     }
 }

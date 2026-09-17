@@ -7,7 +7,7 @@ struct ConnectionsView: View {
     @MainActor
     init(
         showDashboard: @escaping () -> Void,
-        credentialStore: CredentialStoring = KeychainStore(),
+        credentialStore: CredentialStoring = ConnectionsView.launchConfiguredCredentialStore(),
         endpointStore: any ProviderEndpointStoring = UserDefaultsProviderEndpointStore(),
         credentialDidChange: @escaping (ProviderID) -> Void = { _ in }
     ) {
@@ -22,6 +22,16 @@ struct ConnectionsView: View {
                     credentialDidChange: credentialDidChange
                 )
             }
+    }
+
+    /// The real Keychain, except on a screenshot demo launch.
+    static func launchConfiguredCredentialStore() -> CredentialStoring {
+#if DEBUG
+        if DemoLaunch.isEnabled {
+            return DemoLaunch.credentialStore
+        }
+#endif
+        return KeychainStore()
     }
 
     var body: some View {

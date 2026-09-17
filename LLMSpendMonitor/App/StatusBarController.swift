@@ -231,7 +231,7 @@ final class StatusBarController: NSObject {
 
     init(
         appState: AppState = AppState(),
-        dashboardViewModel: DashboardViewModel = DashboardViewModel(),
+        dashboardViewModel: DashboardViewModel = .launchConfigured(),
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     ) {
 #if DEBUG
