@@ -12,12 +12,14 @@ struct DashboardRootView: View {
     var panelRequestDidChange: (MenuPanelRequest) -> Void = { _ in }
 
     @State private var dashboardHeight: CGFloat?
+    @State private var onboardingHeight: CGFloat?
 
     var body: some View {
         Group {
             switch appState.destination {
             case .onboarding:
                 OnboardingView(
+                    heightDidChange: { onboardingHeight = $0 },
                     skip: appState.skipOnboarding,
                     connect: appState.showConnections,
                     close: closePanel
@@ -67,8 +69,8 @@ struct DashboardRootView: View {
         }
     }
 
-    /// Only the dashboard sizes itself; the other screens are fixed layouts and
-    /// keep the standing height.
+    /// The dashboard and the onboarding screen size themselves; Connections and
+    /// Customize are scrolling lists that keep the standing height.
     private var panelRequest: MenuPanelRequest {
         switch appState.destination {
         case .dashboard:
@@ -80,8 +82,8 @@ struct DashboardRootView: View {
         case .onboarding:
             MenuPanelRequest(
                 screen: "onboarding",
-                height: MenuPanelMetrics.defaultHeight,
-                isMeasured: true
+                height: onboardingHeight ?? MenuPanelMetrics.defaultHeight,
+                isMeasured: onboardingHeight != nil
             )
         case .connections:
             MenuPanelRequest(
@@ -100,6 +102,7 @@ struct DashboardRootView: View {
 }
 
 private struct OnboardingView: View {
+    let heightDidChange: (CGFloat) -> Void
     let skip: () -> Void
     let connect: () -> Void
     let close: () -> Void
@@ -115,8 +118,6 @@ private struct OnboardingView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("onboarding.close")
             }
-
-            Spacer()
 
             Image(nsImage: NSApplication.shared.applicationIconImage)
                 .resizable()
@@ -141,10 +142,14 @@ private struct OnboardingView: View {
             Button("Skip for now", action: skip)
                 .buttonStyle(.link)
                 .accessibilityIdentifier("onboarding.skip")
-
-            Spacer()
         }
         .padding(24)
+        // Sized to its own content: the screen is a short pitch and two buttons,
+        // and stretching it to the dashboard's height only added empty room.
+        .measuringPanelPart("onboarding")
+        .onPreferenceChange(PanelPartHeights.self) { heights in
+            if let height = heights["onboarding"] { heightDidChange(height) }
+        }
         .onAppear { headingFocused = true }
     }
 }
