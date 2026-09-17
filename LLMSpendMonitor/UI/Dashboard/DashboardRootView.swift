@@ -4,7 +4,9 @@ import SwiftUI
 struct DashboardRootView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var dashboardViewModel: DashboardViewModel
+    @ObservedObject var settingsRequestRouter: SettingsRequestRouter
     @StateObject private var customizeViewModel = CustomizeViewModel()
+    @Environment(\.openSettings) private var openSettings
     let closePanel: () -> Void
     let quitApplication: () -> Void
 
@@ -51,6 +53,9 @@ struct DashboardRootView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityIdentifier("menu.panel")
+        .onChange(of: settingsRequestRouter.requestCount) {
+            openSettings()
+        }
     }
 }
 

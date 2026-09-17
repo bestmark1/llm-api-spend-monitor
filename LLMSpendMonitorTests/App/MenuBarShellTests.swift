@@ -81,6 +81,195 @@ final class MenuBarShellTests: XCTestCase {
         )
     }
 
+    func testProviderStatusDistinguishesFreshnessStates() {
+        let current = ProviderStatusPresentation(
+            availability: .available,
+            hasSnapshot: true,
+            freshness: .current,
+            issue: nil
+        )
+        XCTAssertEqual(current.title, "Up to date")
+        XCTAssertEqual(current.icon, "checkmark.circle.fill")
+        XCTAssertEqual(current.tone, .success)
+        XCTAssertTrue(current.isQuiet)
+        XCTAssertEqual(current.explanation, "The latest provider data is available.")
+
+        let processing = ProviderStatusPresentation(
+            availability: .available,
+            hasSnapshot: true,
+            freshness: .processing,
+            issue: nil
+        )
+        XCTAssertEqual(processing.title, "Processing")
+        XCTAssertEqual(processing.icon, "hourglass")
+        XCTAssertEqual(processing.tone, .processing)
+        XCTAssertFalse(processing.isQuiet)
+        XCTAssertEqual(
+            processing.explanation,
+            "The latest cost report is still processing and may update."
+        )
+
+        let stale = ProviderStatusPresentation(
+            availability: .available,
+            hasSnapshot: true,
+            freshness: .stale,
+            issue: nil
+        )
+        XCTAssertEqual(stale.title, "Stale")
+        XCTAssertEqual(stale.tone, .warning)
+    }
+
+    func testProviderStatusDistinguishesUnavailableUsageFromIncompleteReport() {
+        let usageUnavailable = ProviderStatusPresentation(
+            availability: .available,
+            hasSnapshot: true,
+            freshness: .current,
+            issue: .usageUnavailable
+        )
+        XCTAssertEqual(usageUnavailable.title, "Usage unavailable")
+        XCTAssertEqual(usageUnavailable.icon, "circle.lefthalf.filled")
+        XCTAssertEqual(usageUnavailable.tone, .warning)
+        XCTAssertEqual(
+            usageUnavailable.explanation,
+            "Usage metrics are unavailable; any received cost data is preserved."
+        )
+
+        let partialData = ProviderStatusPresentation(
+            availability: .available,
+            hasSnapshot: true,
+            freshness: .current,
+            issue: .partialData
+        )
+        XCTAssertEqual(partialData.title, "Incomplete report")
+        XCTAssertEqual(partialData.icon, "circle.lefthalf.filled")
+        XCTAssertEqual(partialData.tone, .warning)
+        XCTAssertEqual(
+            partialData.explanation,
+            "The provider returned only part of the requested report."
+        )
+    }
+
+    func testEveryProviderStatusHasAccessibilityLabelAndHint() {
+        let issues: [ProviderIssue?] = [
+            nil,
+            .authentication,
+            .balanceUnavailable,
+            .usageUnavailable,
+            .insufficientPermissions,
+            .rateLimited,
+            .offline,
+            .keychainLocked,
+            .malformedResponse,
+            .noSpendingLimit,
+            .providerUnavailable,
+            .partialData,
+            .spendingLimitReached
+        ]
+        let presentations = issues.map {
+            ProviderStatusPresentation(
+                availability: .available,
+                hasSnapshot: true,
+                freshness: .current,
+                issue: $0
+            )
+        } + [
+            ProviderStatusPresentation(
+                availability: .planned,
+                hasSnapshot: false,
+                freshness: nil,
+                issue: nil
+            ),
+            ProviderStatusPresentation(
+                availability: .unavailable,
+                hasSnapshot: false,
+                freshness: nil,
+                issue: nil
+            ),
+            ProviderStatusPresentation(
+                availability: .available,
+                hasSnapshot: false,
+                freshness: nil,
+                issue: nil
+            ),
+            ProviderStatusPresentation(
+                availability: .available,
+                hasSnapshot: true,
+                freshness: .current,
+                issue: nil,
+                requiresUsageSetup: true
+            )
+        ]
+
+        for presentation in presentations {
+            XCTAssertEqual(presentation.accessibilityLabel, "Status: \(presentation.title)")
+            XCTAssertEqual(presentation.accessibilityHint, presentation.explanation)
+            XCTAssertFalse(presentation.explanation.isEmpty)
+        }
+    }
+
+    func testStatusItemRoutesLeftAndRightClicksWithoutDoubleTogglingPanel() {
+        XCTAssertEqual(StatusItemClick(eventType: .leftMouseUp), .primary)
+        XCTAssertEqual(StatusItemClick(eventType: .rightMouseUp), .contextMenu)
+        XCTAssertEqual(StatusItemClick(eventType: .rightMouseDown), .contextMenu)
+
+        let panel = MenuPanelPresenterStub()
+        let interaction = StatusBarInteractionController(
+            appState: AppState(),
+            panelPresenter: panel,
+            openSettings: {},
+            quitApplication: {}
+        )
+        var contextMenuPresentations = 0
+
+        interaction.handle(.primary) { contextMenuPresentations += 1 }
+        XCTAssertEqual(panel.toggleCount, 1)
+        XCTAssertEqual(contextMenuPresentations, 0)
+
+        interaction.handle(.contextMenu) { contextMenuPresentations += 1 }
+        XCTAssertEqual(panel.toggleCount, 1)
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertEqual(contextMenuPresentations, 1)
+    }
+
+    func testStatusBarContextMenuCompositionAndActions() {
+        let appState = AppState()
+        let panel = MenuPanelPresenterStub()
+        var destinationsWhenShown: [AppState.Destination] = []
+        panel.onShow = { destinationsWhenShown.append(appState.destination) }
+        var settingsOpenCount = 0
+        var quitCount = 0
+        let interaction = StatusBarInteractionController(
+            appState: appState,
+            panelPresenter: panel,
+            openSettings: { settingsOpenCount += 1 },
+            quitApplication: { quitCount += 1 }
+        )
+        let menu = interaction.makeContextMenu()
+
+        XCTAssertEqual(
+            menu.items.map(\.title),
+            ["Customize", "Connections", "Settings", "Quit Spender"]
+        )
+        XCTAssertTrue(menu.items.allSatisfy { !$0.isSeparatorItem && $0.submenu == nil })
+        XCTAssertEqual(menu.items.last?.keyEquivalent, "q")
+
+        interaction.performMenuItem(menu.items[0])
+        XCTAssertEqual(appState.destination, .customize)
+        XCTAssertEqual(panel.showCount, 1)
+
+        interaction.performMenuItem(menu.items[1])
+        XCTAssertEqual(appState.destination, .connections)
+        XCTAssertEqual(panel.showCount, 2)
+        XCTAssertEqual(destinationsWhenShown, [.customize, .connections])
+
+        interaction.performMenuItem(menu.items[2])
+        XCTAssertEqual(settingsOpenCount, 1)
+        XCTAssertEqual(panel.showCount, 2)
+
+        interaction.performMenuItem(menu.items[3])
+        XCTAssertEqual(quitCount, 1)
+    }
+
     func testRefreshSchedulerStartsOnlyOnePeriodicLoop() async {
         let sleeper = OneShotSleeper()
         let recorder = RefreshTriggerRecorder()
@@ -155,6 +344,31 @@ final class MenuBarShellTests: XCTestCase {
         XCTAssertTrue(LaunchAtLoginStatus.notFound.shouldAttemptRegistration)
         XCTAssertFalse(LaunchAtLoginStatus.enabled.shouldAttemptRegistration)
         XCTAssertFalse(LaunchAtLoginStatus.requiresApproval.shouldAttemptRegistration)
+    }
+}
+
+@MainActor
+private final class MenuPanelPresenterStub: MenuPanelPresenting {
+    var onShow: (() -> Void)?
+    private(set) var isVisible = false
+    private(set) var showCount = 0
+    private(set) var hideCount = 0
+    private(set) var toggleCount = 0
+
+    func show() {
+        showCount += 1
+        isVisible = true
+        onShow?()
+    }
+
+    func hide() {
+        hideCount += 1
+        isVisible = false
+    }
+
+    func toggle() {
+        toggleCount += 1
+        isVisible.toggle()
     }
 }
 

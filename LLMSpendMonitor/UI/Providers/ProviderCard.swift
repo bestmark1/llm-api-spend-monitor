@@ -1,5 +1,207 @@
 import SwiftUI
 
+struct ProviderStatusPresentation: Equatable {
+    enum Tone: Equatable {
+        case secondary
+        case success
+        case processing
+        case warning
+        case error
+    }
+
+    let title: String
+    let icon: String
+    let tone: Tone
+    let explanation: String
+    let isQuiet: Bool
+
+    var accessibilityLabel: String { "Status: \(title)" }
+    var accessibilityHint: String { explanation }
+
+    var color: Color {
+        switch tone {
+        case .secondary: .secondary
+        case .success: .green
+        case .processing: .blue
+        case .warning: .orange
+        case .error: .red
+        }
+    }
+
+    init(
+        availability: ProviderIntegrationAvailability,
+        hasSnapshot: Bool,
+        freshness: ProviderFreshness?,
+        issue: ProviderIssue?,
+        requiresUsageSetup: Bool = false
+    ) {
+        if availability == .planned {
+            self.init(
+                title: "Planned",
+                icon: "clock",
+                tone: .secondary,
+                explanation: "This provider integration is planned but not available yet."
+            )
+            return
+        }
+        if availability == .unavailable {
+            self.init(
+                title: "Unavailable",
+                icon: "xmark.circle",
+                tone: .secondary,
+                explanation: "Spender cannot load account-wide financial data for this provider."
+            )
+            return
+        }
+        guard hasSnapshot else {
+            self.init(
+                title: "Not connected",
+                icon: "circle",
+                tone: .secondary,
+                explanation: "Connect this provider to load its available metrics."
+            )
+            return
+        }
+        if requiresUsageSetup {
+            self.init(
+                title: "Setup needed",
+                icon: "link.badge.plus",
+                tone: .warning,
+                explanation: "Connect Google usage reporting to load token and model metrics."
+            )
+            return
+        }
+        guard let issue else {
+            switch freshness ?? .current {
+            case .current:
+                self.init(
+                    title: "Up to date",
+                    icon: "checkmark.circle.fill",
+                    tone: .success,
+                    explanation: "The latest provider data is available.",
+                    isQuiet: true
+                )
+            case .processing:
+                self.init(
+                    title: "Processing",
+                    icon: "hourglass",
+                    tone: .processing,
+                    explanation: "The latest cost report is still processing and may update."
+                )
+            case .stale:
+                self.init(
+                    title: "Stale",
+                    icon: "clock.badge.exclamationmark",
+                    tone: .warning,
+                    explanation: "The latest refresh is pending, so displayed data may be out of date."
+                )
+            }
+            return
+        }
+
+        switch issue {
+        case .authentication:
+            self.init(
+                title: "Action needed",
+                icon: "exclamationmark.circle.fill",
+                tone: .error,
+                explanation: "The saved credential was rejected; replace it in Connections."
+            )
+        case .insufficientPermissions:
+            self.init(
+                title: "Action needed",
+                icon: "exclamationmark.circle.fill",
+                tone: .error,
+                explanation: "The saved credential needs additional permissions."
+            )
+        case .keychainLocked:
+            self.init(
+                title: "Action needed",
+                icon: "exclamationmark.circle.fill",
+                tone: .error,
+                explanation: "Unlock your Mac so Spender can read the saved credential."
+            )
+        case .balanceUnavailable:
+            self.init(
+                title: "Balance unavailable",
+                icon: "exclamationmark.triangle.fill",
+                tone: .warning,
+                explanation: "The provider account balance is temporarily unavailable."
+            )
+        case .noSpendingLimit:
+            self.init(
+                title: "No limit",
+                icon: "checkmark.circle.fill",
+                tone: .success,
+                explanation: "This organization has no monthly spending limit."
+            )
+        case .usageUnavailable:
+            self.init(
+                title: "Usage unavailable",
+                icon: "circle.lefthalf.filled",
+                tone: .warning,
+                explanation: "Usage metrics are unavailable; any received cost data is preserved."
+            )
+        case .partialData:
+            self.init(
+                title: "Incomplete report",
+                icon: "circle.lefthalf.filled",
+                tone: .warning,
+                explanation: "The provider returned only part of the requested report."
+            )
+        case .rateLimited:
+            self.init(
+                title: "Cached",
+                icon: "clock.badge.exclamationmark",
+                tone: .warning,
+                explanation: "The provider is rate limiting requests, so Spender is showing saved data."
+            )
+        case .offline:
+            self.init(
+                title: "Cached",
+                icon: "clock.badge.exclamationmark",
+                tone: .warning,
+                explanation: "The provider could not be reached, so Spender is showing saved data."
+            )
+        case .malformedResponse:
+            self.init(
+                title: "Cached",
+                icon: "clock.badge.exclamationmark",
+                tone: .warning,
+                explanation: "The provider returned an unexpected response, so Spender is showing saved data."
+            )
+        case .providerUnavailable:
+            self.init(
+                title: "Cached",
+                icon: "clock.badge.exclamationmark",
+                tone: .warning,
+                explanation: "The provider is temporarily unavailable, so Spender is showing saved data."
+            )
+        case .spendingLimitReached:
+            self.init(
+                title: "Limit reached",
+                icon: "exclamationmark.circle.fill",
+                tone: .error,
+                explanation: "This organization has reached its monthly spending limit."
+            )
+        }
+    }
+
+    private init(
+        title: String,
+        icon: String,
+        tone: Tone,
+        explanation: String,
+        isQuiet: Bool = false
+    ) {
+        self.title = title
+        self.icon = icon
+        self.tone = tone
+        self.explanation = explanation
+        self.isQuiet = isQuiet
+    }
+}
+
 struct ProviderCard: View {
     let metadata: ProviderMetadata
     let snapshot: ProviderSnapshot?
@@ -555,64 +757,41 @@ struct ProviderCard: View {
     }
 
     private var statusBadge: some View {
-        Group {
-            if status.title == "Current" {
+        let presentation = statusPresentation
+
+        return Group {
+            if presentation.isQuiet {
                 HStack(spacing: 4) {
-                    Image(systemName: status.icon)
-                        .foregroundStyle(status.color)
-                    Text(status.title)
+                    Image(systemName: presentation.icon)
+                        .foregroundStyle(presentation.color)
+                    Text(presentation.title)
                         .foregroundStyle(.secondary)
                 }
                 .font(.caption.weight(.medium))
             } else {
-                Label(status.title, systemImage: status.icon)
+                Label(presentation.title, systemImage: presentation.icon)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(status.color)
+                    .foregroundStyle(presentation.color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(status.color.opacity(0.1), in: Capsule())
+                    .background(presentation.color.opacity(0.1), in: Capsule())
             }
         }
+        .help(presentation.explanation)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(presentation.accessibilityLabel)
+        .accessibilityHint(presentation.accessibilityHint)
         .accessibilityIdentifier("provider.\(metadata.id.rawValue).status")
     }
 
-    private var status: (title: String, icon: String, color: Color) {
-        if metadata.integrationAvailability == .planned {
-            return ("Planned", "clock", .secondary)
-        }
-        if metadata.integrationAvailability == .unavailable {
-            return ("Unavailable", "xmark.circle", .secondary)
-        }
-        guard let snapshot else {
-            return ("Not connected", "circle", .secondary)
-        }
-        if geminiUsageNeedsConnection {
-            return ("Setup needed", "link.badge.plus", .orange)
-        }
-        guard let issue = snapshot.issue else {
-            switch freshness ?? .current {
-            case .current:
-                return ("Current", "checkmark.circle.fill", .green)
-            case .processing:
-                return ("Current", "checkmark.circle.fill", .green)
-            case .stale:
-                return ("Stale", "clock.badge.exclamationmark", .orange)
-            }
-        }
-        switch issue {
-        case .authentication, .insufficientPermissions, .keychainLocked:
-            return ("Action needed", "exclamationmark.circle.fill", .red)
-        case .balanceUnavailable:
-            return ("Balance unavailable", "exclamationmark.triangle.fill", .orange)
-        case .noSpendingLimit:
-            return ("No limit", "checkmark.circle.fill", .green)
-        case .partialData, .usageUnavailable:
-            return ("Partial", "circle.lefthalf.filled", .orange)
-        case .rateLimited, .offline, .malformedResponse, .providerUnavailable:
-            return ("Cached", "clock.badge.exclamationmark", .orange)
-        case .spendingLimitReached:
-            return ("Limit reached", "exclamationmark.circle.fill", .red)
-        }
+    private var statusPresentation: ProviderStatusPresentation {
+        ProviderStatusPresentation(
+            availability: metadata.integrationAvailability,
+            hasSnapshot: snapshot != nil,
+            freshness: freshness,
+            issue: snapshot?.issue,
+            requiresUsageSetup: geminiUsageNeedsConnection
+        )
     }
 
     private var capabilityText: String {

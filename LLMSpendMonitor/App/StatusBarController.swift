@@ -111,6 +111,112 @@ protocol MenuPanelPresenting: AnyObject {
     func toggle()
 }
 
+enum StatusItemClick: Equatable {
+    case primary
+    case contextMenu
+
+    init(eventType: NSEvent.EventType?) {
+        self = eventType == .rightMouseDown || eventType == .rightMouseUp
+            ? .contextMenu
+            : .primary
+    }
+}
+
+@MainActor
+final class SettingsRequestRouter: ObservableObject {
+    @Published private(set) var requestCount = 0
+
+    func openSettings() {
+        requestCount += 1
+    }
+}
+
+enum StatusBarMenuAction: Int, CaseIterable, Equatable {
+    case customize
+    case connections
+    case settings
+    case quit
+
+    var title: String {
+        switch self {
+        case .customize: "Customize"
+        case .connections: "Connections"
+        case .settings: "Settings"
+        case .quit: "Quit Spender"
+        }
+    }
+
+    var keyEquivalent: String {
+        self == .quit ? "q" : ""
+    }
+}
+
+@MainActor
+final class StatusBarInteractionController: NSObject {
+    private let appState: AppState
+    private let panelPresenter: any MenuPanelPresenting
+    private let openSettings: () -> Void
+    private let quitApplication: () -> Void
+
+    init(
+        appState: AppState,
+        panelPresenter: any MenuPanelPresenting,
+        openSettings: @escaping () -> Void,
+        quitApplication: @escaping () -> Void
+    ) {
+        self.appState = appState
+        self.panelPresenter = panelPresenter
+        self.openSettings = openSettings
+        self.quitApplication = quitApplication
+    }
+
+    func handle(_ click: StatusItemClick, showContextMenu: () -> Void) {
+        switch click {
+        case .primary:
+            panelPresenter.toggle()
+        case .contextMenu:
+            showContextMenu()
+        }
+    }
+
+    func makeContextMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for action in StatusBarMenuAction.allCases {
+            let item = NSMenuItem(
+                title: action.title,
+                action: #selector(performMenuItem(_:)),
+                keyEquivalent: action.keyEquivalent
+            )
+            item.target = self
+            item.tag = action.rawValue
+            item.isEnabled = true
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    @objc func performMenuItem(_ sender: NSMenuItem) {
+        guard let action = StatusBarMenuAction(rawValue: sender.tag) else { return }
+        perform(action)
+    }
+
+    func perform(_ action: StatusBarMenuAction) {
+        switch action {
+        case .customize:
+            appState.showCustomize()
+            panelPresenter.show()
+        case .connections:
+            appState.showConnections()
+            panelPresenter.show()
+        case .settings:
+            openSettings()
+        case .quit:
+            quitApplication()
+        }
+    }
+}
+
 @MainActor
 final class StatusBarController: NSObject {
     private let appState: AppState
@@ -118,6 +224,9 @@ final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
     private let panelPresenter: MenuPanelPresenter
     private let refreshScheduler: RefreshScheduler
+    private let settingsRequestRouter: SettingsRequestRouter
+    private let interactionController: StatusBarInteractionController
+    private lazy var contextMenu = interactionController.makeContextMenu()
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -134,13 +243,32 @@ final class StatusBarController: NSObject {
             }
         }
 #endif
+        let quitApplication = { NSApplication.shared.terminate(nil) }
+        let settingsRequestRouter = SettingsRequestRouter()
+        let panelPresenter = MenuPanelPresenter(
+            appState: appState,
+            dashboardViewModel: dashboardViewModel,
+            settingsRequestRouter: settingsRequestRouter,
+            quitApplication: quitApplication
+        )
+
         self.appState = appState
         self.dashboardViewModel = dashboardViewModel
         self.statusItem = statusItem
-        panelPresenter = MenuPanelPresenter(appState: appState, dashboardViewModel: dashboardViewModel)
+        self.panelPresenter = panelPresenter
+        self.settingsRequestRouter = settingsRequestRouter
         refreshScheduler = RefreshScheduler { [weak dashboardViewModel] trigger in
             await dashboardViewModel?.refresh(trigger: trigger)
         }
+        interactionController = StatusBarInteractionController(
+            appState: appState,
+            panelPresenter: panelPresenter,
+            openSettings: {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                settingsRequestRouter.openSettings()
+            },
+            quitApplication: quitApplication
+        )
         super.init()
 
         configureStatusItem()
@@ -172,8 +300,17 @@ final class StatusBarController: NSObject {
         panelPresenter.show()
     }
 
-    @objc private func togglePanel() {
-        panelPresenter.toggle()
+    @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
+        interactionController.handle(
+            StatusItemClick(eventType: NSApplication.shared.currentEvent?.type)
+        ) { [weak self, weak sender] in
+            guard let self, let sender else { return }
+            contextMenu.popUp(
+                positioning: contextMenu.items.first,
+                at: NSPoint(x: sender.bounds.midX, y: sender.bounds.minY),
+                in: sender
+            )
+        }
     }
 
     @objc private func workspaceDidWake(_ notification: Notification) {
@@ -212,8 +349,8 @@ final class StatusBarController: NSObject {
         button.image = SpenderMenuBarIcon.make()
         button.imagePosition = .imageLeading
         button.target = self
-        button.action = #selector(togglePanel)
-        button.sendAction(on: [.leftMouseUp])
+        button.action = #selector(handleStatusItemClick(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         updateDashboardMetric()
     }
 
@@ -241,7 +378,12 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
 
     var isVisible: Bool { panel.isVisible }
 
-    init(appState: AppState, dashboardViewModel: DashboardViewModel) {
+    init(
+        appState: AppState,
+        dashboardViewModel: DashboardViewModel,
+        settingsRequestRouter: SettingsRequestRouter,
+        quitApplication: @escaping () -> Void
+    ) {
         panel = MenuBarPanel(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 640),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
@@ -261,8 +403,9 @@ final class MenuPanelPresenter: NSObject, MenuPanelPresenting {
             rootView: DashboardRootView(
                 appState: appState,
                 dashboardViewModel: dashboardViewModel,
+                settingsRequestRouter: settingsRequestRouter,
                 closePanel: { [weak self] in self?.hide() },
-                quitApplication: { NSApplication.shared.terminate(nil) }
+                quitApplication: quitApplication
             )
         )
         outsideClickMonitor = GlobalMouseMonitor(
@@ -354,4 +497,5 @@ private enum DebugLaunchOptions {
 final class MenuBarPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
 }
