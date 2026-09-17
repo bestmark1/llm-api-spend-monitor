@@ -185,8 +185,11 @@ enum AboutPanel {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
 
+        // The copyright line below already carries the year and the author, so this
+        // says the part AppKit has no key for: who made it, and that the source is
+        // open. "MIT" is stated once, here, rather than in both places.
         let credits = NSMutableAttributedString(
-            string: "Open source under the MIT licence.\n",
+            string: "by bestmark1\nOpen source under the MIT licence.\n",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11),
                 .foregroundColor: NSColor.secondaryLabelColor
