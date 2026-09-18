@@ -35,10 +35,12 @@ Providers are ordered by spend, largest first.
 or `Estimated` so it is clear which figures came from a billing API and which
 Spender derived itself. Below it, spend per day.
 
-<img src="docs/images/panel-deepseek-expanded.png" width="420" alt="An expanded DeepSeek card showing estimated period spend and links to the provider console">
+<img src="docs/images/panel-deepseek-expanded.png" width="420" alt="An expanded DeepSeek card: an official remaining balance above an estimated period spend, with links to the provider console">
 
-**A card opened up.** Click a provider to see how its number was produced and to
-jump straight to that provider's own billing, dashboard and status pages.
+**A card opened up.** DeepSeek publishes no cost history, so Spender derives the
+figure from saved balance decreases — and says so on the card, next to the
+balance the provider *does* report. Each card also links to that provider's own
+billing, dashboard and status pages.
 
 ## Supported providers
 
