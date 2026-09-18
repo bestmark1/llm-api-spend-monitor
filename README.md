@@ -1,10 +1,12 @@
 # Spender
 
+**[usespender.com](https://usespender.com)** · free and open source under the MIT licence
+
 Spender is a native macOS menu bar app that brings LLM API spend, token usage, and balances into one compact dashboard.
 
 It connects directly to provider APIs, keeps credentials in macOS Keychain, and stores cached metrics locally. There is no Spender account, backend, or credential proxy.
 
-> **Status:** early personal-use release. Provider billing APIs differ significantly, so the metrics available for each connection are intentionally explicit.
+> **Status:** early personal-use release, with no build published yet — there is nothing on the releases page to download, so build it yourself from source (see [Build and run](#build-and-run)). Provider billing APIs differ significantly, so the metrics available for each connection are intentionally explicit.
 
 ## What it does
 
