@@ -66,13 +66,28 @@ billing, dashboard and status pages.
 
 | Provider | Connection | Metrics in Spender |
 | --- | --- | --- |
-| OpenAI | Organization Admin API key | Official cost, tokens, and models |
-| Anthropic | Console Admin API key | Official cost, tokens, and models |
+| OpenAI | Organization Admin API key | Official cost, tokens, and models; remaining balance you enter once (see below) |
+| Anthropic | Console Admin API key | Official cost, tokens, and models; remaining balance you enter once (see below) |
 | DeepSeek | Standard API key | Official balance; estimated daily spend from saved balance decreases |
 | Kimi | Standard API key and matching API host | Official balance |
 | Qwen / Alibaba Cloud | Model Studio API key; optional read-only BSS AccessKey credentials | Key validation; official Alibaba Cloud balance and Qwen billing when BSS is configured |
 | xAI / Grok | Team-scoped Management API key | Official prepaid balance, usage, and model breakdown |
 | OpenRouter | Management API key | Official remaining credits |
+
+### OpenAI and Anthropic balances
+
+OpenAI and Anthropic report what you spent, but their APIs do not return the
+credit you have left. So on those two cards you enter it once: **Add Balance**,
+then type the amount shown on the provider's Billing page. From then on Spender
+subtracts every new official cost report from it, and the card shows both the
+remaining balance and what was spent since you entered it.
+
+The result is a calculation, not a figure the provider reported. Top-ups,
+refunds and credits it cannot see make it drift, so when it no longer matches
+Billing, use **Recalibrate** and enter the current amount again. Anthropic costs
+marked partial are not subtracted (see below). DeepSeek, Kimi, xAI,
+OpenRouter and Qwen (with BSS credentials) do report their balance, and there it
+comes straight from the provider.
 
 ### Why some providers are not here
 
