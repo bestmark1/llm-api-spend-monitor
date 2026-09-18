@@ -122,7 +122,7 @@ Computer Use сейчас читает Finder, но Spender возвращает
 
 - Проект: `/Users/bestmark1/Documents/AI_projects/llm-api-spend-monitor`.
 - Ветка `main`, HEAD `a2ece4c61d400e43e47c8171d98c61a1efb80eb6`.
-- `origin`: `https://github.com/bestmark1/llm-api-spend-monitor.git`.
+- `origin`: `https://github.com/bestmark1/spender.git`.
   Удалённый HEAD при этом подхвате не запрашивался.
 - До оформления инструкций рабочее дерево было чистым. Проектных
   AGENTS.md, CLAUDE.md, handoff и действующего backlog не найдено.

@@ -1,12 +1,27 @@
-# Spender
+<h1 align="center">
+  <img src="site/assets/spender-icon-160.png" width="88" alt=""><br>
+  Spender
+</h1>
 
-**[usespender.com](https://usespender.com)** · free and open source under the MIT licence
+<p align="center">
+  Every LLM API bill in one macOS menu&nbsp;bar panel.<br>
+  <a href="https://usespender.com">usespender.com</a> · free · open source · MIT
+</p>
 
-Spender is a native macOS menu bar app that brings LLM API spend, token usage, and balances into one compact dashboard.
+<p align="center">
+  <img src="docs/images/panel-today.png" width="380" alt="The Spender panel: total spend, a bar showing which providers it is made of, and one card per provider with its balance">
+</p>
 
-It connects directly to provider APIs, keeps credentials in macOS Keychain, and stores cached metrics locally. There is no Spender account, backend, or credential proxy.
+Spender reads your spend straight from OpenAI, Anthropic, DeepSeek, xAI, Kimi,
+Qwen, Mistral and OpenRouter. Keys stay in the macOS Keychain — there is no
+Spender account, no backend, and no credential proxy.
 
-> **Status:** early personal-use release, with no build published yet — there is nothing on the releases page to download, so build it yourself from source (see [Build and run](#build-and-run)). Provider billing APIs differ significantly, so the metrics available for each connection are intentionally explicit.
+It never passes an estimate off as an official figure: every number is labelled
+with where it came from, and a metric a provider does not report is left blank
+rather than rounded down to zero.
+
+> **Nothing to download yet.** No build is published, so run it by building from
+> source — see [Build and run](#build-and-run).
 
 ## What it does
 
@@ -21,13 +36,9 @@ It connects directly to provider APIs, keeps credentials in macOS Keychain, and 
 ## What it looks like
 
 Spender lives in the menu bar and shows the running total next to the clock.
-Click it to open the panel; everything below is one click deep.
-
-<img src="docs/images/panel-today.png" width="420" alt="Spender panel on the Today tab: total spend, a composition bar and one card per provider">
-
-**Today.** The total at the top, then a bar showing which providers it is made
-of, then one card per connection with its remaining balance and what it spent.
-Providers are ordered by spend, largest first.
+Click it to open the panel above: the total, a bar showing which providers it is
+made of, then one card per connection, largest spender first. Everything below is
+one click deeper.
 
 <img src="docs/images/panel-30days.png" width="420" alt="The 30 Days tab with Official and Estimated badges and a daily spend chart">
 
@@ -98,8 +109,8 @@ Use the narrowest read-only administrative credential each provider supports. Do
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/bestmark1/llm-api-spend-monitor.git
-   cd llm-api-spend-monitor
+   git clone https://github.com/bestmark1/spender.git
+   cd spender
    ```
 
 2. Open `LLMSpendMonitor.xcodeproj` in Xcode.

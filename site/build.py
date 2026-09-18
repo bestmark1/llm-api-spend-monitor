@@ -23,7 +23,7 @@ ARTBOARD = ROOT / "design" / "Main.dc.html"
 OUTPUT = ROOT / "index.html"
 
 SITE_URL = "https://usespender.com/"
-REPO_URL = "https://github.com/bestmark1/llm-api-spend-monitor"
+REPO_URL = "https://github.com/bestmark1/spender"
 
 # Inline `grid-template-columns` cannot be overridden by a media query, so each
 # grid trades its inline style for a class.

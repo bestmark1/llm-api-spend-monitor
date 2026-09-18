@@ -171,7 +171,7 @@ enum StatusBarMenuAction: Int, CaseIterable, Equatable {
 /// icon, name, version, build, copyright — so only the part AppKit cannot know
 /// is supplied: that the source is public and under which licence.
 enum AboutPanel {
-    static let repositoryURL = URL(string: "https://github.com/bestmark1/llm-api-spend-monitor")
+    static let repositoryURL = URL(string: "https://github.com/bestmark1/spender")
 
     @MainActor
     static func present() {
