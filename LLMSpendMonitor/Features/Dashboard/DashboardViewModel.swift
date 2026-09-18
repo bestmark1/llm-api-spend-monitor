@@ -48,6 +48,9 @@ struct ProviderSpendSummary: Identifiable, Equatable, Sendable {
 struct DailySpendPoint: Identifiable, Equatable, Sendable {
     let date: Date
     let amount: Money
+    /// What each provider contributed to `amount`, for the stacked chart.
+    /// Empty where only the total was aggregated.
+    var byProvider: [ProviderID: Decimal] = [:]
 
     var id: Date { date }
 }
@@ -224,19 +227,23 @@ final class DashboardViewModel: ObservableObject {
 
     var trackedUSDDailySpend: [DailySpendPoint] {
         var totals: [Date: Decimal] = [:]
+        var byProvider: [Date: [ProviderID: Decimal]] = [:]
         for providerID in snapshots.keys {
             guard let snapshot = completeTrackedCostSnapshot(for: providerID) else { continue }
             for bucket in snapshot.buckets {
                 guard let cost = trackedUSDCostMetric(in: bucket),
                       bucket.end <= utcStartOfDay(for: bucket.start).addingTimeInterval(86_400)
                 else { continue }
-                totals[utcStartOfDay(for: bucket.start), default: 0] += cost.value.amount
+                let day = utcStartOfDay(for: bucket.start)
+                totals[day, default: 0] += cost.value.amount
+                byProvider[day, default: [:]][providerID, default: 0] += cost.value.amount
             }
         }
         return totals.keys.sorted().map { date in
             DailySpendPoint(
                 date: date,
-                amount: try! Money(amount: totals[date, default: 0], currencyCode: "USD")
+                amount: try! Money(amount: totals[date, default: 0], currencyCode: "USD"),
+                byProvider: byProvider[date, default: [:]]
             )
         }
     }

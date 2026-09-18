@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The reporting period as a capsule track. Everything else in the panel is
@@ -13,6 +14,7 @@ struct PeriodPicker: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
+    @State private var showsFocusRing = false
     @Namespace private var selectionSpace
 
     var body: some View {
@@ -25,13 +27,19 @@ struct PeriodPicker: View {
         .frame(height: 28)
         .background(Color.primary.opacity(0.10), in: Capsule())
         .overlay {
-            if isFocused {
+            if showsFocusRing {
                 Capsule().strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 2)
             }
         }
         .frame(maxWidth: .infinity)
         .focusable()
         .focused($isFocused)
+        // A click on a segment focuses the track too. The ring is for someone
+        // who reached it with the keyboard, so it shows only when a key press
+        // moved the focus here.
+        .onChange(of: isFocused) { _, focused in
+            showsFocusRing = focused && NSApp.currentEvent?.type == .keyDown
+        }
         .focusEffectDisabled()
         .onKeyPress(.leftArrow) { step(-1) }
         .onKeyPress(.rightArrow) { step(1) }

@@ -69,7 +69,10 @@ struct SummaryCard: View {
                         }
                     }
                     .foregroundStyle(.secondary)
-                    SpendTrendChart(points: dailySpend)
+                    SpendTrendChart(
+                        points: dailySpend,
+                        providerOrder: sortedBreakdown.map(\.providerID)
+                    )
                 }
             }
         }

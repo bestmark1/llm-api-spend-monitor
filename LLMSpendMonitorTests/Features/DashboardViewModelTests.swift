@@ -276,6 +276,40 @@ final class DashboardViewModelTests: XCTestCase {
         )
     }
 
+    func testTrackedDailySpendKeepsEachProvidersShare() async throws {
+        let openAI = try makeDailyCostSnapshot(
+            providerID: .openAI,
+            amounts: ["1.00", "2.00", "3.00"]
+        )
+        let anthropic = try makeDailyCostSnapshot(
+            providerID: .anthropic,
+            amounts: ["0.50", "0", "2.50"]
+        )
+        let model = DashboardViewModel(
+            dataSource: DashboardDataSourceStub(
+                cached: [.openAI: openAI, .anthropic: anthropic],
+                refreshed: [:]
+            ),
+            targets: [],
+            platformBalanceStore: DashboardPlatformBalanceStoreStub(),
+            now: { Date(timeIntervalSince1970: 1_700_265_599) }
+        )
+        model.selectedPeriod = .thirtyDays
+
+        await model.loadCache()
+
+        let days = model.trackedUSDDailySpend
+        XCTAssertEqual(days.map(\.amount.amount), [
+            Decimal(string: "1.50"), Decimal(string: "2.00"), Decimal(string: "5.50")
+        ])
+        XCTAssertEqual(days.first?.byProvider, [.openAI: 1, .anthropic: Decimal(string: "0.50")!])
+        XCTAssertEqual(days.last?.byProvider, [.openAI: 3, .anthropic: Decimal(string: "2.50")!])
+        // Each day's shares add up to its total.
+        for day in days {
+            XCTAssertEqual(day.byProvider.values.reduce(0, +), day.amount.amount)
+        }
+    }
+
     func testTargetedRefreshFetchesOnlyRequestedProvider() async throws {
         let snapshot = try makeCostSnapshot(providerID: .openAI, amount: "1.00")
         let dataSource = DashboardDataSourceStub(

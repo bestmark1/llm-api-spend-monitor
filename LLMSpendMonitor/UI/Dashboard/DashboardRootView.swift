@@ -73,8 +73,12 @@ struct DashboardRootView: View {
     private var panelRequest: MenuPanelRequest {
         switch appState.destination {
         case .dashboard:
+            // Each period is its own screen for sizing. An open panel keeps its
+            // height so nothing moves under the pointer, but a period switch is
+            // made at the top of the panel, and without this a panel opened on
+            // 30 Days left Today a band of empty space.
             MenuPanelRequest(
-                screen: "dashboard",
+                screen: "dashboard.\(dashboardViewModel.selectedPeriod.rawValue)",
                 height: dashboardHeight ?? MenuPanelMetrics.defaultHeight,
                 isMeasured: dashboardHeight != nil
             )

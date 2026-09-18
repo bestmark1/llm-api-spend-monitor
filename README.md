@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/panel-today.png" width="380" alt="The Spender panel: total spend, a bar showing which providers it is made of, and one card per provider with its balance">
+  <img src="docs/images/panel-today.png" width="340" alt="The Spender panel: total spend, a bar showing which providers it is made of, and one card per provider with its balance">
 </p>
 
 Spender reads your spend straight from OpenAI, Anthropic, DeepSeek, xAI, Kimi,
@@ -48,13 +48,14 @@ inference key — an admin or management key with read access to billing — and
 their card says which one and links to the instructions for creating it. Saved
 keys go into the macOS Keychain and are never shown again.
 
-<img src="docs/images/panel-30days.png" width="420" alt="The 30 Days tab with Official and Estimated badges and a daily spend chart">
+<img src="docs/images/panel-30days.png" width="340" alt="The 30 Days tab: each provider labelled Official, and a daily spend chart with every bar split by provider">
 
 **30 Days.** The same total over a month, with each provider labelled `Official`
 or `Estimated` so it is clear which figures came from a billing API and which
-Spender derived itself. Below it, spend per day.
+Spender derived itself. Below it, spend per day, each bar split into the
+providers' colours.
 
-<img src="docs/images/panel-deepseek-expanded.png" width="420" alt="An expanded DeepSeek card: an official remaining balance above an estimated period spend, with links to the provider console">
+<img src="docs/images/panel-deepseek-expanded.png" width="340" alt="An expanded DeepSeek card: an official remaining balance above an estimated period spend, with links to the provider console">
 
 **A card opened up.** DeepSeek publishes no cost history, so Spender derives the
 figure from saved balance decreases — and says so on the card, next to the
