@@ -36,6 +36,20 @@ final class ConnectionFlowUITests: XCTestCase {
             scrollUntilPresent(field, in: scrollView)
             XCTAssertTrue(field.exists, "\(providerID) should expose a secure credential field")
 
+            // Providers whose key is not an ordinary inference key say where to
+            // create it. Losing one of these links would leave a person holding the
+            // wrong kind of key with nothing on screen to tell them so.
+            if let guide = [
+                "xai": "connection.xai.managementKeyGuide",
+                "mistral": "connection.mistral.adminKeyGuide",
+                "openrouter": "connection.openrouter.managementKeyGuide"
+            ][providerID] {
+                XCTAssertTrue(
+                    app.links[guide].exists,
+                    "\(providerID) should link to instructions for creating its key"
+                )
+            }
+
             guard providerID == "qwen" else { continue }
 
             // Qwen is the only provider carrying an API host and separate billing keys.

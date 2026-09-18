@@ -54,6 +54,39 @@ struct ProviderConnectionView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if viewModel.id == .mistral {
+                Link(
+                    "How to create an Admin API key",
+                    destination: URL(string: "https://docs.mistral.ai/admin/admin-api/authentication")!
+                )
+                .font(.caption)
+                .accessibilityIdentifier("connection.mistral.adminKeyGuide")
+
+                // Mistral publishes the Admin API as a Preview whose endpoints may
+                // change. Saying so turns a future break into an explained one.
+                Text("Mistral offers the Admin API as a preview on Enterprise plans and may change it, which can interrupt this connection.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if viewModel.id == .openRouter {
+                Link(
+                    "How to create a Management API key",
+                    destination: URL(string: "https://openrouter.ai/docs/guides/overview/auth/management-api-keys")!
+                )
+                .font(.caption)
+                .accessibilityIdentifier("connection.openrouter.managementKeyGuide")
+
+                // OpenRouter fixes a management key's expiry when it is created and
+                // cannot extend it. Without this note, the day it lapses looks like
+                // Spender breaking rather than the key running out.
+                Text("An expiry set on the key cannot be extended; when it passes, Spender stops receiving credits until you add a new key. A management key can also create and delete your other OpenRouter keys.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if viewModel.requiresAPIEndpoint {
                 TextField("OpenAI-compatible Base URL", text: $viewModel.draftEndpoint)
                     .textFieldStyle(.roundedBorder)

@@ -40,6 +40,14 @@ Click it to open the panel above: the total, a bar showing which providers it is
 made of, then one card per connection, largest spender first. Everything below is
 one click deeper.
 
+<img src="docs/images/connections-key.png" width="560" alt="The xAI card in Connections, with an arrow pointing at the empty key field and the label Paste your key here">
+
+**Connecting a provider.** Open **Options → Connections**, find the provider and
+paste its key into the field. Some providers need a key that is not their ordinary
+inference key — an admin or management key with read access to billing — and
+their card says which one and links to the instructions for creating it. Saved
+keys go into the macOS Keychain and are never shown again.
+
 <img src="docs/images/panel-30days.png" width="420" alt="The 30 Days tab with Official and Estimated badges and a daily spend chart">
 
 **30 Days.** The same total over a month, with each provider labelled `Official`
