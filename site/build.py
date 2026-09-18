@@ -15,6 +15,7 @@ It rewrites site/index.html in place and prints what it changed.
 """
 
 from pathlib import Path
+import hashlib
 import re
 import sys
 
@@ -24,6 +25,17 @@ OUTPUT = ROOT / "index.html"
 
 SITE_URL = "https://usespender.com/"
 REPO_URL = "https://github.com/bestmark1/spender"
+
+
+def versioned(relative: str) -> str:
+    """The asset path with a short hash of its contents as a query string.
+
+    Screenshots keep their filenames when they are retaken, and browsers were
+    still showing the old ones after a deploy. A changed file now gets a new
+    URL, so no cache can hold on to it.
+    """
+    digest = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()[:10]
+    return f"{relative}?v={digest}"
 
 # Inline `grid-template-columns` cannot be overridden by a media query, so each
 # grid trades its inline style for a class.
@@ -166,13 +178,13 @@ HEAD = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spender — every LLM API bill in one macOS menu bar panel</title>
 <meta name="description" content="Spender is a free, open source macOS menu bar app that reads your LLM API spend straight from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the macOS Keychain; there is no account and no server.">
-<link rel="icon" href="assets/spender-icon-160.png" type="image/png">
+<link rel="icon" href="{versioned("assets/spender-icon-160.png")}" type="image/png">
 <link rel="canonical" href="{SITE_URL}">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Spender — every LLM API bill in one macOS menu bar panel">
 <meta property="og:description" content="Free and open source. Reads official spend from your providers. Keys stay in the macOS Keychain — no account, no server.">
-<meta property="og:image" content="{SITE_URL}assets/screenshots/panel-today.png">
+<meta property="og:image" content="{SITE_URL}{versioned("assets/screenshots/panel-today.png")}">
 <meta property="og:url" content="{SITE_URL}">
 <meta name="twitter:card" content="summary_large_image">"""
 
@@ -214,9 +226,12 @@ def main() -> None:
     if wraps_rewritten == 0:
         fail("no .wrap sections found — section spacing would not scale")
 
-    body = body.replace('src="spender-icon-160.png"', 'src="assets/spender-icon-160.png"')
+    icon = versioned("assets/spender-icon-160.png")
+    body = body.replace('src="spender-icon-160.png"', f'src="{icon}"')
     for shot in SCREENSHOTS:
-        body = body.replace(f'src="{shot}.webp"', f'src="assets/screenshots/{shot}.webp"')
+        body = body.replace(
+            f'src="{shot}.webp"', f'src="{versioned(f"assets/screenshots/{shot}.webp")}"'
+        )
 
     # There is no release to download yet, so the page does not offer one.
     downloads = body.count("Download for Mac")
