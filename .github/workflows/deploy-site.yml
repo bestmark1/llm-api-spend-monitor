@@ -42,6 +42,9 @@ jobs:
           mkdir -p _site
           cp site/index.html _site/
           cp -R site/assets _site/assets
+          # GitHub Pages reads the custom domain from this file in the published
+          # root; without it every deploy resets the domain back to github.io.
+          cp site/CNAME _site/CNAME
           # design/ holds the canvas artboards and the editor export — sources,
           # not deliverables. They stay out of the published site.
 

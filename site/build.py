@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent
 ARTBOARD = ROOT / "design" / "Main.dc.html"
 OUTPUT = ROOT / "index.html"
 
-SITE_URL = "https://bestmark1.github.io/llm-api-spend-monitor/"
+SITE_URL = "https://usespender.com/"
 REPO_URL = "https://github.com/bestmark1/llm-api-spend-monitor"
 
 # Inline `grid-template-columns` cannot be overridden by a media query, so each
