@@ -403,7 +403,23 @@ private extension View {
 /// four — and stops at `visibleProviderCap` cards so the panel never grows into
 /// a window. Past that the provider list scrolls.
 enum MenuPanelMetrics {
-    static let width: CGFloat = 420
+    /// 420 in every shipping build. The demo build may be told otherwise via
+    /// `SPENDER_DEMO_PANEL_WIDTH`, so width can be judged from captures side by
+    /// side rather than argued about.
+    static var width: CGFloat {
+#if DEBUG
+        if
+            DemoLaunch.isEnabled,
+            let raw = ProcessInfo.processInfo.environment["SPENDER_DEMO_PANEL_WIDTH"],
+            let requested = Double(raw),
+            requested >= 320,
+            requested <= 600
+        {
+            return CGFloat(requested)
+        }
+#endif
+        return 420
+    }
 
     /// Used before the dashboard has measured itself, and by every other screen.
     static let defaultHeight: CGFloat = 640

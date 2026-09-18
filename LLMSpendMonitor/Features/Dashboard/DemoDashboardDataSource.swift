@@ -32,6 +32,18 @@ enum DemoLaunch {
     /// Cards to show expanded. The prominent "Estimated period spend" label and
     /// its explanation only render in an expanded card, so a screenshot of the
     /// estimate has to open DeepSeek.
+    /// `SPENDER_DEMO_ISSUE=deepseek:partialData` gives one provider a status
+    /// problem, so a capture can show the longest badges ("Incomplete report",
+    /// "Balance unavailable") instead of only "Up to date".
+    static func issue(for providerID: ProviderID) -> ProviderIssue? {
+        guard let raw = ProcessInfo.processInfo.environment["SPENDER_DEMO_ISSUE"] else {
+            return nil
+        }
+        let parts = raw.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2, parts[0] == providerID.rawValue else { return nil }
+        return ProviderIssue(rawValue: parts[1])
+    }
+
     static func seedCardExpansion() {
         guard let defaults else { return }
         // Only an explicit request overrides stored state. Resetting unconditionally on
@@ -335,7 +347,7 @@ enum DemoSnapshotFactory {
             coverage: coverage,
             buckets: buckets,
             balances: balances,
-            issue: nil
+            issue: DemoLaunch.issue(for: providerID)
         )
     }
 

@@ -769,6 +769,13 @@ struct ProviderCard: View {
                     .background(presentation.color.opacity(0.1), in: Capsule())
             }
         }
+        // A status reads as one phrase, so it never breaks across lines. Left to
+        // negotiate, the header gave the name column first claim and squeezed
+        // "Incomplete report" to 94pt on two lines, at 420pt and 400pt alike —
+        // the fault was priority, not panel width. The name column yields now;
+        // its subtitle can wrap, which a status label should not.
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
         .help(presentation.explanation)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel)
