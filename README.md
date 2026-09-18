@@ -40,7 +40,7 @@ Click it to open the panel above: the total, a bar showing which providers it is
 made of, then one card per connection, largest spender first. Everything below is
 one click deeper.
 
-<img src="docs/images/connections-key.png" width="560" alt="The xAI card in Connections, with an arrow pointing at the empty key field and the label Paste your key here">
+<img src="docs/images/connections-key.png" width="560" alt="The OpenRouter card in Connections, with an arrow pointing at the empty key field and the label Paste your key here">
 
 **Connecting a provider.** Open **Options → Connections**, find the provider and
 paste its key into the field. Some providers need a key that is not their ordinary
@@ -162,3 +162,9 @@ LLMSpendMonitor/
 ```
 
 Provider API notes and contract validation material live in [`docs/research`](docs/research).
+
+---
+
+<p align="center">
+  Made by <a href="https://github.com/bestmark1">bestmark1</a> · <a href="https://x.com/thesignalnow">X</a>
+</p>

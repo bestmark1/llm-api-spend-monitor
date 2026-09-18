@@ -67,7 +67,7 @@ final class ConnectionFlowUITests: XCTestCase {
         // the error message, the disabled Save, the untouched stored key — is covered
         // deterministically by ConnectionViewModelTests.
 
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        let screenshot = XCTAttachment(screenshot: app.windowScreenshot)
         screenshot.name = "Connections list"
         screenshot.lifetime = .keepAlways
         add(screenshot)

@@ -31,7 +31,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
         XCTAssertTrue(notificationsToggle.waitForExistence(timeout: 3))
         app.buttons["Close"].click()
 
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        let screenshot = XCTAttachment(screenshot: app.windowScreenshot)
         screenshot.name = "Startup and notification settings"
         screenshot.lifetime = .keepAlways
         add(screenshot)
@@ -132,7 +132,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
                 .waitForExistence(timeout: 3)
         )
 
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        let screenshot = XCTAttachment(screenshot: app.windowScreenshot)
         screenshot.name = "Thirty-day spend provenance and trend"
         screenshot.lifetime = .keepAlways
         add(screenshot)
@@ -165,7 +165,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
 
         kimiToggle.click()
 
-        let customizationScreenshot = XCTAttachment(screenshot: app.screenshot())
+        let customizationScreenshot = XCTAttachment(screenshot: app.windowScreenshot)
         customizationScreenshot.name = "Provider visibility options"
         customizationScreenshot.lifetime = .keepAlways
         add(customizationScreenshot)
@@ -191,7 +191,7 @@ final class MenuBarLifecycleUITests: XCTestCase {
                 .waitForExistence(timeout: 3)
         )
 
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        let screenshot = XCTAttachment(screenshot: app.windowScreenshot)
         screenshot.name = "Optional available provider"
         screenshot.lifetime = .keepAlways
         add(screenshot)
@@ -251,4 +251,26 @@ final class MenuBarLifecycleUITests: XCTestCase {
         return app
     }
 
+}
+
+extension XCUIApplication {
+    /// A capture of Spender's own window rather than the whole display.
+    ///
+    /// `XCUIApplication.screenshot()` on macOS records the entire screen, so
+    /// every attachment carried whatever else was open — once a video call with
+    /// another person's shared screen, once a browser with its bookmarks. These
+    /// captures feed the README, so they must hold the app and nothing else.
+    /// The panel is translucent, so its own glass still shows what sits behind
+    /// it; the bounds are what this guarantees.
+    var windowScreenshot: XCUIScreenshot {
+        // The menu bar panel is an NSPanel and reaches accessibility as a dialog.
+        // Querying it by its "menu.panel" identifier does not work: SwiftUI hands
+        // the identifier down to descendants too, and the first match turned out
+        // to be a 14x24 child rather than the panel.
+        let panel = dialogs.firstMatch
+        if panel.exists { return panel.screenshot() }
+        let window = windows.firstMatch
+        if window.exists { return window.screenshot() }
+        return screenshot()
+    }
 }
