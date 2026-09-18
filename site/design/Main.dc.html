@@ -74,7 +74,11 @@
     .btn .arrow { width: 0; opacity: 0; transform: translateX(-6px); transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1); }
     .btn:hover .arrow { width: 15px; opacity: 1; transform: translateX(0); }
     .row { display: flex; align-items: center; gap: 80px; flex-wrap: wrap; }
-    .shot { border-radius: 22px; display: block; width: 100%; max-width: 100%; }
+    .shot { border-radius: 22px; display: block; width: 100%; max-width: 100%; height: auto; }
+    .faq-item { padding: 22px 0; border-top: 1px solid var(--hair); }
+    .faq-item:first-child { border-top: 0; }
+    .faq-q { font-size: 18px; font-weight: 700; line-height: 1.35; }
+    .faq-a { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--ink-2); max-width: 760px; }
     .tilt-l {
       transform: perspective(1900px) rotateY(13deg) rotateX(4deg) rotateZ(-1.2deg);
       filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));
@@ -373,7 +377,7 @@
             </span>
             <span class="chip">Official</span>
           </div>
-          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown; balance calibrated by you</p>
         </div>
         <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
@@ -382,7 +386,7 @@
             </span>
             <span class="chip">Official</span>
           </div>
-          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown; balance calibrated by you</p>
         </div>
         <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
@@ -480,7 +484,8 @@
         </svg>
         <h3 style="font-size: 19px; font-weight: 700; margin-top: 16px;">Native SwiftUI</h3>
         <p style="margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--ink-2);">
-          A fixed 420x640 panel that drops out of the menu bar — not a browser in a window.
+          A 340-point panel, sized to what it has to show, that drops out of the menu
+          bar — not a browser in a window.
           Launches at login, refreshes in the background, and retains the last good
           snapshot rather than blanking the card.
         </p>
@@ -508,6 +513,42 @@
           xAI Management key — the narrowest read-only credential each provider supports,
           held in the macOS Keychain. Never your inference keys.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div id="faq" class="wrap" style="padding-bottom: 112px;">
+    <div style="max-width: 620px;">
+      <div class="eyebrow">Questions</div>
+      <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
+        What people ask before connecting a key.
+      </h2>
+    </div>
+    <div class="glass faq" style="margin-top: 36px; padding: 6px 30px;">
+      <div class="faq-item">
+        <h3 class="faq-q">How do I track my OpenAI and Anthropic API spending on a Mac?</h3>
+        <p class="faq-a">Install Spender, connect an OpenAI Organization Admin key or an Anthropic Console Admin key, and the menu bar panel shows what each provider's own billing API reports for today, yesterday and the last 30 days, with tokens and a breakdown by model.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Does Spender send my API keys anywhere?</h3>
+        <p class="faq-a">No. Keys are stored in the macOS Keychain and used only for requests to the providers you connected, over declared HTTPS origins. There is no Spender account, no server and no credential proxy in between.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Which LLM API providers does Spender support?</h3>
+        <p class="faq-a">OpenAI, Anthropic, DeepSeek, Kimi, Qwen (Alibaba Cloud Model Studio), xAI Grok and OpenRouter. Each card says exactly what that provider reports: cost, tokens, balance or credits.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">How does Spender know my remaining balance?</h3>
+        <p class="faq-a">DeepSeek, Kimi, xAI and OpenRouter report it themselves, and so does Qwen with read-only billing credentials. OpenAI and Anthropic do not, so you enter it once from their Billing page and Spender subtracts each new official cost report from it.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Why are Gemini, Perplexity and Mistral missing?</h3>
+        <p class="faq-a">An ordinary API key from them can call models but cannot read what the account has spent, and Mistral's billing API needs an Enterprise account. Spender does not use undocumented endpoints, because a wrong number is worse than no number.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Is Spender free?</h3>
+        <p class="faq-a">Yes. It is free and open source under the MIT License and runs on macOS 14 or later. The first release is still being prepared; until then you can build it from the source on GitHub.</p>
       </div>
     </div>
   </div>

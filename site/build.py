@@ -16,7 +16,10 @@ It rewrites site/index.html in place and prints what it changed.
 
 from pathlib import Path
 import hashlib
+import html
+import json
 import re
+import struct
 import sys
 
 ROOT = Path(__file__).resolve().parent
@@ -171,27 +174,144 @@ RESPONSIVE = """
         padding: 30px 22px !important;
       }
       .cta-band > div { margin-bottom: 22px; }
+
+      /* The FAQ card kept its 30px desktop sides, which left the answers a
+         narrow column on a phone. */
+      .faq { padding: 2px 22px !important; }
     }
 """
 
+TITLE = "Spender — every LLM API bill in one macOS menu bar panel"
+# Under 160 characters, so search results show it whole.
+DESCRIPTION = (
+    "Free, open source macOS menu bar app that tracks LLM API spend from "
+    "OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the Keychain."
+)
+SOCIAL_DESCRIPTION = (
+    "Free and open source. Reads official spend from your providers. "
+    "Keys stay in the macOS Keychain — no account, no server."
+)
+
 HEAD = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spender — every LLM API bill in one macOS menu bar panel</title>
-<meta name="description" content="Spender is a free, open source macOS menu bar app that reads your LLM API spend straight from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the macOS Keychain; there is no account and no server.">
+<title>{TITLE}</title>
+<meta name="description" content="{DESCRIPTION}">
 <link rel="icon" href="{versioned("assets/spender-icon-160.png")}" type="image/png">
 <link rel="canonical" href="{SITE_URL}">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Spender — every LLM API bill in one macOS menu bar panel">
-<meta property="og:description" content="Free and open source. Reads official spend from your providers. Keys stay in the macOS Keychain — no account, no server.">
-<meta property="og:image" content="{SITE_URL}{versioned("assets/screenshots/panel-today.png")}">
+<meta property="og:title" content="{TITLE}">
+<meta property="og:description" content="{SOCIAL_DESCRIPTION}">
+<meta property="og:image" content="{SITE_URL}{versioned("assets/og-image.png")}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Spender menu bar panel beside the line: every LLM API bill, in one menu bar panel.">
 <meta property="og:url" content="{SITE_URL}">
-<meta name="twitter:card" content="summary_large_image">"""
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{TITLE}">
+<meta name="twitter:description" content="{SOCIAL_DESCRIPTION}">
+<meta name="twitter:image" content="{SITE_URL}{versioned("assets/og-image.png")}">"""
 
 
 def fail(message: str) -> None:
     print(f"build.py: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def webp_size(path: Path) -> tuple[int, int]:
+    """Pixel size of a WebP, read from its header.
+
+    The deploy runner has plain Python and no imaging library, so this reads
+    the three header layouts WebP uses instead of adding a dependency.
+    """
+    data = path.read_bytes()[:30]
+    if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        fail(f"not a WebP file: {path}")
+    chunk = data[12:16]
+    if chunk == b"VP8X":
+        width = 1 + int.from_bytes(data[24:27], "little")
+        height = 1 + int.from_bytes(data[27:30], "little")
+    elif chunk == b"VP8L":
+        bits = int.from_bytes(data[21:25], "little")
+        width = 1 + (bits & 0x3FFF)
+        height = 1 + ((bits >> 14) & 0x3FFF)
+    elif chunk == b"VP8 ":
+        width, height = struct.unpack("<HH", data[26:30])
+        width &= 0x3FFF
+        height &= 0x3FFF
+    else:
+        fail(f"unknown WebP layout {chunk!r} in {path}")
+    return width, height
+
+
+FAQ_ITEM = re.compile(
+    r'<h3 class="faq-q">(.*?)</h3>\s*<p class="faq-a">(.*?)</p>', re.S
+)
+
+
+def plain(fragment: str) -> str:
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", "", fragment)).split())
+
+
+def structured_data(body: str) -> str:
+    """JSON-LD for the app, the site and the FAQ.
+
+    Only what the page itself says: no rating, reviews or download URL,
+    because there are none yet. The FAQ entries are read from the page's own
+    FAQ section, so the markup cannot drift from the visible answers.
+    """
+    faq = [(plain(q), plain(a)) for q, a in FAQ_ITEM.findall(body)]
+    if not faq:
+        fail("no FAQ items found — the FAQPage markup would be empty")
+    graph = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                "@id": f"{SITE_URL}#website",
+                "name": "Spender",
+                "url": SITE_URL,
+                "inLanguage": "en",
+            },
+            {
+                "@type": "SoftwareApplication",
+                "@id": f"{SITE_URL}#app",
+                "name": "Spender",
+                "url": SITE_URL,
+                "description": DESCRIPTION,
+                "applicationCategory": "DeveloperApplication",
+                "operatingSystem": "macOS 14 or later",
+                "isAccessibleForFree": True,
+                "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+                "license": f"{REPO_URL}/blob/main/LICENSE",
+                "image": f"{SITE_URL}assets/spender-icon-160.png",
+                "screenshot": f"{SITE_URL}assets/screenshots/panel-today.png",
+                "sameAs": [REPO_URL],
+                "author": {
+                    "@type": "Person",
+                    "name": "bestmark1",
+                    "url": "https://github.com/bestmark1",
+                },
+            },
+            {
+                "@type": "FAQPage",
+                "@id": f"{SITE_URL}#faq",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": question,
+                        "acceptedAnswer": {"@type": "Answer", "text": answer},
+                    }
+                    for question, answer in faq
+                ],
+            },
+        ],
+    }
+    return (
+        '<script type="application/ld+json">\n'
+        + json.dumps(graph, ensure_ascii=False, indent=2)
+        + "\n</script>"
+    )
 
 
 def split_artboard(source: str) -> tuple[str, str]:
@@ -228,10 +348,15 @@ def main() -> None:
 
     icon = versioned("assets/spender-icon-160.png")
     body = body.replace('src="spender-icon-160.png"', f'src="{icon}"')
-    for shot in SCREENSHOTS:
-        body = body.replace(
-            f'src="{shot}.webp"', f'src="{versioned(f"assets/screenshots/{shot}.webp")}"'
-        )
+    for index, shot in enumerate(SCREENSHOTS):
+        path = f"assets/screenshots/{shot}.webp"
+        width, height = webp_size(ROOT / path)
+        # Declared size keeps the layout from jumping while images load; the
+        # two below the fold wait until they are near the viewport.
+        extra = f' width="{width}" height="{height}" decoding="async"'
+        if index > 0:
+            extra += ' loading="lazy"'
+        body = body.replace(f'src="{shot}.webp"', f'src="{versioned(path)}"{extra}')
 
     # There is no release to download yet, so the page does not offer one.
     downloads = body.count("Download for Mac")
@@ -244,7 +369,7 @@ def main() -> None:
 
     page = (
         "<!doctype html>\n<html lang=\"en\">\n<head>\n"
-        f"{HEAD}\n{helmet}\n<style>{RESPONSIVE}</style>\n"
+        f"{HEAD}\n{structured_data(body)}\n{helmet}\n<style>{RESPONSIVE}</style>\n"
         f"</head>\n<body>\n{body}\n</body>\n</html>\n"
     )
     OUTPUT.write_text(page)

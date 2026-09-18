@@ -4,16 +4,116 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spender — every LLM API bill in one macOS menu bar panel</title>
-<meta name="description" content="Spender is a free, open source macOS menu bar app that reads your LLM API spend straight from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the macOS Keychain; there is no account and no server.">
+<meta name="description" content="Free, open source macOS menu bar app that tracks LLM API spend from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the Keychain.">
 <link rel="icon" href="assets/spender-icon-160.png?v=0039a84516" type="image/png">
 <link rel="canonical" href="https://usespender.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Spender — every LLM API bill in one macOS menu bar panel">
 <meta property="og:description" content="Free and open source. Reads official spend from your providers. Keys stay in the macOS Keychain — no account, no server.">
-<meta property="og:image" content="https://usespender.com/assets/screenshots/panel-today.png?v=8b1ecbba9e">
+<meta property="og:image" content="https://usespender.com/assets/og-image.png?v=e50402af06">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Spender menu bar panel beside the line: every LLM API bill, in one menu bar panel.">
 <meta property="og:url" content="https://usespender.com/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Spender — every LLM API bill in one macOS menu bar panel">
+<meta name="twitter:description" content="Free and open source. Reads official spend from your providers. Keys stay in the macOS Keychain — no account, no server.">
+<meta name="twitter:image" content="https://usespender.com/assets/og-image.png?v=e50402af06">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://usespender.com/#website",
+      "name": "Spender",
+      "url": "https://usespender.com/",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://usespender.com/#app",
+      "name": "Spender",
+      "url": "https://usespender.com/",
+      "description": "Free, open source macOS menu bar app that tracks LLM API spend from OpenAI, Anthropic, DeepSeek, xAI and more. Keys stay in the Keychain.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "macOS 14 or later",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "license": "https://github.com/bestmark1/spender/blob/main/LICENSE",
+      "image": "https://usespender.com/assets/spender-icon-160.png",
+      "screenshot": "https://usespender.com/assets/screenshots/panel-today.png",
+      "sameAs": [
+        "https://github.com/bestmark1/spender"
+      ],
+      "author": {
+        "@type": "Person",
+        "name": "bestmark1",
+        "url": "https://github.com/bestmark1"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://usespender.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I track my OpenAI and Anthropic API spending on a Mac?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Install Spender, connect an OpenAI Organization Admin key or an Anthropic Console Admin key, and the menu bar panel shows what each provider's own billing API reports for today, yesterday and the last 30 days, with tokens and a breakdown by model."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Spender send my API keys anywhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Keys are stored in the macOS Keychain and used only for requests to the providers you connected, over declared HTTPS origins. There is no Spender account, no server and no credential proxy in between."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which LLM API providers does Spender support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "OpenAI, Anthropic, DeepSeek, Kimi, Qwen (Alibaba Cloud Model Studio), xAI Grok and OpenRouter. Each card says exactly what that provider reports: cost, tokens, balance or credits."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Spender know my remaining balance?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "DeepSeek, Kimi, xAI and OpenRouter report it themselves, and so does Qwen with read-only billing credentials. OpenAI and Anthropic do not, so you enter it once from their Billing page and Spender subtracts each new official cost report from it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why are Gemini, Perplexity and Mistral missing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "An ordinary API key from them can call models but cannot read what the account has spent, and Mistral's billing API needs an Enterprise account. Spender does not use undocumented endpoints, because a wrong number is worse than no number."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Spender free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. It is free and open source under the MIT License and runs on macOS 14 or later. The first release is still being prepared; until then you can build it from the source on GitHub."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap">
   <style>
     :root {
@@ -81,7 +181,11 @@
     .btn .arrow { width: 0; opacity: 0; transform: translateX(-6px); transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1); }
     .btn:hover .arrow { width: 15px; opacity: 1; transform: translateX(0); }
     .row { display: flex; align-items: center; gap: 80px; flex-wrap: wrap; }
-    .shot { border-radius: 22px; display: block; width: 100%; max-width: 100%; }
+    .shot { border-radius: 22px; display: block; width: 100%; max-width: 100%; height: auto; }
+    .faq-item { padding: 22px 0; border-top: 1px solid var(--hair); }
+    .faq-item:first-child { border-top: 0; }
+    .faq-q { font-size: 18px; font-weight: 700; line-height: 1.35; }
+    .faq-a { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--ink-2); max-width: 760px; }
     .tilt-l {
       transform: perspective(1900px) rotateY(13deg) rotateX(4deg) rotateZ(-1.2deg);
       filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));
@@ -233,6 +337,10 @@
         padding: 30px 22px !important;
       }
       .cta-band > div { margin-bottom: 22px; }
+
+      /* The FAQ card kept its 30px desktop sides, which left the answers a
+         narrow column on a phone. */
+      .faq { padding: 2px 22px !important; }
     }
 </style>
 </head>
@@ -298,7 +406,7 @@
       </div>
 
       <div class="stage" style="flex: 1 1 360px; min-width: 260px; max-width: 470px; position: relative;">
-        <img class="shot in-plane" style="filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));" src="assets/screenshots/panel-today-520.webp?v=a430dc9715" alt="Spender menu bar panel showing today's tracked spend across three providers">
+        <img class="shot in-plane" style="filter: drop-shadow(0 34px 60px rgba(33, 78, 149, 0.22)) drop-shadow(0 6px 14px rgba(36, 35, 36, 0.10));" src="assets/screenshots/panel-today-520.webp?v=a430dc9715" width="520" height="924" decoding="async" alt="Spender menu bar panel showing today's tracked spend across three providers">
         <div class="note" style="top: 44.7%; left: -7%;">
           <span class="dot" style="background: var(--teal);"></span>
           Official
@@ -420,7 +528,7 @@
   <div class="wrap" style="--pad-top: 24px; --pad-bottom: 60px;">
     <div class="row">
       <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
-        <img class="shot tilt-l" src="assets/screenshots/panel-deepseek-expanded-520.webp?v=51342e5dbb" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
+        <img class="shot tilt-l" src="assets/screenshots/panel-deepseek-expanded-520.webp?v=51342e5dbb" width="520" height="924" decoding="async" loading="lazy" alt="DeepSeek card expanded, showing an estimated period spend and how it was calculated">
       </div>
       <div style="flex: 1 1 380px; min-width: 300px; max-width: 520px;">
         <div class="eyebrow">The idea</div>
@@ -459,7 +567,7 @@
         </p>
       </div>
       <div style="flex: 1 1 330px; min-width: 240px; max-width: 430px;">
-        <img class="shot tilt-r" src="assets/screenshots/panel-30days-520.webp?v=f1c4e9a652" alt="Thirty day view with an Official badge beside each provider and a daily spend chart split by provider">
+        <img class="shot tilt-r" src="assets/screenshots/panel-30days-520.webp?v=f1c4e9a652" width="520" height="1129" decoding="async" loading="lazy" alt="Thirty day view with an Official badge beside each provider and a daily spend chart split by provider">
       </div>
     </div>
   </div>
@@ -486,7 +594,7 @@
             </span>
             <span class="chip">Official</span>
           </div>
-          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown; balance calibrated by you</p>
         </div>
         <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
@@ -495,7 +603,7 @@
             </span>
             <span class="chip">Official</span>
           </div>
-          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown</p>
+          <p style="margin-top: 7px; font-size: 14px; line-height: 1.45; color: var(--ink-2);">Cost, tokens and model breakdown; balance calibrated by you</p>
         </div>
         <div style="padding: 16px 20px; border-radius: 13px; background: rgba(255, 255, 255, 0.42);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
@@ -593,7 +701,8 @@
         </svg>
         <h3 style="font-size: 19px; font-weight: 700; margin-top: 16px;">Native SwiftUI</h3>
         <p style="margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--ink-2);">
-          A fixed 420x640 panel that drops out of the menu bar — not a browser in a window.
+          A 340-point panel, sized to what it has to show, that drops out of the menu
+          bar — not a browser in a window.
           Launches at login, refreshes in the background, and retains the last good
           snapshot rather than blanking the card.
         </p>
@@ -621,6 +730,42 @@
           xAI Management key — the narrowest read-only credential each provider supports,
           held in the macOS Keychain. Never your inference keys.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div id="faq" class="wrap" style="--pad-bottom: 112px;">
+    <div style="max-width: 620px;">
+      <div class="eyebrow">Questions</div>
+      <h2 style="font-size: 38px; line-height: 1.1; margin-top: 18px;">
+        What people ask before connecting a key.
+      </h2>
+    </div>
+    <div class="glass faq" style="margin-top: 36px; padding: 6px 30px;">
+      <div class="faq-item">
+        <h3 class="faq-q">How do I track my OpenAI and Anthropic API spending on a Mac?</h3>
+        <p class="faq-a">Install Spender, connect an OpenAI Organization Admin key or an Anthropic Console Admin key, and the menu bar panel shows what each provider's own billing API reports for today, yesterday and the last 30 days, with tokens and a breakdown by model.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Does Spender send my API keys anywhere?</h3>
+        <p class="faq-a">No. Keys are stored in the macOS Keychain and used only for requests to the providers you connected, over declared HTTPS origins. There is no Spender account, no server and no credential proxy in between.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Which LLM API providers does Spender support?</h3>
+        <p class="faq-a">OpenAI, Anthropic, DeepSeek, Kimi, Qwen (Alibaba Cloud Model Studio), xAI Grok and OpenRouter. Each card says exactly what that provider reports: cost, tokens, balance or credits.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">How does Spender know my remaining balance?</h3>
+        <p class="faq-a">DeepSeek, Kimi, xAI and OpenRouter report it themselves, and so does Qwen with read-only billing credentials. OpenAI and Anthropic do not, so you enter it once from their Billing page and Spender subtracts each new official cost report from it.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Why are Gemini, Perplexity and Mistral missing?</h3>
+        <p class="faq-a">An ordinary API key from them can call models but cannot read what the account has spent, and Mistral's billing API needs an Enterprise account. Spender does not use undocumented endpoints, because a wrong number is worse than no number.</p>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q">Is Spender free?</h3>
+        <p class="faq-a">Yes. It is free and open source under the MIT License and runs on macOS 14 or later. The first release is still being prepared; until then you can build it from the source on GitHub.</p>
       </div>
     </div>
   </div>

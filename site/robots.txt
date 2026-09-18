@@ -1,0 +1,6 @@
+# Everyone may read the site, AI search and assistant crawlers included:
+# being cited in their answers is how many people will first hear of Spender.
+User-agent: *
+Allow: /
+
+Sitemap: https://usespender.com/sitemap.xml

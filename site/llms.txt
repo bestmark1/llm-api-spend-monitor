@@ -1,0 +1,20 @@
+# Spender
+
+> Spender is a free, open source macOS menu bar app that shows what you spend on LLM APIs. It reads spend, tokens and balances straight from each provider's own billing API. API keys stay in the macOS Keychain; there is no Spender account and no server.
+
+- Platform: macOS 14 or later, native SwiftUI menu bar panel.
+- Price: free. License: MIT.
+- Status: the first release is in preparation; the app can be built from source.
+- Providers: OpenAI, Anthropic, DeepSeek, Kimi, Qwen (Alibaba Cloud Model Studio), xAI Grok, OpenRouter.
+- Periods: today, yesterday and the last 30 days, with a daily spend chart split by provider.
+- Official and estimated figures are labelled separately. A metric a provider does not report is left blank, never shown as $0.
+- OpenAI and Anthropic do not report a remaining balance: you enter it once from Billing and Spender subtracts each new official cost report.
+- DeepSeek has no cost history API: Spender estimates spend from saved balance decreases and labels it as estimated.
+- Not supported, because an ordinary account cannot read spend through a documented API: Gemini, Perplexity, Mistral (Enterprise only), OpenCode Zen, Z.ai.
+
+## Links
+
+- [Website](https://usespender.com/): overview, providers and FAQ
+- [Source code and README](https://github.com/bestmark1/spender): build instructions, supported providers, privacy and security
+- [Security policy](https://github.com/bestmark1/spender/blob/main/SECURITY.md): private vulnerability reporting
+- [License](https://github.com/bestmark1/spender/blob/main/LICENSE): MIT
