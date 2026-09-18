@@ -18,6 +18,28 @@ It connects directly to provider APIs, keeps credentials in macOS Keychain, and 
 - Lets you reorder and hide providers without removing saved credentials.
 - Refreshes in the background, retains the last good snapshot, and supports launch at login.
 
+## What it looks like
+
+Spender lives in the menu bar and shows the running total next to the clock.
+Click it to open the panel; everything below is one click deep.
+
+<img src="docs/images/panel-today.png" width="420" alt="Spender panel on the Today tab: total spend, a composition bar and one card per provider">
+
+**Today.** The total at the top, then a bar showing which providers it is made
+of, then one card per connection with its remaining balance and what it spent.
+Providers are ordered by spend, largest first.
+
+<img src="docs/images/panel-30days.png" width="420" alt="The 30 Days tab with Official and Estimated badges and a daily spend chart">
+
+**30 Days.** The same total over a month, with each provider labelled `Official`
+or `Estimated` so it is clear which figures came from a billing API and which
+Spender derived itself. Below it, spend per day.
+
+<img src="docs/images/panel-deepseek-expanded.png" width="420" alt="An expanded DeepSeek card showing estimated period spend and links to the provider console">
+
+**A card opened up.** Click a provider to see how its number was produced and to
+jump straight to that provider's own billing, dashboard and status pages.
+
 ## Supported providers
 
 | Provider | Connection | Metrics in Spender |
