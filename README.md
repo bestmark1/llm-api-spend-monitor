@@ -13,7 +13,7 @@
 </p>
 
 Spender reads your spend straight from OpenAI, Anthropic, DeepSeek, xAI, Kimi,
-Qwen, Mistral and OpenRouter. Keys stay in the macOS Keychain — there is no
+Qwen and OpenRouter. Keys stay in the macOS Keychain — there is no
 Spender account, no backend, and no credential proxy.
 
 It never passes an estimate off as an official figure: every number is labelled
@@ -71,10 +71,25 @@ billing, dashboard and status pages.
 | Kimi | Standard API key and matching API host | Official balance |
 | Qwen / Alibaba Cloud | Model Studio API key; optional read-only BSS AccessKey credentials | Key validation; official Alibaba Cloud balance and Qwen billing when BSS is configured |
 | xAI / Grok | Team-scoped Management API key | Official prepaid balance, usage, and model breakdown |
-| Mistral AI | Enterprise Admin API key | Official remaining monthly spending limit |
 | OpenRouter | Management API key | Official remaining credits |
 
-Gemini and Perplexity are currently hidden because their ordinary API keys do not provide a practical account-wide spend report for this app. Spender does not present key validation as billing integration.
+### Why some providers are not here
+
+Spender shows only money that a provider itself reports through a documented
+API. These providers do not offer that to an ordinary account yet:
+
+| Provider | Why it is missing |
+| --- | --- |
+| Gemini | An ordinary API key can call the models but cannot read what the account has spent. |
+| Perplexity | The same: the API key works for requests, not for billing. |
+| Mistral AI | Reading spend needs an Admin API key. Mistral issues those only to Enterprise accounts, through its account team, and the Admin API is still a preview. |
+| OpenCode Zen | OpenCode documents only the endpoints for calling models. There is no public way to read the balance or what was spent. |
+| Z.ai | You can pay per call or buy usage bundles, but there is no documented API for reading the balance. |
+
+Some apps work around this by calling a provider's internal, undocumented
+endpoints. Spender does not: such an endpoint can change or disappear without
+notice, and a wrong number is worse than no number. If any of these providers
+publishes a supported way to read spend, it can be added.
 
 ### Cost reports and token-report failures
 

@@ -20,7 +20,11 @@ struct ProviderMetadata: Identifiable, Equatable, Sendable {
 }
 
 enum ProviderRegistry {
-    private static let hiddenProviderIDs: Set<ProviderID> = [.gemini, .perplexity]
+    /// Providers whose ordinary key reads no money. Mistral joins Gemini and
+    /// Perplexity: its spend limit needs an Admin API key, created only in the
+    /// Enterprise Backoffice, which Mistral opens through its account team. The
+    /// integration stays in the registry, so an Enterprise build can list it again.
+    private static let hiddenProviderIDs: Set<ProviderID> = [.gemini, .perplexity, .mistral]
 
     static let all: [ProviderMetadata] = [
         ProviderMetadata(

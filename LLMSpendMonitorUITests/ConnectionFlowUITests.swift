@@ -31,7 +31,7 @@ final class ConnectionFlowUITests: XCTestCase {
         // The list only scrolls downwards here, so providers are checked in the order
         // ProviderRegistry.userFacing puts them in. Kimi sits above Qwen: looking for it
         // after scrolling past Qwen can never succeed.
-        for providerID in ["anthropic", "deepseek", "kimi", "qwen", "xai", "mistral", "openrouter"] {
+        for providerID in ["anthropic", "deepseek", "kimi", "qwen", "xai", "openrouter"] {
             let field = app.secureTextFields["connection.\(providerID).secret"]
             scrollUntilPresent(field, in: scrollView)
             XCTAssertTrue(field.exists, "\(providerID) should expose a secure credential field")
@@ -41,7 +41,6 @@ final class ConnectionFlowUITests: XCTestCase {
             // wrong kind of key with nothing on screen to tell them so.
             if let guide = [
                 "xai": "connection.xai.managementKeyGuide",
-                "mistral": "connection.mistral.adminKeyGuide",
                 "openrouter": "connection.openrouter.managementKeyGuide"
             ][providerID] {
                 XCTAssertTrue(
@@ -74,6 +73,7 @@ final class ConnectionFlowUITests: XCTestCase {
 
         XCTAssertFalse(app.descendants(matching: .any)["connection.gemini.card"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["connection.perplexity.card"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["connection.mistral.card"].exists)
     }
 
     /// Scrolls down only until `element` is in the hierarchy, then stops.

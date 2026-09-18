@@ -22,7 +22,7 @@ final class ProviderRegistryTests: XCTestCase {
         )
         XCTAssertEqual(
             ProviderRegistry.userFacing.map(\.id),
-            [.openAI, .anthropic, .deepSeek, .kimi, .qwen, .xAI, .mistral, .openRouter]
+            [.openAI, .anthropic, .deepSeek, .kimi, .qwen, .xAI, .openRouter]
         )
     }
 
