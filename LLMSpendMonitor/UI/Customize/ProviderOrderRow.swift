@@ -124,7 +124,7 @@ struct ProviderOrderRow: View {
             if item.metadata.capabilities.contains(.modelBreakdown) {
                 parts.append("models")
             }
-            return parts.joined(separator: " · ")
+            return parts.joined(separator: MetricFormatting.separator)
         }
         if item.metadata.capabilities.contains(.balance) {
             return "Current official balance"

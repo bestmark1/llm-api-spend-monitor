@@ -28,6 +28,13 @@ struct ProviderStatusPresentation: Equatable {
         }
     }
 
+    /// The label's colour. System orange is about 3:1 against white — short of
+    /// the 4.5:1 small text needs — so in light mode the words take a darker
+    /// orange while the icon and the capsule keep the system hue.
+    var textColor: Color {
+        tone == .warning ? .warningText : color
+    }
+
     init(
         availability: ProviderIntegrationAvailability,
         hasSnapshot: Bool,
@@ -250,7 +257,11 @@ struct ProviderCard: View {
                     .transition(.opacity)
             }
         }
-        .padding(15)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .overlay(alignment: .topLeading) {
+            dragHandle.padding(.top, 10)
+        }
         .background {
             GlassSurface(
                 cornerRadius: 16,
@@ -277,8 +288,10 @@ struct ProviderCard: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
+    /// Sits in the card's left margin and shows on hover. The whole card is
+    /// draggable anyway; standing, the dots only pushed the mark off the edge
+    /// the balance row below uses.
+    private var dragHandle: some View {
             VStack(spacing: 2.5) {
                 ForEach(0..<3, id: \.self) { _ in
                     HStack(spacing: 2.5) {
@@ -289,42 +302,57 @@ struct ProviderCard: View {
                     }
                 }
             }
-            .foregroundStyle(Color.secondary.opacity(isHovered ? 0.9 : 0.55))
+            .foregroundStyle(Color.secondary.opacity(isHovered ? 0.8 : 0))
             .frame(width: 12, height: 30)
             .contentShape(Rectangle())
             .help("Drag to reorder providers")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Drag \(metadata.displayName) to reorder")
             .accessibilityIdentifier("provider.\(metadata.id.rawValue).dragHandle")
+    }
 
+    private var header: some View {
+        HStack(spacing: 8) {
             ProviderMarkView(metadata: metadata)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(metadata.displayName)
-                    .font(.headline)
+                // The status belongs to the provider's name, so it shares that
+                // line rather than floating between the name and its subtitle.
+                // The subtitle then has the whole width to itself and no longer
+                // wraps when a long status is showing.
+                HStack(spacing: 8) {
+                    Text(metadata.displayName)
+                        .font(.headline)
+
+                    Spacer(minLength: 8)
+
+                    // The status and the disclosure arrow read as one control
+                    // cluster, so they sit closer together than the rest of the row.
+                    HStack(spacing: 3) {
+                        statusBadge
+
+                        Button {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
+                                isExpanded.toggle()
+                            }
+                        } label: {
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .frame(width: 14, height: 17)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(isExpanded ? "Collapse \(metadata.displayName)" : "Expand \(metadata.displayName)")
+                        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+                        .accessibilityIdentifier("provider.\(metadata.id.rawValue).disclosure")
+                    }
+                }
+
                 Text(capabilityText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Spacer(minLength: 8)
-            statusBadge
-
-            Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.16)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .frame(width: 20, height: 20)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel(isExpanded ? "Collapse \(metadata.displayName)" : "Expand \(metadata.displayName)")
-            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
-            .accessibilityIdentifier("provider.\(metadata.id.rawValue).disclosure")
         }
     }
 
@@ -373,7 +401,7 @@ struct ProviderCard: View {
             .accessibilityIdentifier("provider.\(metadata.id.rawValue).summary")
         } else if geminiUsageNeedsConnection {
             Label(
-                "API key connected · connect Google usage in Connections",
+                "API key connected\u{2009}·\u{2009}connect Google usage in Connections",
                 systemImage: "link.badge.plus"
             )
             .font(.caption)
@@ -384,7 +412,7 @@ struct ProviderCard: View {
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.secondary)
         } else if snapshot != nil {
-            Text("Connected · financial metrics unavailable")
+            Text("Connected\u{2009}·\u{2009}financial metrics unavailable")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {
@@ -450,7 +478,7 @@ struct ProviderCard: View {
         if let tokens = tokenSummary(snapshot) {
             parts.append(tokens)
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return parts.isEmpty ? nil : parts.joined(separator: MetricFormatting.separator)
     }
 
     private func officialBalanceDetail(
@@ -470,7 +498,7 @@ struct ProviderCard: View {
                 parts.append("\(MetricFormatting.money(toppedUp.value)) topped up")
             }
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return parts.isEmpty ? nil : parts.joined(separator: MetricFormatting.separator)
     }
 
     @ViewBuilder
@@ -553,7 +581,7 @@ struct ProviderCard: View {
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.secondary)
         } else if platformBalance == nil, synchronizeBalance == nil {
-            Text("Connected · financial metrics unavailable")
+            Text("Connected\u{2009}·\u{2009}financial metrics unavailable")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -761,12 +789,19 @@ struct ProviderCard: View {
                 }
                 .font(.caption.weight(.medium))
             } else {
-                Label(presentation.title, systemImage: presentation.icon)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(presentation.color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(presentation.color.opacity(0.1), in: Capsule())
+                // One gap, used three times: edge to icon, icon to text, text to
+                // edge. A Label would pick its own icon spacing and leave the
+                // middle gap different from the two at the ends.
+                HStack(spacing: 5) {
+                    Image(systemName: presentation.icon)
+                        .foregroundStyle(presentation.color)
+                    Text(presentation.title)
+                        .foregroundStyle(presentation.textColor)
+                }
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(presentation.color.opacity(0.1), in: Capsule())
             }
         }
         // A status reads as one phrase, so it never breaks across lines. Left to
@@ -811,11 +846,11 @@ struct ProviderCard: View {
             if metadata.capabilities.contains(.modelBreakdown) {
                 parts.append("models")
             }
-            return parts.joined(separator: " · ")
+            return parts.joined(separator: MetricFormatting.separator)
         }
         if metadata.capabilities.contains(.estimatedCostHistory) {
             return metadata.capabilities.contains(.balance)
-                ? "Balance · estimated spend"
+                ? "Balance\u{2009}·\u{2009}estimated spend"
                 : "Estimated spend"
         }
         if metadata.capabilities.contains(.balance) {
@@ -823,7 +858,7 @@ struct ProviderCard: View {
         }
         if metadata.capabilities.contains(.tokenUsage) {
             return metadata.capabilities.contains(.modelBreakdown)
-                ? "Tokens · models"
+                ? "Tokens\u{2009}·\u{2009}models"
                 : "Tokens"
         }
         return "Key validation"
@@ -848,16 +883,16 @@ struct ProviderCard: View {
     private func updateText(_ snapshot: ProviderSnapshot) -> String {
         let timestamp = snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened)
         if geminiUsageNeedsConnection {
-            return "API key checked \(timestamp) · usage not connected"
+            return "API key checked \(timestamp)\u{2009}·\u{2009}usage not connected"
         }
         guard let issue = snapshot.issue else {
             switch freshness ?? .current {
             case .current: return "Updated \(timestamp)"
-            case .processing: return "Updated \(timestamp) · cost report processing"
-            case .stale: return "Last update \(timestamp) · refresh pending"
+            case .processing: return "Updated \(timestamp)\u{2009}·\u{2009}cost report processing"
+            case .stale: return "Last update \(timestamp)\u{2009}·\u{2009}refresh pending"
             }
         }
-        return "Last update \(timestamp) · \(issueText(issue))"
+        return "Last update \(timestamp)\u{2009}·\u{2009}\(issueText(issue))"
     }
 
     private func issueText(_ issue: ProviderIssue) -> String {
@@ -933,7 +968,7 @@ struct ProviderCard: View {
 
     private func tokenSummary(_ snapshot: ProviderSnapshot) -> String? {
         guard let tokens = tokenTotal(snapshot) else { return nil }
-        return "\(MetricFormatting.tokens(tokens.input)) in · \(MetricFormatting.tokens(tokens.output)) out"
+        return "\(MetricFormatting.tokens(tokens.input)) in\u{2009}·\u{2009}\(MetricFormatting.tokens(tokens.output)) out"
     }
 
     private func modelSummaries(_ snapshot: ProviderSnapshot) -> [ModelSummary] {
@@ -954,4 +989,14 @@ private struct ModelSummary: Identifiable {
     let tokens: Int64
 
     var id: String { modelID }
+}
+
+private extension Color {
+    /// #B85C00 in light mode, about 4.6:1 on white; system orange in dark mode,
+    /// where it already reads.
+    static let warningText = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? .systemOrange
+            : NSColor(srgbRed: 0.722, green: 0.361, blue: 0, alpha: 1)
+    })
 }

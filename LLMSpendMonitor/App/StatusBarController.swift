@@ -274,9 +274,14 @@ final class StatusBarInteractionController: NSObject {
         case .connections:
             appState.showConnections()
             panelPresenter.show()
+        // The panel floats at pop-up-menu level, above ordinary windows, so a
+        // window opened while it is showing lands behind it. Like a menu, the
+        // panel gets out of the way once one of its commands is chosen.
         case .settings:
+            panelPresenter.hide()
             openSettings()
         case .about:
+            panelPresenter.hide()
             AboutPanel.present()
         case .quit:
             quitApplication()

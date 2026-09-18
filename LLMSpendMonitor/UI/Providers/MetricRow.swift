@@ -20,6 +20,11 @@ struct MetricRow: View {
 }
 
 enum MetricFormatting {
+    /// The dot that joins short facts on one line — "Cost · tokens · models".
+    /// Thin spaces rather than word spaces: the dot is a hinge, not a pause,
+    /// and a line of three or four facts reads as one phrase instead of a list.
+    static let separator = "\u{2009}·\u{2009}"
+
     static func money(_ money: Money) -> String {
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US")

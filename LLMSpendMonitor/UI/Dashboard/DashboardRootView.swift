@@ -172,11 +172,19 @@ private struct DashboardView: View {
     let closePanel: () -> Void
     let quitApplication: () -> Void
 
+    @Environment(\.openSettings) private var openSettings
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: MenuPanelMetrics.headerInset) {
             HStack {
                 Text("Spender")
                     .font(.title2.bold())
+                    // Centre the buttons on the letters rather than on the
+                    // line box, whose descender room sits them visibly low.
+                    .alignmentGuide(VerticalAlignment.center) { d in
+                        d[.firstTextBaseline] - MenuPanelMetrics.titleCapHeight / 2
+                    }
                 Spacer()
                 DashboardHeaderButton(
                     title: "Refresh",
@@ -193,11 +201,20 @@ private struct DashboardView: View {
                     action: closePanel
                 )
             }
+            // "Spender" starts where "Tracked spend" starts in the card below:
+            // the card's inset plus its own content inset.
+            .padding(.horizontal, MenuPanelMetrics.summaryContentInset)
             .measuringPanelPart("header")
 
             PeriodPicker(selection: $viewModel.selectedPeriod)
                 .measuringPanelPart("picker")
+            }
 
+            VStack(alignment: .leading, spacing: MenuPanelMetrics.optionsGap) {
+            // The summary and the provider cards are one stack of cards, so they
+            // share the cards' spacing rather than the wider gap between the
+            // panel's rows above.
+            VStack(alignment: .leading, spacing: MenuPanelMetrics.providerCardSpacing) {
             SummaryCard(
                 total: viewModel.trackedUSDTotal,
                 breakdown: viewModel.trackedUSDBreakdown,
@@ -249,11 +266,23 @@ private struct DashboardView: View {
                     }
                 }
                 .measuringPanelPart("list")
+                // Room for the cards' shadows inside the scroll view's clip, so
+                // the last card keeps its rounded corners and its shadow.
+                .padding(listShadowRoom)
             }
             // The list is the one row that gives way. It never grows past the
             // cap, and it yields height back when the summary grows on the
             // 30 Days tab, so a frozen panel still fits everything it must.
-            .frame(maxHeight: listCap)
+            .frame(maxHeight: listCap + listShadowRoom.top + listShadowRoom.bottom)
+            // The shadow room is drawn over the neighbours, not laid out: the
+            // gaps around the list stay what they were.
+            .padding(EdgeInsets(
+                top: -listShadowRoom.top,
+                leading: -listShadowRoom.leading,
+                bottom: -listShadowRoom.bottom,
+                trailing: -listShadowRoom.trailing
+            ))
+            }
 
             Menu {
                 Button {
@@ -270,13 +299,21 @@ private struct DashboardView: View {
                 }
                 .accessibilityIdentifier("options.connections")
 
-                SettingsLink {
+                // Settings and About open ordinary windows, which would land
+                // behind the panel's pop-up-menu level. The panel closes first.
+                Button {
+                    closePanel()
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    openSettings()
+                } label: {
                     Label("Settings", systemImage: StatusBarMenuAction.settings.symbolName)
                 }
+                .accessibilityIdentifier("options.settings")
 
                 Divider()
 
                 Button {
+                    closePanel()
                     AboutPanel.present()
                 } label: {
                     Label("About Spender", systemImage: StatusBarMenuAction.about.symbolName)
@@ -296,22 +333,28 @@ private struct DashboardView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "ellipsis.circle")
                     Text("Options")
-                    Image(systemName: "chevron.down")
-                        .font(.caption2.weight(.semibold))
                 }
                 .font(.callout)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 5)
-                .background(.quaternary, in: Capsule())
-                .contentShape(Capsule())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            // On the menu itself, not in its label: a borderless menu redraws
+            // the label from its image and text alone and drops anything else.
+            .padding(.horizontal, 11)
+            .padding(.vertical, 5)
+            .background(Color.primary.opacity(0.10), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.8))
+            .contentShape(Capsule())
             .accessibilityIdentifier("options.menu")
             .measuringPanelPart("options")
+            }
         }
-        .padding(20)
+        // One side margin for the cards, the picker and Options; the title
+        // alone sits further in, level with the summary's text.
+        .padding(.horizontal, MenuPanelMetrics.cardInset)
+        .padding(.top, MenuPanelMetrics.headerInset)
+        .padding(.bottom, MenuPanelMetrics.bottomInset)
         .frame(maxHeight: .infinity, alignment: .top)
         .accessibilityIdentifier("dashboard.root")
         .task { await viewModel.start() }
@@ -324,6 +367,16 @@ private struct DashboardView: View {
     }
 
     @State private var partHeights: [String: CGFloat] = [:]
+    /// Shadow room around the cards. While the list scrolls, the room below
+    /// stays inside the gap between cards, so the last whole card keeps part
+    /// of its shadow and none of the next card shows.
+    private var listShadowRoom: EdgeInsets {
+        var room = MenuPanelMetrics.cardShadowRoom
+        if providers.count > MenuPanelMetrics.visibleProviderCap {
+            room.bottom = MenuPanelMetrics.providerCardSpacing - 1
+        }
+        return room
+    }
 
     /// Three collapsed cards and the gaps between them — or fewer, when fewer
     /// providers are shown.
@@ -403,7 +456,7 @@ private extension View {
 /// four — and stops at `visibleProviderCap` cards so the panel never grows into
 /// a window. Past that the provider list scrolls.
 enum MenuPanelMetrics {
-    /// 420 in every shipping build. The demo build may be told otherwise via
+    /// 340 in every shipping build. The demo build may be told otherwise via
     /// `SPENDER_DEMO_PANEL_WIDTH`, so width can be judged from captures side by
     /// side rather than argued about.
     static var width: CGFloat {
@@ -418,7 +471,7 @@ enum MenuPanelMetrics {
             return CGFloat(requested)
         }
 #endif
-        return 420
+        return 340
     }
 
     /// Used before the dashboard has measured itself, and by every other screen.
@@ -434,12 +487,45 @@ enum MenuPanelMetrics {
     static let visibleProviderCap = 3
 
     /// Everything the dashboard spends on itself rather than on content:
-    /// `.padding(20)` top and bottom, plus the 16pt gaps between its five rows.
+    /// `headerInset` above the title and under it, `bottomInset` below
+    /// Options, the 16pt gap under the period picker, one card gap between the summary and the
+    /// provider list, and `optionsGap` above Options.
     /// Keep this in step with `DashboardView.body`.
-    static let chromeHeight: CGFloat = 20 * 2 + 16 * 4
+    static var chromeHeight: CGFloat {
+        headerInset * 2 + bottomInset + 16 + providerCardSpacing + optionsGap
+    }
 
-    /// Spacing between provider cards — `LazyVStack(spacing: 12)`.
-    static let providerCardSpacing: CGFloat = 12
+    /// Above the title row and between it and the period picker — the same
+    /// both ways, so the title sits centred in its band.
+    static let headerInset: CGFloat = 14
+
+    /// Cap height of the title's font, for centring the header buttons on
+    /// the word "Spender" rather than on its line box.
+    static let titleCapHeight: CGFloat = {
+        let font = NSFont.preferredFont(forTextStyle: .title2)
+        let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
+        return bold.capHeight
+    }()
+
+    /// Below the Options button, to the panel's bottom edge.
+    static let bottomInset: CGFloat = 10
+
+    /// Between the last card and the Options button.
+    static let optionsGap: CGFloat = 10
+
+    /// Side margin of the stack of cards — summary and providers — and of the
+    /// period picker and Options, which line up with the cards' edges.
+    static let cardInset: CGFloat = 10
+
+    /// The summary card's own horizontal content inset. The title above uses
+    /// it too, so "Spender" and "Tracked spend" start at the same x.
+    static let summaryContentInset: CGFloat = 15
+
+    /// Spacing between provider cards, and between the summary and the first.
+    static let providerCardSpacing: CGFloat = 5
+
+    /// How far a provider card's shadow reaches past its edges.
+    static let cardShadowRoom = EdgeInsets(top: 4, leading: 8, bottom: 10, trailing: 8)
 
     private static let minHeight: CGFloat = 320
     private static let maxHeight: CGFloat = 900

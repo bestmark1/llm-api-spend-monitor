@@ -30,9 +30,11 @@ enum GlassProminence {
 
     var material: Material {
         switch self {
-        case .panel: .ultraThin
-        case .primary: .regular
-        case .secondary: .thin
+        case .panel: .regular
+        // Both card levels share one material. The thinner one let the
+        // wallpaper through as a tint that read as a mistake; the summary
+        // stands out by its shadow and its larger figure instead.
+        case .primary, .secondary: .regular
         }
     }
 
@@ -48,7 +50,7 @@ enum GlassProminence {
         switch self {
         case .panel: (0.18, 18, 8)
         case .primary: (0.13, 10, 5)
-        case .secondary: (0.09, 7, 3)
+        case .secondary: (0.11, 7, 3)
         }
     }
 }
@@ -67,6 +69,21 @@ struct GlassSurface: View {
 
         shape
             .fill(backgroundStyle)
+            .overlay {
+                // In light mode the panel keeps a light base whatever window is
+                // behind it. Over a dark window the glass alone turned the whole
+                // panel mid-grey, and its grey captions lost half their contrast.
+                if colorScheme == .light, !reduceTransparency {
+                    if prominence == .panel {
+                        shape.fill(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+                    } else {
+                        // Cards sit a step lighter than the panel under them —
+                        // near white on light grey — or on the dense base they
+                        // merge with it into one sheet.
+                        shape.fill(Color(nsColor: .controlBackgroundColor).opacity(0.85))
+                    }
+                }
+            }
             .overlay {
                 if !reduceTransparency {
                     shape.fill(

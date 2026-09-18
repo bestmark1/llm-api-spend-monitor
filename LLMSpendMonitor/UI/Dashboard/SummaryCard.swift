@@ -31,7 +31,7 @@ struct SummaryCard: View {
                 }
                 if excludedProviderCount > 0 {
                     Label(
-                        "Partial · \(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
+                        "Partial\u{2009}·\u{2009}\(excludedProviderCount) report\(excludedProviderCount == 1 ? "" : "s") excluded",
                         systemImage: "exclamationmark.circle.fill"
                     )
                     .foregroundStyle(.orange)
@@ -73,7 +73,8 @@ struct SummaryCard: View {
                 }
             }
         }
-        .padding(18)
+        .padding(.horizontal, MenuPanelMetrics.summaryContentInset)
+        .padding(.vertical, 13)
         .background {
             GlassSurface(cornerRadius: 16, prominence: .primary)
         }

@@ -122,7 +122,7 @@ enum ProviderRegistry {
         ),
         ProviderMetadata(
             id: .xAI,
-            displayName: "xAI · Grok",
+            displayName: "xAI\u{2009}·\u{2009}Grok",
             systemImageName: "xmark",
             markAssetName: "mark.xai",
             credentialHelp: "Create a team-scoped xAI Management API key in xAI Console → Settings → Management Keys. It is a different key from the inference API key and needs read access to billing. Spender reads the official prepaid balance and daily USD usage.",
